@@ -1,0 +1,130 @@
+# =============================================================================
+# Docker Compose - Keycloak + PostgreSQL (HarmoniWatts)
+# Production-ready para sistema de autenticación (ej. frontend Angular)
+# =============================================================================
+# Todas las credenciales y secrets deben estar en .env (nunca hardcodear aquí).
+# Copiar .env.example a .env y completar los valores antes de levantar.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 15+ - Base de datos dedicada para Keycloak
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: keycloak-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    ports:
+      # Exponer solo si necesitas conectar desde host (DBeaver, TablePlus, etc.)
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # Keycloak - Identity Provider (última versión estable)
+  # ---------------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    restart: unless-stopped
+    command:
+      # Desarrollo: start-dev (HTTP en 8080, opciones inseguras para dev).
+      # Producción: cambiar a "start" y configurar KC_HOSTNAME/HTTPS según docs.
+      - start-dev
+    environment:
+      # Admin inicial (solo para bootstrap; cambiar en primer acceso en producción)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      # Base de datos PostgreSQL (no usar H2)
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Hostname para que Angular/redirects funcionen (ajustar en producción)
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT:-8080}
+      KC_HTTP_ENABLED: "true"
+      # Health para readiness (y para depends_on)
+      KC_HEALTH_ENABLED: "true"
+      # SMTP: configurar en Admin Console → Realm Settings → Email, o usar variables
+      # opcionales (ver .env.example). Keycloak no expone todo SMTP por env en todas las versiones.
+      KC_SPI_EMAIL_SMTP_HOST: ${KC_SPI_EMAIL_SMTP_HOST:-}
+      KC_SPI_EMAIL_SMTP_PORT: ${KC_SPI_EMAIL_SMTP_PORT:-}
+      KC_SPI_EMAIL_SMTP_FROM: ${KC_SPI_EMAIL_SMTP_FROM:-}
+      KC_SPI_EMAIL_SMTP_USER: ${KC_SPI_EMAIL_SMTP_USER:-}
+      KC_SPI_EMAIL_SMTP_PASSWORD: ${KC_SPI_EMAIL_SMTP_PASSWORD:-}
+      KC_SPI_EMAIL_SMTP_SSL_ENABLED: ${KC_SPI_EMAIL_SMTP_SSL_ENABLED:-false}
+      KC_SPI_EMAIL_SMTP_STARTTLS: ${KC_SPI_EMAIL_SMTP_STARTTLS:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    ports:
+      - "${KEYCLOAK_HTTP_PORT:-8080}:8080"
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # Microservicio de registro de usuarios (Keycloak Admin API)
+  # ---------------------------------------------------------------------------
+  harmoni-register:
+    build:
+      context: ./harmoni-register
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-harmoni-register
+    restart: unless-stopped
+    environment:
+      PORT: 8081
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-harmoniwatts}
+      KEYCLOAK_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # pgAdmin - Interfaz gráfica web para PostgreSQL (opcional, desarrollo)
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: keycloak-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - keycloak-network
+
+volumes:
+  keycloak_postgres_data:
+    name: keycloak_postgres_data
+  keycloak_data:
+    name: keycloak_data
+
+networks:
+  keycloak-network:
+    name: keycloak-network
+    driver: bridge

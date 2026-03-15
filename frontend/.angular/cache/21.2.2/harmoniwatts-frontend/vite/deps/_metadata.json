@@ -1,0 +1,73 @@
+{
+  "hash": "43048045",
+  "configHash": "0f5747f8",
+  "lockfileHash": "76c55683",
+  "browserHash": "30490548",
+  "optimized": {
+    "@angular/common/http": {
+      "src": "../../../../../../node_modules/@angular/common/fesm2022/http.mjs",
+      "file": "@angular_common_http.js",
+      "fileHash": "f1a574db",
+      "needsInterop": false
+    },
+    "@angular/core": {
+      "src": "../../../../../../node_modules/@angular/core/fesm2022/core.mjs",
+      "file": "@angular_core.js",
+      "fileHash": "31666f90",
+      "needsInterop": false
+    },
+    "@angular/forms": {
+      "src": "../../../../../../node_modules/@angular/forms/fesm2022/forms.mjs",
+      "file": "@angular_forms.js",
+      "fileHash": "b74890ef",
+      "needsInterop": false
+    },
+    "@angular/platform-browser": {
+      "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs",
+      "file": "@angular_platform-browser.js",
+      "fileHash": "70092693",
+      "needsInterop": false
+    },
+    "@angular/router": {
+      "src": "../../../../../../node_modules/@angular/router/fesm2022/router.mjs",
+      "file": "@angular_router.js",
+      "fileHash": "2624f606",
+      "needsInterop": false
+    },
+    "keycloak-angular": {
+      "src": "../../../../../../node_modules/keycloak-angular/fesm2022/keycloak-angular.mjs",
+      "file": "keycloak-angular.js",
+      "fileHash": "e8a3d64c",
+      "needsInterop": false
+    },
+    "keycloak-js": {
+      "src": "../../../../../../node_modules/keycloak-js/dist/keycloak.mjs",
+      "file": "keycloak-js.js",
+      "fileHash": "57a00ed5",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-YVBMCSKE": {
+      "file": "chunk-YVBMCSKE.js"
+    },
+    "chunk-XGW4M7Y2": {
+      "file": "chunk-XGW4M7Y2.js"
+    },
+    "chunk-XKKBGPVZ": {
+      "file": "chunk-XKKBGPVZ.js"
+    },
+    "chunk-O3UOFWRN": {
+      "file": "chunk-O3UOFWRN.js"
+    },
+    "chunk-25QRLV3Z": {
+      "file": "chunk-25QRLV3Z.js"
+    },
+    "chunk-IIAGNKPU": {
+      "file": "chunk-IIAGNKPU.js"
+    },
+    "chunk-TXDUYLVM": {
+      "file": "chunk-TXDUYLVM.js"
+    }
+  }
+}

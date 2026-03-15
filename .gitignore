@@ -1,0 +1,24 @@
+# Variables de entorno con secretos (nunca versionar)
+.env
+.env.local
+.env.*.local
+
+# Dependencias y builds
+node_modules/
+dist/
+target/
+build/
+*.jar
+*.war
+
+# IDEs y OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs y temporales
+*.log
+tmp/
+temp/

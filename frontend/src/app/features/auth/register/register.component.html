@@ -1,0 +1,167 @@
+<div class="register-page">
+  <!-- Fondo: mismo que login (shimmer + focos), sin grilla -->
+  <div class="register-bg">
+    <div class="grid-shimmer"></div>
+    <div class="register-focos" aria-hidden="true"></div>
+  </div>
+
+  <!-- Columna izquierda: texto de marca (desplazado a la derecha) -->
+  <aside class="register-hero">
+    <div class="hero-content">
+      <div class="hero-brand">
+        <div class="logo">
+          <app-logo [size]="48" [animated]="true" />
+        </div>
+        <span class="hero-brand-name">HarmoniWatts</span>
+      </div>
+      <h1 class="hero-title">Optimiza tu energía. Ahorra más.</h1>
+      <ul class="hero-benefits">
+        <li>
+          <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Predicción de consumo personalizada
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Tarifas TOU en tiempo real
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Recomendaciones con IA
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Reducción de factura eléctrica
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Columna derecha: formulario -->
+  <div class="register-panel">
+    <h2 class="form-title">Crear Cuenta</h2>
+    <p class="form-subtitle">Comienza a optimizar tu consumo eléctrico</p>
+
+    @if (errorMessage) {
+      <div class="alert alert-error" role="alert">{{ errorMessage }}</div>
+    }
+    @if (successMessage) {
+      <div class="alert alert-success" role="status">{{ successMessage }}</div>
+    }
+
+    <form (ngSubmit)="submit()" class="register-form">
+      <div class="form-row">
+        <div class="field">
+          <label for="firstName">Nombre</label>
+          <div class="input-wrap">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input id="firstName" type="text" [(ngModel)]="firstName" name="firstName" placeholder="Nombre" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="lastName">Apellido</label>
+          <div class="input-wrap">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input id="lastName" type="text" [(ngModel)]="lastName" name="lastName" placeholder="Apellido" required />
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Correo electrónico</label>
+        <div class="input-wrap">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+          </span>
+          <input id="email" type="email" [(ngModel)]="email" name="email" placeholder="Introduce tu correo" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="city">Ciudad</label>
+        <div class="input-wrap">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </span>
+          <select id="city" [(ngModel)]="city" name="city">
+            <option value="">Selecciona tu ciudad</option>
+            @for (c of cities; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+          <svg class="select-arrow" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <div class="input-wrap">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </span>
+          <input id="password" [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" placeholder="Ingresa una contraseña" (input)="onPasswordInput()" required />
+          <button type="button" class="toggle-pwd" (click)="showPassword = !showPassword" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'" tabindex="-1">
+            @if (!showPassword) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+            }
+          </button>
+        </div>
+        <div class="password-strength" [class]="passwordStrength">
+          @if (passwordStrength) {
+            <span class="strength-bar"></span>
+            <span class="strength-label">{{ passwordStrength === 'weak' ? 'Débil' : passwordStrength === 'medium' ? 'Media' : passwordStrength === 'strong' ? 'Fuerte' : 'Muy fuerte' }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="passwordConfirm">Confirmar contraseña</label>
+        <div class="input-wrap">
+          <span class="input-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </span>
+          <input id="passwordConfirm" [type]="showPasswordConfirm ? 'text' : 'password'" [(ngModel)]="passwordConfirm" name="passwordConfirm" placeholder="Confirmar contraseña" required />
+          <button type="button" class="toggle-pwd" (click)="showPasswordConfirm = !showPasswordConfirm" [attr.aria-label]="showPasswordConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'" tabindex="-1">
+            @if (!showPasswordConfirm) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="acceptTerms" name="acceptTerms" />
+          <span>Acepto los <a href="#" (click)="$event.preventDefault()">Términos y Condiciones</a> y la <a href="#" (click)="$event.preventDefault()">Política de Privacidad</a></span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading">
+        {{ loading ? 'Creando cuenta…' : 'Crear mi cuenta' }}
+      </button>
+    </form>
+
+    <p class="login-link">
+      ¿Ya tienes cuenta? <a routerLink="/auth/login">Iniciar Sesión</a>
+    </p>
+
+    @if (!registrationApiUrl) {
+      <p class="register-keycloak-hint">
+        <button type="button" class="link-button" (click)="registerWithKeycloak()">
+          Registrarse en la página de Keycloak
+        </button>
+      </p>
+    }
+  </div>
+
+  <footer class="register-footer">
+    © 2026 HarmoniWatts — Maestría Virtual en Ingeniería de Sistemas
+  </footer>
+</div>

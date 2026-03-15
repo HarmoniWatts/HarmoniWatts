@@ -1,6 +1,3 @@
-# HarmoniWatts
-HarmoniWatts - Sistema Inteligente de Gestión de Demanda Eléctrica Residencial basado en Franjas Horarias y Perfiles de Consumo.
-
 # HarmoniWatts ⚡🏠
 
 **Sistema Inteligente de Gestión de Demanda Eléctrica Residencial basado en Franjas Horarias y Perfiles de Consumo**
@@ -82,4 +79,24 @@ El flujo completo incluye:
 ---
 
 ## 📁 Estructura del Repositorio
+
+*(En construcción.)*
+
+---
+
+## 📚 Documentación
+
+La documentación del proyecto está en la carpeta **`docs/`**. Referencia principal:
+
+| Documento | Descripción |
+|-----------|-------------|
+| [KEYCLOAK-REALM-CLIENT.md](docs/KEYCLOAK-REALM-CLIENT.md) | Configuración del realm, cliente y IdP en Keycloak |
+| [REGISTER-API.md](docs/REGISTER-API.md) | API de registro de usuarios y olvidé contraseña (harmoni-register) |
+| [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP en Keycloak (correos de verificación y restablecimiento) |
+| [DOCKER-KEYCLOAK.md](docs/DOCKER-KEYCLOAK.md) | Despliegue de Keycloak con Docker |
+| [AUTH-FLOW.md](docs/AUTH-FLOW.md) | Flujo de autenticación (OIDC/OAuth2) |
+| [HarmoniWatts_BPM.md](docs/HarmoniWatts_BPM.md) | Procesos y modelo BPM del sistema |
+| [HarmoniWatts_ReleasePlan.md](docs/HarmoniWatts_ReleasePlan.md) | Plan de releases y entregas |
+
+Para arrancar el entorno (Keycloak, harmoni-register, etc.), ver también el `docker-compose.yml` en la raíz y las instrucciones en `docs/DOCKER-KEYCLOAK.md` y `harmoni-register/README.md`.
 

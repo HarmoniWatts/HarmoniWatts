@@ -1,0 +1,385 @@
+/* Variables del tema (mockup) */
+.login-page {
+  --hw-bg: #0f172a;
+  --hw-panel: rgba(30, 41, 59, 0.85);
+  --hw-accent: #22d3ee;
+  --hw-accent-end: #4ade80;
+  --hw-text: #f8fafc;
+  --hw-text-muted: #94a3b8;
+  --hw-border: rgba(34, 211, 238, 0.4);
+  --hw-input-bg: rgba(15, 23, 42, 0.6);
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 1rem;
+  background: var(--hw-bg);
+  color: var(--hw-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fondo animado (CSS) */
+.login-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Focos de luz: esquina superior derecha e inferior izquierda (mismo cyan del tema) */
+.login-focos {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 90% 80% at 100% 0%,
+      rgba(34, 211, 238, 0.14) 0%,
+      rgba(34, 211, 238, 0.05) 35%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 85% 75% at 0% 100%,
+      rgba(34, 211, 238, 0.12) 0%,
+      rgba(34, 211, 238, 0.04) 35%,
+      transparent 65%
+    );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Cuadrícula isométrica: visible en el centro y se difumina hacia afuera (mapa 3D) */
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  --grid-color: rgba(34, 211, 238, 0.07);
+  background-image:
+    linear-gradient(60deg, transparent 49.2%, var(--grid-color) 50%, transparent 50.8%),
+    linear-gradient(120deg, transparent 49.2%, var(--grid-color) 50%, transparent 50.8%);
+  background-size: 42px 72px;
+  animation: grid-drift 35s linear infinite;
+  mask-image: radial-gradient(
+    ellipse 75% 70% at 50% 50%,
+    black 0%,
+    black 28%,
+    transparent 72%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 75% 70% at 50% 50%,
+    black 0%,
+    black 28%,
+    transparent 72%
+  );
+  mask-mode: luminance;
+  -webkit-mask-mode: luminance;
+}
+
+@keyframes grid-drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(21px, 36px); }
+}
+
+.grid-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 45%,
+    rgba(34, 211, 238, 0.03) 50%,
+    transparent 55%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer 10s ease-in-out infinite;
+  mask-image: radial-gradient(
+    ellipse 80% 75% at 50% 50%,
+    black 0%,
+    transparent 75%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 75% at 50% 50%,
+    black 0%,
+    transparent 75%
+  );
+  mask-mode: luminance;
+  -webkit-mask-mode: luminance;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 100% 50%; opacity: 0.6; }
+  50% { background-position: 0% 50%; opacity: 1; }
+}
+
+/* Panel central */
+.login-panel {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 400px;
+  background: rgba(30, 41, 59, 0.88);
+  border: 1px solid rgba(34, 211, 238, 0.12);
+  border-radius: 20px;
+  padding: 2rem 2.25rem;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  backdrop-filter: blur(16px);
+}
+
+/* Marca */
+.brand {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.logo {
+  margin: 0 auto 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--hw-text);
+  letter-spacing: -0.02em;
+}
+
+.brand-tagline {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--hw-text-muted);
+}
+
+.form-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--hw-text);
+}
+
+/* Formulario */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--hw-text);
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  color: var(--hw-accent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.input-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 12px 44px 12px 44px;
+  font-size: 1rem;
+  color: var(--hw-text);
+  background: var(--hw-input-bg);
+  border: 1px solid var(--hw-border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-wrap input::placeholder {
+  color: var(--hw-text-muted);
+  opacity: 0.8;
+}
+
+.input-wrap input:focus {
+  border-color: var(--hw-accent);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+}
+
+.toggle-pwd {
+  position: absolute;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--hw-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+
+.toggle-pwd:hover {
+  opacity: 1;
+}
+
+.toggle-pwd svg {
+  width: 18px;
+  height: 18px;
+}
+
+.forgot-link {
+  font-size: 0.875rem;
+  color: var(--hw-accent);
+  text-decoration: none;
+  margin-top: -0.25rem;
+  align-self: flex-start;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.error-msg {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.15);
+  border-radius: 8px;
+}
+
+/* Botón principal (gradiente) */
+.btn-primary {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: linear-gradient(90deg, var(--hw-accent-end), var(--hw-accent));
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 0.25rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Divisor */
+.divider {
+  margin: 1.25rem 0;
+  text-align: center;
+  position: relative;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.divider span {
+  position: relative;
+  background: var(--hw-panel);
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--hw-text-muted);
+}
+
+/* Botón Google */
+.btn-google {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-google:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.register-link {
+  margin: 1.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--hw-text-muted);
+  text-align: center;
+}
+
+.register-link a {
+  color: var(--hw-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+/* Footer */
+.login-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--hw-text-muted);
+  opacity: 0.85;
+}
