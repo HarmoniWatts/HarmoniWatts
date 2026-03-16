@@ -40,9 +40,10 @@ services:
     container_name: keycloak
     restart: unless-stopped
     command:
-      # Desarrollo: start-dev (HTTP en 8080, opciones inseguras para dev).
-      # Producción: cambiar a "start" y configurar KC_HOSTNAME/HTTPS según docs.
+      # Desarrollo: start-dev (HTTP en 8080). --import-realm importa los JSON de keycloak-realm/ al arrancar.
+      # Producción: cambiar a "start" y configurar KC_HOSTNAME/HTTPS según docs (--import-realm solo en start-dev).
       - start-dev
+      - --import-realm
     environment:
       # Admin inicial (solo para bootstrap; cambiar en primer acceso en producción)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
@@ -72,6 +73,8 @@ services:
         condition: service_healthy
     volumes:
       - keycloak_data:/opt/keycloak/data
+      # Realm exportado en keycloak-realm/*.json se importa al arrancar (ver keycloak-realm/README.md).
+      - ./keycloak-realm:/opt/keycloak/data/import
     ports:
       - "${KEYCLOAK_HTTP_PORT:-8080}:8080"
     networks:

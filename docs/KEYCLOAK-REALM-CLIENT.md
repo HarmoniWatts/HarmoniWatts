@@ -2,6 +2,8 @@
 
 Esta guía detalla los pasos en **Keycloak Admin Console** para crear el realm, el cliente (frontend Angular) y el Identity Provider de Google, así como políticas de contraseña y verificación de correo.
 
+**Realm listo sin configurar a mano:** si en la carpeta **`keycloak-realm/`** del proyecto hay un archivo JSON exportado del realm (p. ej. `harmoniwatts-realm.json`), Keycloak lo importa al arrancar con `docker compose up`. En ese caso no necesitas seguir esta guía paso a paso; solo revisar o ajustar en Admin Console si hace falta. Ver `keycloak-realm/README.md` y `DOCKER-KEYCLOAK.md`.
+
 ---
 
 ## Requisitos previos

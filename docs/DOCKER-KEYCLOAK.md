@@ -15,6 +15,15 @@ cp .env.example .env
 # Editar .env: POSTGRES_USER, POSTGRES_PASSWORD, KC_BOOTSTRAP_ADMIN_PASSWORD, etc.
 ```
 
+### Realm preconfigurado (evitar configurar Keycloak a mano)
+
+Para que quien ejecute `docker compose up` tenga el realm **harmoniwatts** ya creado (clientes, políticas, IdP, etc.):
+
+1. **Quien ya tiene Keycloak configurado:** en Admin Console, realm **harmoniwatts** → **Realm settings** → **Action** → **Partial export**. Guarda el JSON en la carpeta **`keycloak-realm/`** (por ejemplo `harmoniwatts-realm.json`). Si ese archivo se sube al repositorio, cualquier clon hará que Keycloak importe el realm al arrancar.
+2. **Quien clona el proyecto:** si en `keycloak-realm/` hay al menos un `.json`, al hacer `docker compose up -d` por primera vez Keycloak importará ese realm (no hace falta configurar realm, cliente ni IdP a mano). Si la carpeta está vacía, hay que seguir [KEYCLOAK-REALM-CLIENT.md](KEYCLOAK-REALM-CLIENT.md) para crear el realm manualmente.
+
+Detalles: ver **`keycloak-realm/README.md`**.
+
 ## Comandos
 
 Todos los comandos se ejecutan desde **HarmoniWatts** (raíz del repo o carpeta que contiene `docker-compose.yml`).

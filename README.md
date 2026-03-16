@@ -93,7 +93,7 @@ La documentación del proyecto está en la carpeta **`docs/`**. Referencia princ
 | [KEYCLOAK-REALM-CLIENT.md](docs/KEYCLOAK-REALM-CLIENT.md) | Configuración del realm, cliente y IdP en Keycloak |
 | [REGISTER-API.md](docs/REGISTER-API.md) | API de registro de usuarios y olvidé contraseña (harmoni-register) |
 | [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP en Keycloak (correos de verificación y restablecimiento) |
-| [DOCKER-KEYCLOAK.md](docs/DOCKER-KEYCLOAK.md) | Despliegue de Keycloak con Docker |
+| [DOCKER-KEYCLOAK.md](docs/DOCKER-KEYCLOAK.md) | Despliegue de Keycloak con Docker; realm preconfigurado vía `keycloak-realm/` |
 | [AUTH-FLOW.md](docs/AUTH-FLOW.md) | Flujo de autenticación (OIDC/OAuth2) |
 | [HarmoniWatts_BPM.md](docs/HarmoniWatts_BPM.md) | Procesos y modelo BPM del sistema |
 | [HarmoniWatts_ReleasePlan.md](docs/HarmoniWatts_ReleasePlan.md) | Plan de releases y entregas |
