@@ -50,7 +50,7 @@ El sistema sigue un flujo de trabajo definido en notación BPMN 2.0 con tres act
 2. **Sistema HarmoniWatts** – Ejecuta el análisis inteligente y la optimización.
 3. **Proveedor de Energía** – Fuente de datos de tarifas y consumo histórico.
 
-![Diagrama BPMN](docs/bpmn_harmoniwatts.png) *(Incluir imagen del diagrama)*
+El diagrama BPMN 2.0 (draw.io) está en [`docs/HarmoniWatts_BPM.drawio`](docs/HarmoniWatts_BPM.drawio); un resumen en Mermaid en [`docs/HarmoniWatts_BPM.md`](docs/HarmoniWatts_BPM.md).
 
 El flujo completo incluye:
 - Registro y configuración inicial.
@@ -63,18 +63,18 @@ El flujo completo incluye:
 
 ---
 
-## 🛠️ Tecnologías Propuestas
+## 🛠️ Stack técnico (actual y objetivo)
 
-| Componente | Tecnologías / Herramientas |
-|------------|---------------------------|
-| **Frontend** | React.js / Vue.js, Chart.js (visualizaciones), Bootstrap |
-| **Backend** | Python (FastAPI / Django), Node.js |
-| **Base de Datos** | PostgreSQL (datos estructurados), MongoDB (perfiles) |
-| **Machine Learning** | Scikit-learn (clustering), TensorFlow/PyTorch (predicción) |
-| **Optimización** | PuLP / OR-Tools (programación lineal), Algoritmos genéticos |
-| **IoT / Automatización** | MQTT, APIs de fabricantes (Tuya, Shelly, Tasmota) |
-| **Integración OpenADR** | Biblioteca openleadr (Python) |
-| **Despliegue** | Docker, AWS / Azure / GCP |
+| Capa | Implementado hoy | Objetivo / roadmap (release plan) |
+|------|-------------------|-------------------------------------|
+| **Frontend** | **Angular 21+**, Keycloak JS / keycloak-angular | Dashboard, gráficos (p. ej. librería de charts del ecosistema Angular) |
+| **Identidad** | **Keycloak** (OIDC/OAuth2), realm `harmoniwatts` | Igual; endurecer SMTP y service accounts en producción |
+| **Registro / acciones email** | **harmoni-register** (Node) — Admin API | Opcional migración a servicio Java si se unifica el backend |
+| **Backend de negocio** | — | **Java 21** (API de dominio, hexagonal) |
+| **IA / predicción** | — | Python **FastAPI** (SmartLoadPredictor), modelo STLF |
+| **Base de datos** | **PostgreSQL** (Keycloak) | **PostgreSQL** para datos de negocio |
+| **Mensajería** | — | Kafka / Azure Event Hubs (según decisión de arquitectura) |
+| **Despliegue** | **Docker Compose** (dev) | Contenedores + orquestación (p. ej. AKS) según sprint |
 
 ---
 
@@ -90,6 +90,7 @@ La documentación del proyecto está en la carpeta **`docs/`**. Referencia princ
 
 | Documento | Descripción |
 |-----------|-------------|
+| [ARQUITECTURA-HarmoniWatts.md](docs/ARQUITECTURA-HarmoniWatts.md) | Arquitectura: contexto, contenedores, componentes, despliegue y flujos (Mermaid) |
 | [KEYCLOAK-REALM-CLIENT.md](docs/KEYCLOAK-REALM-CLIENT.md) | Configuración del realm, cliente y IdP en Keycloak |
 | [REGISTER-API.md](docs/REGISTER-API.md) | API de registro de usuarios y olvidé contraseña (harmoni-register) |
 | [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP en Keycloak (correos de verificación y restablecimiento) |
