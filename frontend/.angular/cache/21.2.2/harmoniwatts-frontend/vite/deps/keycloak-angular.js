@@ -3,6 +3,9 @@ import {
   HttpHeaders
 } from "./chunk-YBWXTNOH.js";
 import {
+  Keycloak
+} from "./chunk-IIAGNKPU.js";
+import {
   CommonModule,
   isPlatformBrowser
 } from "./chunk-5WRCSYZD.js";
@@ -37,9 +40,6 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule
 } from "./chunk-25QRLV3Z.js";
-import {
-  Keycloak
-} from "./chunk-IIAGNKPU.js";
 import {
   __async,
   __spreadProps,

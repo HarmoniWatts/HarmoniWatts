@@ -1,49 +1,49 @@
 {
-  "hash": "eb3f807c",
-  "configHash": "cb84c513",
+  "hash": "43048045",
+  "configHash": "0f5747f8",
   "lockfileHash": "76c55683",
-  "browserHash": "6759d303",
+  "browserHash": "30490548",
   "optimized": {
     "@angular/common/http": {
       "src": "../../../../../../node_modules/@angular/common/fesm2022/http.mjs",
       "file": "@angular_common_http.js",
-      "fileHash": "f44c6966",
+      "fileHash": "1a8ba601",
       "needsInterop": false
     },
     "@angular/core": {
       "src": "../../../../../../node_modules/@angular/core/fesm2022/core.mjs",
       "file": "@angular_core.js",
-      "fileHash": "07db9d81",
+      "fileHash": "75048362",
       "needsInterop": false
     },
     "@angular/forms": {
       "src": "../../../../../../node_modules/@angular/forms/fesm2022/forms.mjs",
       "file": "@angular_forms.js",
-      "fileHash": "ef24ebee",
+      "fileHash": "c96008d3",
       "needsInterop": false
     },
     "@angular/platform-browser": {
       "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs",
       "file": "@angular_platform-browser.js",
-      "fileHash": "0ef44ad3",
+      "fileHash": "76146044",
       "needsInterop": false
     },
     "@angular/router": {
       "src": "../../../../../../node_modules/@angular/router/fesm2022/router.mjs",
       "file": "@angular_router.js",
-      "fileHash": "2a86e71f",
+      "fileHash": "d113d277",
       "needsInterop": false
     },
     "keycloak-angular": {
       "src": "../../../../../../node_modules/keycloak-angular/fesm2022/keycloak-angular.mjs",
       "file": "keycloak-angular.js",
-      "fileHash": "da926980",
+      "fileHash": "e22fb376",
       "needsInterop": false
     },
     "keycloak-js": {
       "src": "../../../../../../node_modules/keycloak-js/dist/keycloak.mjs",
       "file": "keycloak-js.js",
-      "fileHash": "ffb36cda",
+      "fileHash": "6b55b4e7",
       "needsInterop": false
     }
   },
@@ -54,6 +54,9 @@
     "chunk-YBWXTNOH": {
       "file": "chunk-YBWXTNOH.js"
     },
+    "chunk-IIAGNKPU": {
+      "file": "chunk-IIAGNKPU.js"
+    },
     "chunk-5WRCSYZD": {
       "file": "chunk-5WRCSYZD.js"
     },
@@ -62,9 +65,6 @@
     },
     "chunk-25QRLV3Z": {
       "file": "chunk-25QRLV3Z.js"
-    },
-    "chunk-IIAGNKPU": {
-      "file": "chunk-IIAGNKPU.js"
     },
     "chunk-TXDUYLVM": {
       "file": "chunk-TXDUYLVM.js"
