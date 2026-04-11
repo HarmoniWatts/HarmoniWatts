@@ -15,12 +15,27 @@ import {
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const keycloakUrl = environment.keycloak.url;
 
-const urlCondition = createInterceptorCondition<IncludeBearerTokenCondition>({
-  urlPattern: new RegExp(`^${keycloakUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(/.*)?$`, 'i'),
+const keycloakBearerCondition = createInterceptorCondition<IncludeBearerTokenCondition>({
+  urlPattern: new RegExp(`^${escapeRegExp(keycloakUrl)}(/.*)?$`, 'i'),
   bearerPrefix: 'Bearer',
 });
+
+const apiBase = (environment.apiBaseUrl ?? '').replace(/\/$/, '');
+const apiBearerCondition = apiBase
+  ? createInterceptorCondition<IncludeBearerTokenCondition>({
+      urlPattern: new RegExp(`^${escapeRegExp(apiBase)}(/.*)?$`, 'i'),
+      bearerPrefix: 'Bearer',
+    })
+  : createInterceptorCondition<IncludeBearerTokenCondition>({
+      urlPattern: /^https?:\/\/[^/]+\/api\/v\d+\//i,
+      bearerPrefix: 'Bearer',
+    });
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,7 +44,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
     {
       provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
-      useValue: [urlCondition],
+      useValue: [keycloakBearerCondition, apiBearerCondition],
     },
     provideKeycloak({
       config: {
