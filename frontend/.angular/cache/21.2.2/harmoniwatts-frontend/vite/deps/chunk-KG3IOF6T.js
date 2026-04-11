@@ -1,11 +1,13 @@
 import {
-  DOCUMENT,
   Injectable,
+  setClassMetadata
+} from "./chunk-YWLPHN4B.js";
+import {
+  DOCUMENT,
   InjectionToken,
   inject,
-  setClassMetadata,
   ɵɵdefineInjectable
-} from "./chunk-25QRLV3Z.js";
+} from "./chunk-K2STGQN3.js";
 
 // node_modules/@angular/common/fesm2022/_platform_location-chunk.mjs
 var _DOM = null;
@@ -144,7 +146,8 @@ export {
   DomAdapter,
   PlatformLocation,
   LOCATION_INITIALIZED,
+  BrowserPlatformLocation,
   parseCookieValue,
   XhrFactory
 };
-//# sourceMappingURL=chunk-GNT2F3TB.js.map
+//# sourceMappingURL=chunk-KG3IOF6T.js.map
