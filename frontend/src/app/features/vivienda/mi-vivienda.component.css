@@ -1,0 +1,107 @@
+@import '../dashboard/dashboard.component.css';
+
+.mv-page {
+  max-width: 960px;
+}
+
+.mv-head {
+  margin-bottom: 1.25rem;
+}
+
+.mv-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.mv-sub {
+  margin: 0.35rem 0 0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.mv-card {
+  margin-bottom: 1.25rem;
+}
+
+.mv-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.mv-field-span {
+  grid-column: 1 / -1;
+}
+
+.mv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.mv-input {
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: #f1f5f9;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.95rem;
+}
+
+.mv-actions {
+  margin-top: 1rem;
+}
+
+.mv-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.mv-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mv-row {
+  border: 1px solid rgba(42, 49, 66, 0.95);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.mv-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.mv-line {
+  margin: 0.15rem 0;
+}
+
+.mv-row-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mv-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}

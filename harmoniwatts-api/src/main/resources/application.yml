@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: harmoniwatts-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/harmoniwatts}
+    username: ${SPRING_DATASOURCE_USERNAME:keycloak_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+harmoniwatts:
+  oauth2:
+    # Debe coincidir con el claim "iss" del token (navegador → suele ser localhost)
+    issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/harmoniwatts}
+    # Desde el host/JAR: localhost. En Docker: http://keycloak:8080/realms/.../protocol/openid-connect/certs
+    jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/harmoniwatts/protocol/openid-connect/certs}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging.level.org.springframework.security: INFO

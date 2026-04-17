@@ -20,6 +20,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-harmoniwatts-db.sh:/docker-entrypoint-initdb.d/02-harmoniwatts-db.sh:ro
     ports:
       # Exponer solo si necesitas conectar desde host (DBeaver, TablePlus, etc.)
       - "${POSTGRES_PORT:-5432}:5432"
@@ -98,6 +99,34 @@ services:
     ports:
       - "8081:8081"
     depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # API HarmoniWatts (Spring Boot — viviendas, JWT Keycloak)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-api:
+    build:
+      context: ./harmoniwatts-api
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-api
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/harmoniwatts
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # iss del JWT (navegador); debe coincidir con el token emitido por Keycloak
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}
+      # Claves JWK: URL alcanzable desde el contenedor de la API (red Docker)
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}/protocol/openid-connect/certs
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
       keycloak:
         condition: service_started
     networks:

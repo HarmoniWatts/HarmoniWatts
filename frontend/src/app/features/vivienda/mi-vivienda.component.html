@@ -1,0 +1,116 @@
+<div class="mv-page">
+  <header class="mv-head">
+    <h1 class="mv-title">Mi vivienda</h1>
+    <p class="mv-sub">Registra y administra los hogares asociados a tu cuenta.</p>
+  </header>
+
+  @if (error()) {
+    <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
+  }
+
+  <section class="dash-card mv-card">
+    <h2 class="dash-section-title">Registrar vivienda</h2>
+    <div class="mv-form-grid">
+      <label class="mv-field">
+        <span>Tipo de vivienda</span>
+        <select class="mv-input" [(ngModel)]="tipoNuevo">
+          @for (t of tipos; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+      </label>
+      <label class="mv-field">
+        <span>Número de habitantes</span>
+        <input class="mv-input" type="number" min="1" max="99" [(ngModel)]="habitantesNuevo" />
+      </label>
+      <label class="mv-field">
+        <span>Estrato</span>
+        <select class="mv-input" [(ngModel)]="estratoNuevo">
+          @for (e of estratos; track e) {
+            <option [ngValue]="e">Estrato {{ e }}</option>
+          }
+        </select>
+      </label>
+      <label class="mv-field mv-field-span">
+        <span>Ubicación</span>
+        <input class="mv-input" type="text" [(ngModel)]="ubicacionNueva" placeholder="Dirección o referencia" />
+      </label>
+    </div>
+    <div class="mv-actions">
+      <button type="button" class="dash-btn-ghost" (click)="registrar()" [disabled]="loading()">Guardar vivienda</button>
+    </div>
+  </section>
+
+  <section class="dash-card mv-card">
+    <div class="mv-list-head">
+      <h2 class="dash-section-title">Mis viviendas registradas</h2>
+      <button type="button" class="dash-btn-ghost" (click)="reload()" [disabled]="loading()">Actualizar</button>
+    </div>
+    @if (loading() && !items().length) {
+      <p class="dash-muted">Cargando…</p>
+    } @else if (!items().length) {
+      <p class="dash-muted">Aún no hay viviendas. Usa el formulario superior para crear la primera.</p>
+    } @else {
+      <ul class="mv-list">
+        @for (v of items(); track v.id) {
+          <li class="mv-row">
+            @if (editId === v.id) {
+              <div class="mv-edit">
+                <div class="mv-form-grid">
+                  <label class="mv-field">
+                    <span>Tipo</span>
+                    <select class="mv-input" [(ngModel)]="tipoEdit">
+                      @for (t of tipos; track t) {
+                        <option [value]="t">{{ t }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="mv-field">
+                    <span>Habitantes</span>
+                    <input class="mv-input" type="number" min="1" max="99" [(ngModel)]="habitantesEdit" />
+                  </label>
+                  <label class="mv-field">
+                    <span>Estrato</span>
+                    <select class="mv-input" [(ngModel)]="estratoEdit">
+                      @for (e of estratos; track e) {
+                        <option [ngValue]="e">Estrato {{ e }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="mv-field mv-field-span">
+                    <span>Ubicación</span>
+                    <input class="mv-input" type="text" [(ngModel)]="ubicacionEdit" />
+                  </label>
+                  <label class="mv-field mv-field-span">
+                    <span>Zona climática (opcional)</span>
+                    <input class="mv-input" type="text" [(ngModel)]="zonaEdit" />
+                  </label>
+                </div>
+                <div class="mv-row-actions">
+                  <button type="button" class="dash-btn-apply" (click)="guardarEdicion()" [disabled]="loading()">Guardar</button>
+                  <button type="button" class="dash-btn-dismiss" (click)="cancelEdit()" [disabled]="loading()">Cancelar</button>
+                </div>
+              </div>
+            } @else {
+              <div class="mv-summary">
+                <div>
+                  <div class="mv-line">
+                    <strong>{{ v.tipo }}</strong> · {{ v.habitantes }} hab. · Estrato {{ v.estrato }}
+                  </div>
+                  <div class="mv-line dash-muted">{{ v.ubicacion }}</div>
+                  @if (v.zonaClimatica) {
+                    <div class="mv-line dash-muted">Zona: {{ v.zonaClimatica }}</div>
+                  }
+                </div>
+                <div class="mv-row-actions">
+                  <button type="button" class="dash-btn-ghost" (click)="startEdit(v)">Editar</button>
+                  <button type="button" class="dash-btn-dismiss" (click)="eliminar(v)">Eliminar</button>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

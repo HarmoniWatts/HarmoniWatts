@@ -1,0 +1,48 @@
+<div class="pe-page">
+  <header class="pe-head">
+    <h1 class="pe-title">Editar perfil</h1>
+    <p class="pe-sub">Los datos de identidad se gestionan en Keycloak. Usa los asistentes oficiales para actualizarlos.</p>
+  </header>
+
+  <section class="dash-card pe-card">
+    <h2 class="dash-section-title">Información actual</h2>
+    @if (profileLoading()) {
+      <p class="dash-muted">Cargando perfil…</p>
+    } @else {
+      <dl class="pe-dl">
+        <div class="pe-dl-row">
+          <dt>Correo</dt>
+          <dd>{{ email() ?? '—' }}</dd>
+        </div>
+        <div class="pe-dl-row">
+          <dt>Nombre</dt>
+          <dd>{{ nombreCompleto() ?? '—' }}</dd>
+        </div>
+        <div class="pe-dl-row">
+          <dt>Usuario</dt>
+          <dd>{{ username() ?? '—' }}</dd>
+        </div>
+      </dl>
+    }
+  </section>
+
+  <section class="dash-card pe-card">
+    <h2 class="dash-section-title">Acciones</h2>
+    <ul class="pe-actions">
+      <li>
+        <div>
+          <div class="pe-action-title">Editar información personal</div>
+          <p class="pe-action-desc">Nombre, apellidos y demás datos del perfil (flujo Keycloak).</p>
+        </div>
+        <button type="button" class="dash-btn-apply" (click)="editarInformacionPersonal()">Abrir</button>
+      </li>
+      <li>
+        <div>
+          <div class="pe-action-title">Cambiar contraseña</div>
+          <p class="pe-action-desc">Asistente de actualización de contraseña de Keycloak.</p>
+        </div>
+        <button type="button" class="dash-btn-apply" (click)="cambiarContrasena()">Abrir</button>
+      </li>
+    </ul>
+  </section>
+</div>

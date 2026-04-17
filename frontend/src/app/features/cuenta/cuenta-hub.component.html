@@ -1,0 +1,66 @@
+<div class="ch-page">
+  <header class="ch-head">
+    <h1 class="ch-title">Cuenta</h1>
+    <p class="ch-sub">Elige qué deseas gestionar. También puedes volver al dashboard desde el menú lateral.</p>
+  </header>
+
+  <div class="ch-grid">
+    <a class="ch-card dash-card" routerLink="/perfil/editar">
+      <div class="ch-card-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </div>
+      <h2 class="ch-card-title">Editar perfil</h2>
+      <p class="ch-card-desc">Nombre, correo y contraseña vía Keycloak.</p>
+      <span class="ch-card-cta">Abrir</span>
+    </a>
+
+    <a class="ch-card dash-card" routerLink="/mi-vivienda">
+      <div class="ch-card-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      </div>
+      <h2 class="ch-card-title">Mi vivienda</h2>
+      <p class="ch-card-desc">Registrar y administrar tus hogares.</p>
+      <span class="ch-card-cta">Abrir</span>
+    </a>
+
+    <div
+      class="ch-card ch-card--disabled dash-card"
+      title="Electrodomésticos (próximamente)"
+      tabindex="-1"
+      aria-disabled="true"
+    >
+      <div class="ch-card-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18h6" />
+          <path d="M10 22h4" />
+          <path d="M12 2a7 7 0 0 0-4 13v3h8v-3a7 7 0 0 0-4-13z" />
+        </svg>
+      </div>
+      <h2 class="ch-card-title">Electrodomésticos</h2>
+      <p class="ch-card-desc">Gestión de equipos y consumo asociado a tu hogar.</p>
+      <span class="ch-card-cta ch-card-cta--muted">Próximamente</span>
+    </div>
+
+    <div
+      class="ch-card ch-card--disabled dash-card"
+      title="Preferencias de confort (próximamente)"
+      tabindex="-1"
+      aria-disabled="true"
+    >
+      <div class="ch-card-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+        </svg>
+      </div>
+      <h2 class="ch-card-title">Preferencias de confort</h2>
+      <p class="ch-card-desc">Temperatura, horarios y hábitos de uso.</p>
+      <span class="ch-card-cta ch-card-cta--muted">Próximamente</span>
+    </div>
+  </div>
+</div>

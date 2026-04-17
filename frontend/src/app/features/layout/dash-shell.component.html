@@ -1,0 +1,113 @@
+<div class="dash-root">
+  <aside class="dash-sidebar" aria-label="Navegación principal">
+    <div class="dash-sidebar-head">
+      <div class="dash-brand-row">
+        <div class="dash-logo-wrap" aria-hidden="true">
+          <div class="dash-logo-glow"></div>
+          <svg class="dash-logo-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="dashSideLogoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#22d3ee" />
+                <stop offset="100%" stop-color="#4ade80" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="url(#dashSideLogoGrad)" stroke-width="5" />
+            <g transform="translate(50, 50) scale(0.38)">
+              <path d="M 10 -30 L -15 5 L 5 5 L -10 30 L 15 -5 L -5 -5 Z" fill="url(#dashSideLogoGrad)" />
+            </g>
+          </svg>
+        </div>
+        <span class="dash-brand-text">HarmoniWatts</span>
+      </div>
+      <div class="dash-sidebar-tools">
+        <button type="button" class="dash-icon-btn" title="Notificaciones">
+          <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span class="dash-badge">3</span>
+        </button>
+        <div class="dash-loc">
+          <svg class="dash-icon dash-loc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 21s7-4.5 7-10a7 7 0 1 0-14 0c0 5.5 7 10 7 10z" />
+            <circle cx="12" cy="11" r="2.5" />
+          </svg>
+          <span>Bogotá</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="dash-nav" aria-label="Secciones">
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="dash-nav-item-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="dash-nav-item"
+        title="Dashboard"
+      >
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        <span class="dash-nav-label">Dashboard</span>
+      </a>
+      <span class="dash-nav-item" title="Tarifas (próximamente)" tabindex="-1" aria-disabled="true">
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+        <span class="dash-nav-label">Tarifas</span>
+      </span>
+      <span class="dash-nav-item" title="Recomendaciones (próximamente)" tabindex="-1" aria-disabled="true">
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18h6" />
+          <path d="M10 22h4" />
+          <path d="M12 2a7 7 0 0 0-4 13v3h8v-3a7 7 0 0 0-4-13z" />
+        </svg>
+        <span class="dash-nav-label">Recomendaciones</span>
+      </span>
+      <span class="dash-nav-item" title="Historial (próximamente)" tabindex="-1" aria-disabled="true">
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3v18h18" />
+          <path d="M7 16l4-4 4 4 6-6" />
+        </svg>
+        <span class="dash-nav-label">Historial</span>
+      </span>
+      <div class="dash-nav-spacer"></div>
+      <span class="dash-nav-item" title="Ajustes (próximamente)" tabindex="-1" aria-disabled="true">
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
+        </svg>
+        <span class="dash-nav-label">Ajustes</span>
+      </span>
+    </nav>
+
+    <div class="dash-sidebar-foot">
+      <a
+        routerLink="/cuenta"
+        class="dash-user-row dash-user-row--cuenta"
+        [class.dash-user-row--active]="cuentaSectionActive()"
+        title="Cuenta — perfil y vivienda"
+      >
+        <div class="dash-avatar" aria-hidden="true">{{ userInitials() }}</div>
+        <span class="dash-user-label">Cuenta</span>
+      </a>
+      <button type="button" class="dash-logout" (click)="logout()">
+        <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span class="dash-nav-label">Salir</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-main-inner">
+      <router-outlet />
+    </div>
+  </main>
+</div>
