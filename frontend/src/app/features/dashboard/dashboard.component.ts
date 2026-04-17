@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import Keycloak from 'keycloak-js';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -51,7 +50,6 @@ export interface ChartViewModel {
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
-  private readonly keycloak = inject(Keycloak);
   private readonly dashboardApi = inject(DashboardService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -83,10 +81,6 @@ export class DashboardComponent implements OnInit {
 
   reload(): void {
     this.loadAll();
-  }
-
-  logout(): void {
-    this.keycloak.logout({ redirectUri: window.location.origin + '/auth/login' });
   }
 
   absNumber(n: number): number {

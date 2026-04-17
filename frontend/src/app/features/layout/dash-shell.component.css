@@ -1,0 +1,41 @@
+@import '../dashboard/dashboard.component.css';
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+a.dash-nav-item {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.dash-nav-item[disabled] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+a.dash-user-row--cuenta {
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
+  padding: 0.35rem 0.25rem;
+  margin: -0.35rem -0.25rem;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+a.dash-user-row--cuenta:hover {
+  background: rgba(34, 211, 238, 0.08);
+}
+
+a.dash-user-row--cuenta.dash-user-row--active {
+  background: rgba(34, 211, 238, 0.14);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.28);
+}
+
+a.dash-user-row--cuenta:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.55);
+  outline-offset: 2px;
+}

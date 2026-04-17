@@ -15,6 +15,8 @@ export const environment = {
    * Debe coincidir con un patrón del interceptor Bearer en `app.config.ts`.
    */
   apiBaseUrl: '' as string,
+  /** API Spring Boot (viviendas, etc.). Sin barra final. */
+  viviendaApiBaseUrl: '' as string,
   /** Si el usuario tiene varias viviendas, se envía como `householdId` en las peticiones del dashboard. */
   defaultHouseholdId: undefined as string | undefined,
   /** Rutas versionadas del contrato DASHBOARD-API.md (sustituibles por entorno / despliegue). */

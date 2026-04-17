@@ -37,6 +37,14 @@ const apiBearerCondition = apiBase
       bearerPrefix: 'Bearer',
     });
 
+const viviendaBase = (environment.viviendaApiBaseUrl ?? '').replace(/\/$/, '');
+const viviendaBearerCondition = viviendaBase
+  ? createInterceptorCondition<IncludeBearerTokenCondition>({
+      urlPattern: new RegExp(`^${escapeRegExp(viviendaBase)}(/.*)?$`, 'i'),
+      bearerPrefix: 'Bearer',
+    })
+  : null;
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -44,7 +52,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
     {
       provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
-      useValue: [keycloakBearerCondition, apiBearerCondition],
+      useValue: [keycloakBearerCondition, apiBearerCondition, ...(viviendaBearerCondition ? [viviendaBearerCondition] : [])],
     },
     provideKeycloak({
       config: {
@@ -54,6 +62,9 @@ export const appConfig: ApplicationConfig = {
       },
       initOptions: {
         onLoad: 'check-sso',
+        // Evita el iframe de comprobación de sesión (3rd-party cookies / CSP); sin esto,
+        // `updateToken()` puede fallar en SPAs y las APIs reciben token inválido o sin Authorization.
+        checkLoginIframe: false,
         // Sin silentCheckSsoRedirectUri para evitar iframe y error CSP "frame-ancestors 'self'".
         // Keycloak hará redirect completo si necesita comprobar sesión.
         pkceMethod: 'S256',

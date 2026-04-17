@@ -13,6 +13,8 @@ export const environment = {
   forgotPasswordApiUrl: 'http://localhost:8081/api/auth/forgot-password' as string | undefined,
   /** Mismo host que harmoni-register u otro gateway que exponga `/api/v1/dashboard/...`. */
   apiBaseUrl: 'http://localhost:8081',
+  /** harmoniwatts-api (Spring Boot). */
+  viviendaApiBaseUrl: 'http://localhost:8082',
   defaultHouseholdId: undefined as string | undefined,
   dashboardApi: {
     summaryPath: '/api/v1/dashboard/summary',
