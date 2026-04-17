@@ -1,0 +1,15 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+motor==3.7.1
+pymongo==4.5.0
+celery==5.3.4
+redis==5.0.1
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.2.1
+httpx==0.25.1
+python-jose[cryptography]==3.3.0
+pytz==2023.3
+pendulum==2.1.2
+tenacity==8.2.3
+structlog==25.5.0
