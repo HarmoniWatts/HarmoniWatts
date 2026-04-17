@@ -1,45 +1,51 @@
 import {
-  HTTP_INTERCEPTORS,
-  HttpHeaders
-} from "./chunk-YBWXTNOH.js";
-import {
   Keycloak
 } from "./chunk-IIAGNKPU.js";
 import {
+  HTTP_INTERCEPTORS,
+  HttpHeaders
+} from "./chunk-HHASAYWX.js";
+import {
   CommonModule,
   isPlatformBrowser
-} from "./chunk-5WRCSYZD.js";
-import "./chunk-GNT2F3TB.js";
+} from "./chunk-ENIUR56I.js";
+import "./chunk-KG3IOF6T.js";
 import {
   Directive,
-  EnvironmentInjector,
   Injectable,
-  InjectionToken,
   Input,
   NgModule,
   PLATFORM_ID,
-  Subject,
   TemplateRef,
   ViewContainerRef,
-  combineLatest,
-  computed,
-  effect,
-  from,
-  inject,
-  makeEnvironmentProviders,
-  map,
-  mergeMap,
-  of,
   provideAppInitializer,
-  runInInjectionContext,
   setClassMetadata,
-  signal,
   ɵɵNgOnChangesFeature,
   ɵɵdefineDirective,
-  ɵɵdefineInjectable,
-  ɵɵdefineInjector,
   ɵɵdefineNgModule
-} from "./chunk-25QRLV3Z.js";
+} from "./chunk-YWLPHN4B.js";
+import {
+  EnvironmentInjector,
+  InjectionToken,
+  computed,
+  effect,
+  inject,
+  makeEnvironmentProviders,
+  runInInjectionContext,
+  signal,
+  ɵɵdefineInjectable,
+  ɵɵdefineInjector
+} from "./chunk-K2STGQN3.js";
+import "./chunk-HWYXSU2G.js";
+import "./chunk-JRFR6BLO.js";
+import {
+  Subject,
+  combineLatest,
+  from,
+  map,
+  mergeMap,
+  of
+} from "./chunk-MARUHEWW.js";
 import {
   __async,
   __spreadProps,
