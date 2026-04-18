@@ -1,7 +1,7 @@
 {
   "name": "harmoniwatts-harmoni-register",
   "version": "1.0.0",
-  "description": "Microservicio de registro de usuarios: recibe el formulario y crea el usuario en Keycloak (Admin API)",
+  "description": "Microservicio frente a Keycloak: registro, olvidé contraseña, perfil y cambio de contraseña (Admin API + JWT)",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "jose": "^5.10.0"
   },
   "engines": {
     "node": ">=18"

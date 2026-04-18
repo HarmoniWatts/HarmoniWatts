@@ -1,0 +1,36 @@
+<div class="pe-page">
+  <header class="pe-head">
+    <a routerLink="/perfil/editar" class="pe-back">← Volver a editar perfil</a>
+    <h1 class="pe-title">Datos personales</h1>
+    <p class="pe-sub">Los cambios se guardan en tu cuenta de HarmoniWatts (Keycloak).</p>
+  </header>
+
+  @if (error()) {
+    <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
+  }
+  @if (success()) {
+    <div class="dash-banner dash-banner-ok" role="status">Cambios guardados correctamente.</div>
+  }
+
+  <section class="dash-card pe-card">
+    <div class="pe-form-grid">
+      <label class="pe-field">
+        <span>Nombre</span>
+        <input class="pe-input" type="text" [(ngModel)]="firstName" autocomplete="given-name" />
+      </label>
+      <label class="pe-field">
+        <span>Apellidos</span>
+        <input class="pe-input" type="text" [(ngModel)]="lastName" autocomplete="family-name" />
+      </label>
+      <label class="pe-field pe-field-span">
+        <span>Correo electrónico</span>
+        <input class="pe-input" type="email" [(ngModel)]="email" autocomplete="email" />
+      </label>
+    </div>
+    <div class="pe-actions">
+      <button type="button" class="dash-btn-apply" (click)="guardar()" [disabled]="loading()">
+        {{ loading() ? 'Guardando…' : 'Guardar cambios' }}
+      </button>
+    </div>
+  </section>
+</div>

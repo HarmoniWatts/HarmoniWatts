@@ -25,7 +25,7 @@ CREATE TABLE Vivienda (
     tipo VARCHAR(50) NOT NULL,
     habitantes INTEGER,
     direccion VARCHAR(200),
-    estrato SMALLINT NOT NULL DEFAULT 3 CHECK (estrato >= 1 AND estrato <= 6),
+    estrato INTEGER NOT NULL DEFAULT 3 CHECK (estrato >= 1 AND estrato <= 6),
     zona_climatica VARCHAR(20),
     fecha_registro TIMESTAMP DEFAULT NOW()
 );

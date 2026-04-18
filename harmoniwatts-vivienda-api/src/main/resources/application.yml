@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: harmoniwatts-api
+    name: harmoniwatts-vivienda-api
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/harmoniwatts}
     username: ${SPRING_DATASOURCE_USERNAME:keycloak_user}

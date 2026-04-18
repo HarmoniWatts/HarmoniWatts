@@ -1,7 +1,7 @@
 <div class="pe-page">
   <header class="pe-head">
     <h1 class="pe-title">Editar perfil</h1>
-    <p class="pe-sub">Los datos de identidad se gestionan en Keycloak. Usa los asistentes oficiales para actualizarlos.</p>
+    <p class="pe-sub">Edita tus datos o tu contraseña desde las pantallas siguientes; los cambios se aplican en Keycloak vía la API.</p>
   </header>
 
   <section class="dash-card pe-card">
@@ -32,16 +32,16 @@
       <li>
         <div>
           <div class="pe-action-title">Editar información personal</div>
-          <p class="pe-action-desc">Nombre, apellidos y demás datos del perfil (flujo Keycloak).</p>
+          <p class="pe-action-desc">Nombre, apellidos y correo (formulario en la app, guardado en Keycloak).</p>
         </div>
-        <button type="button" class="dash-btn-apply" (click)="editarInformacionPersonal()">Abrir</button>
+        <a routerLink="/perfil/editar/datos" class="dash-btn-apply pe-link-btn">Abrir</a>
       </li>
       <li>
         <div>
           <div class="pe-action-title">Cambiar contraseña</div>
-          <p class="pe-action-desc">Asistente de actualización de contraseña de Keycloak.</p>
+          <p class="pe-action-desc">Contraseña actual y nueva; verificación y actualización vía API.</p>
         </div>
-        <button type="button" class="dash-btn-apply" (click)="cambiarContrasena()">Abrir</button>
+        <a routerLink="/perfil/editar/contrasena" class="dash-btn-apply pe-link-btn">Abrir</a>
       </li>
     </ul>
   </section>

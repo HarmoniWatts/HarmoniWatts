@@ -5,6 +5,7 @@
 
 # Dependencias y builds
 node_modules/
+frontend/.angular/
 dist/
 target/
 build/
