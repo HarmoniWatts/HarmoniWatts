@@ -7,6 +7,6 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /src/target/harmoniwatts-api-*.jar app.jar
+COPY --from=build /src/target/harmoniwatts-vivienda-api-*.jar app.jar
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

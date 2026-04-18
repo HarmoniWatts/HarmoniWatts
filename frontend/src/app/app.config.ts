@@ -45,6 +45,15 @@ const viviendaBearerCondition = viviendaBase
     })
   : null;
 
+const harmoniRegBase = (environment.harmoniRegisterBaseUrl ?? '').replace(/\/$/, '');
+const harmoniRegisterBearerCondition =
+  harmoniRegBase && harmoniRegBase !== apiBase
+    ? createInterceptorCondition<IncludeBearerTokenCondition>({
+        urlPattern: new RegExp(`^${escapeRegExp(harmoniRegBase)}(/.*)?$`, 'i'),
+        bearerPrefix: 'Bearer',
+      })
+    : null;
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -52,7 +61,12 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
     {
       provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
-      useValue: [keycloakBearerCondition, apiBearerCondition, ...(viviendaBearerCondition ? [viviendaBearerCondition] : [])],
+      useValue: [
+        keycloakBearerCondition,
+        apiBearerCondition,
+        ...(viviendaBearerCondition ? [viviendaBearerCondition] : []),
+        ...(harmoniRegisterBearerCondition ? [harmoniRegisterBearerCondition] : []),
+      ],
     },
     provideKeycloak({
       config: {

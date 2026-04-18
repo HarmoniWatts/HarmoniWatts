@@ -24,6 +24,16 @@ export const routes: Routes = [
           import('./features/vivienda/mi-vivienda.component').then((m) => m.MiViviendaComponent),
       },
       {
+        path: 'perfil/editar/datos',
+        loadComponent: () =>
+          import('./features/profile/perfil-datos.component').then((m) => m.PerfilDatosComponent),
+      },
+      {
+        path: 'perfil/editar/contrasena',
+        loadComponent: () =>
+          import('./features/profile/perfil-contrasena.component').then((m) => m.PerfilContrasenaComponent),
+      },
+      {
         path: 'perfil/editar',
         loadComponent: () =>
           import('./features/profile/perfil-editar.component').then((m) => m.PerfilEditarComponent),

@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import Keycloak from 'keycloak-js';
 
 @Component({
   selector: 'app-perfil-editar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './perfil-editar.component.html',
   styleUrl: './perfil-editar.component.css',
 })
@@ -30,26 +31,4 @@ export class PerfilEditarComponent {
       .finally(() => this.profileLoading.set(false));
   }
 
-  /**
-   * URL a la que Keycloak debe volver tras el flujo (evita perder el contexto de la SPA y fuerza nuevo intercambio de tokens).
-   */
-  private redirectTrasAccionKeycloak(): string {
-    return `${window.location.origin}/perfil/editar`;
-  }
-
-  /** Flujo OIDC de Keycloak para actualizar datos de cuenta (nombre, apellidos, etc.). */
-  editarInformacionPersonal(): void {
-    void this.keycloak.login({
-      action: 'UPDATE_PROFILE',
-      redirectUri: this.redirectTrasAccionKeycloak(),
-    });
-  }
-
-  /** Flujo dedicado de Keycloak para cambiar contraseña. */
-  cambiarContrasena(): void {
-    void this.keycloak.login({
-      action: 'UPDATE_PASSWORD',
-      redirectUri: this.redirectTrasAccionKeycloak(),
-    });
-  }
 }

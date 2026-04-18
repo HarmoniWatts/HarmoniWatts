@@ -15,7 +15,9 @@ export const environment = {
    * Debe coincidir con un patrón del interceptor Bearer en `app.config.ts`.
    */
   apiBaseUrl: '' as string,
-  /** API Spring Boot (viviendas, etc.). Sin barra final. */
+  /** harmoni-register (Keycloak). Vacío = usar `apiBaseUrl` para perfil/contraseña. */
+  harmoniRegisterBaseUrl: '' as string,
+  /** API Spring Boot viviendas. Sin barra final. */
   viviendaApiBaseUrl: '' as string,
   /** Si el usuario tiene varias viviendas, se envía como `householdId` en las peticiones del dashboard. */
   defaultHouseholdId: undefined as string | undefined,

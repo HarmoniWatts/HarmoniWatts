@@ -1,0 +1,52 @@
+@import './perfil-editar.component.css';
+
+.pe-back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+.pe-back:hover {
+  color: #22d3ee;
+}
+
+.pe-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.pe-field-span {
+  grid-column: 1 / -1;
+}
+
+.pe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.pe-input {
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+}
+
+.pe-actions {
+  margin-top: 1.25rem;
+}
+
+.dash-banner-ok {
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(22, 101, 52, 0.25);
+  color: #bbf7d0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}

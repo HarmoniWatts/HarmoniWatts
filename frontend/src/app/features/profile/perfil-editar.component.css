@@ -81,3 +81,13 @@
   font-size: 0.88rem;
   max-width: 42ch;
 }
+
+.pe-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.9rem;
+}

@@ -11,9 +11,11 @@ export const environment = {
   registrationApiUrl: 'http://localhost:8081/api/auth/register' as string | undefined,
   /** Endpoint para solicitar correo de restablecimiento de contraseña (harmoni-register). */
   forgotPasswordApiUrl: 'http://localhost:8081/api/auth/forgot-password' as string | undefined,
+  /** harmoni-register: registro, olvidé contraseña, perfil y cambio de clave (Keycloak). */
+  harmoniRegisterBaseUrl: 'http://localhost:8081',
   /** Mismo host que harmoni-register u otro gateway que exponga `/api/v1/dashboard/...`. */
   apiBaseUrl: 'http://localhost:8081',
-  /** harmoniwatts-api (Spring Boot). */
+  /** harmoniwatts-vivienda-api (Spring Boot — solo CRUD viviendas). */
   viviendaApiBaseUrl: 'http://localhost:8082',
   defaultHouseholdId: undefined as string | undefined,
   dashboardApi: {
