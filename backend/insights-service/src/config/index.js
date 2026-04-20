@@ -1,7 +1,11 @@
-require('dotenv').config();
+import e from 'express';
+
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 export const port = process.env.PORT || 3001;
-export const consumptionServiceUrl = process.env.CONSUMPTION_SERVICE_URL || 'http://localhost:3002';
+export const consumptionServiceUrl = process.env.CONSUMPTION_SERVICE_URL || 'http://localhost:8001';
 export const predictionServiceUrl = process.env.PREDICTION_SERVICE_URL || 'http://localhost:3003';
 export const defaultTimezone = process.env.DEFAULT_TIMEZONE || 'America/Bogota';
 export const tariffBands = [
@@ -12,3 +16,11 @@ export const tariffBands = [
     { type: 'PUNTA', label: 'Punta', startHour: 18, endHour: 21, price: 980 },
     { type: 'VALLE', label: 'Valle', startHour: 21, endHour: 24, price: 280 }
 ];
+
+export default {
+    port,
+    consumptionServiceUrl,
+    predictionServiceUrl,
+    defaultTimezone,
+    tariffBands
+};

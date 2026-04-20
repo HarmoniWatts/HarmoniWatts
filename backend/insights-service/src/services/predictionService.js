@@ -1,14 +1,14 @@
-const axios = require('axios');
-const config = require('../config');
+import get from 'axios';
+import { predictionServiceUrl } from '../config/index.js';
 
 class PredictionService {
   constructor() {
-    this.baseUrl = config.predictionServiceUrl;
+    this.baseUrl = predictionServiceUrl;
   }
 
   async getDailyTotal(householdId, date) {
     try {
-      const response = await axios.get(
+      const response = await get(
         `${this.baseUrl}/prediction/daily-total/${householdId}`,
         { params: { date } }
       );
@@ -22,7 +22,7 @@ class PredictionService {
 
   async getDailySeries(householdId, date) {
     try {
-      const response = await axios.get(
+      const response = await get(
         `${this.baseUrl}/prediction/daily-series/${householdId}`,
         { params: { date } }
       );
@@ -35,4 +35,4 @@ class PredictionService {
   }
 }
 
-module.exports = PredictionService;
+export default PredictionService;

@@ -1,14 +1,14 @@
-const axios = require('axios');
-const config = require('../config');
+import get from 'axios';
+import { consumptionServiceUrl } from '../config/index.js';
 
 class ConsumptionService {
   constructor() {
-    this.baseUrl = config.consumptionServiceUrl;
+    this.baseUrl = consumptionServiceUrl;
   }
 
   async getCurrentConsumption(householdId) {
     try {
-      const response = await axios.get(
+      const response = await get(
         `${this.baseUrl}/consumption/current/${householdId}`
       );
       return response.data;
@@ -20,7 +20,7 @@ class ConsumptionService {
 
   async getDailyTotal(householdId, date) {
     try {
-      const response = await axios.get(
+      const response = await get(
         `${this.baseUrl}/consumption/daily-total/${householdId}`,
         { params: { date } }
       );
@@ -33,7 +33,7 @@ class ConsumptionService {
 
   async getDailySeries(householdId, date) {
     try {
-      const response = await axios.get(
+      const response = await get(
         `${this.baseUrl}/consumption/daily-series/${householdId}`,
         { params: { date } }
       );
@@ -45,4 +45,4 @@ class ConsumptionService {
   }
 }
 
-module.exports = ConsumptionService;
+export default ConsumptionService;

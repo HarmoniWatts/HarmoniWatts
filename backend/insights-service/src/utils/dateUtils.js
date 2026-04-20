@@ -1,15 +1,16 @@
-const moment = require('moment-timezone');
+import pkg from 'moment-timezone';
+const { tz } = pkg;
 
 class DateUtils {
   static getDateInTimezone(dateStr, timezone) {
     if (dateStr) {
-      return moment.tz(dateStr, timezone).startOf('day');
+      return tz(dateStr, timezone).startOf('day');
     }
-    return moment.tz(timezone).startOf('day');
+    return tz(timezone).startOf('day');
   }
 
   static getCurrentInTimezone(timezone) {
-    return moment.tz(timezone);
+    return tz(timezone);
   }
 
   static formatDate(date, timezone) {
@@ -17,13 +18,13 @@ class DateUtils {
   }
 
   static getDaysDifference(date1, date2, timezone) {
-    const d1 = moment.tz(date1, timezone).startOf('day');
-    const d2 = moment.tz(date2, timezone).startOf('day');
+    const d1 = tz(date1, timezone).startOf('day');
+    const d2 = tz(date2, timezone).startOf('day');
     return d1.diff(d2, 'days');
   }
 
   static getCurrentHour(timezone) {
-    return moment.tz(timezone).hour();
+    return tz(timezone).hour();
   }
 
   static formatISO(date, timezone) {
@@ -31,4 +32,15 @@ class DateUtils {
   }
 }
 
-module.exports = DateUtils;
+// Export default (clase completa)
+export default DateUtils;
+
+// Export nombrado (funciones individuales)
+export const {
+  getDateInTimezone,
+  getCurrentInTimezone,
+  formatDate,
+  getDaysDifference,
+  getCurrentHour,
+  formatISO
+} = DateUtils;
