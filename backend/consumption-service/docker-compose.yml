@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  consumption-service:
+    build: .
+    container_name: consumption-service
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_USER=${MONGODB_USER:-admin}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD:-password}
+      - MONGODB_DATABASE=harmoniwatts_consumption
+      - REDIS_HOST=redis
+      - ENVIRONMENT=development
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: consumption-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-password}
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: consumption-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+  celery-worker:
+    build: .
+    container_name: consumption-celery-worker
+    command: celery -A tasks.celery_app worker --loglevel=info
+    environment:
+      - MONGODB_HOST=mongodb
+      - REDIS_HOST=redis
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+  celery-beat:
+    build: .
+    container_name: consumption-celery-beat
+    command: celery -A tasks.celery_app beat --loglevel=info
+    environment:
+      - MONGODB_HOST=mongodb
+      - REDIS_HOST=redis
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  harmoniwatts-network:
+    driver: bridge
