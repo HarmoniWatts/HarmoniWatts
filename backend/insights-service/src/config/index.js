@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 
-export const port = process.env.PORT || 3001;
+export const port = process.env.PORT || 7001;
 export const consumptionServiceUrl = process.env.CONSUMPTION_SERVICE_URL || 'http://localhost:8001';
 export const predictionServiceUrl = process.env.PREDICTION_SERVICE_URL || 'http://localhost:3003';
 export const defaultTimezone = process.env.DEFAULT_TIMEZONE || 'America/Bogota';

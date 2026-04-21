@@ -1,11 +1,15 @@
-import InsightsService from '../services/insightsService.js';
 import { fromData } from '../models/DashboardSummary.js';
 import { fromData as _fromData } from '../models/ConsumptionChart.js';
 import { defaultTimezone } from '../config/index.js';
 
 // Inicializar servicios
-import consumptionService from '../services/consumptionService.js';
-import predictionService from '../services/predictionService.js';
+import ConsumptionService from '../services/consumptionService.js';
+import PredictionService from '../services/predictionService.js';
+import InsightsService from '../services/insightsService.js';
+
+const consumptionService = new ConsumptionService();
+const predictionService = new PredictionService();
+
 const insightsService = new InsightsService(consumptionService, predictionService);
 
 class DashboardController {
