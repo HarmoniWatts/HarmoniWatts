@@ -1,5 +1,4 @@
-version: '3.8'
-
+# docker-compose.simple.yml
 services:
   consumption-service:
     build: .
@@ -8,16 +7,15 @@ services:
       - "8001:8001"
     environment:
       - MONGODB_HOST=mongodb
-      - MONGODB_USER=${MONGODB_USER:-admin}
-      - MONGODB_PASSWORD=${MONGODB_PASSWORD:-password}
-      - MONGODB_DATABASE=harmoniwatts_consumption
-      - REDIS_HOST=redis
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=harmoniwatts
       - ENVIRONMENT=development
-    env_file:
-      - .env
+      - DEBUG=true
+      - CONSUMPTION_COLLECTION=consumos_enriquecidos
+      - HOUSEHOLD_ID_TYPE=int
     depends_on:
-      - mongodb
-      - redis
+      mongodb:
+        condition: service_healthy
     networks:
       - harmoniwatts-network
     restart: unless-stopped
@@ -27,61 +25,20 @@ services:
     container_name: consumption-mongodb
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-password}
     volumes:
       - mongodb_data:/data/db
     networks:
       - harmoniwatts-network
     restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: consumption-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - harmoniwatts-network
-    restart: unless-stopped
-
-  celery-worker:
-    build: .
-    container_name: consumption-celery-worker
-    command: celery -A tasks.celery_app worker --loglevel=info
-    environment:
-      - MONGODB_HOST=mongodb
-      - REDIS_HOST=redis
-    env_file:
-      - .env
-    depends_on:
-      - mongodb
-      - redis
-    networks:
-      - harmoniwatts-network
-    restart: unless-stopped
-
-  celery-beat:
-    build: .
-    container_name: consumption-celery-beat
-    command: celery -A tasks.celery_app beat --loglevel=info
-    environment:
-      - MONGODB_HOST=mongodb
-      - REDIS_HOST=redis
-    env_file:
-      - .env
-    depends_on:
-      - mongodb
-      - redis
-    networks:
-      - harmoniwatts-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   mongodb_data:
-  redis_data:
 
 networks:
   harmoniwatts-network:

@@ -38,6 +38,8 @@ class ConsumptionService {
 
   // GET /api/v1/consumption/series/hourly/{household_id}
   async getHourlySeries(householdId, date) {
+    console.log(`Fetching hourly series for household ${householdId} and date ${date}`);
+    console.log(`Consumption service URL: ${this.baseUrl}`);
     try {
       const params = date ? { date } : {};
       const response = await this.client.get(`/api/v1/consumption/series/hourly/${householdId}`, { params });

@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  insights-service:
+    build:
+      context: ./backend/insights-service
+      dockerfile: Dockerfile
+    container_name: insights-service
+    ports:
+      - "7001:7001"
+    environment:
+      - NODE_ENV=production
+      - PORT=7001
+      - CONSUMPTION_SERVICE_URL=http://consumption-service:8001
+      - PREDICTION_SERVICE_URL=http://prediction-service:3003
+      - DEFAULT_TIMEZONE=America/Bogota
+    env_file:
+      - .env.docker
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - insights-network
+    depends_on:
+      - consumption-service
+      - prediction-service
+
+  consumption-service:
+    build:
+      context: ./backend/consumption-service
+      dockerfile: Dockerfile
+    container_name: consumption-service
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    networks:
+      - insights-network
+
+  prediction-service:
+    build:
+      context: ./backend/prediction-service
+      dockerfile: Dockerfile
+    container_name: prediction-service
+    ports:
+      - "3003:3003"
+    restart: unless-stopped
+    networks:
+      - insights-network
+
+networks:
+  insights-network:
+    driver: bridge
