@@ -1,0 +1,46 @@
+# Dependencias
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Directorios de desarrollo
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de testing
+coverage/
+.nyc_output/
+test/
+*.test.js
+*.spec.js
+
+# Documentación
+README.md
+CHANGELOG.md
+docs/
+
+# Archivos de Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+tmp/
+temp/

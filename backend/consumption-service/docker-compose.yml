@@ -1,0 +1,45 @@
+# docker-compose.simple.yml
+services:
+  consumption-service:
+    build: .
+    container_name: consumption-service
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=harmoniwatts
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - CONSUMPTION_COLLECTION=consumos_enriquecidos
+      - HOUSEHOLD_ID_TYPE=int
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: consumption-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - harmoniwatts-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongodb_data:
+
+networks:
+  harmoniwatts-network:
+    driver: bridge

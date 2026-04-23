@@ -230,10 +230,10 @@ Así el **listado** sigue siendo de solo lectura y las transiciones de estado ti
 
 | Método | Ruta | Responsabilidad |
 |--------|------|-----------------|
-| `GET` | `/api/v1/insights/summary` | KPIs del día + próxima franja cara. |
-| `GET` | `/api/v1/insights/consumption-chart` | Series horarias + franjas para el gráfico. |
-| `GET` | `/api/v1/optimization/recommendations` | Lista corta de recomendaciones IA. |
-| `GET` | `/api/v1/user/appliances/top` | Top N aparatos por consumo / participación. |
+| `GET` | `/api/v1/dashboard/summary` | KPIs del día + próxima franja cara. |
+| `GET` | `/api/v1/dashboard/consumption-chart` | Series horarias + franjas para el gráfico. |
+| `GET` | `/api/v1/dashboard/recommendations` | Lista corta de recomendaciones IA. |
+| `GET` | `/api/v1/dashboard/appliances/top` | Top N aparatos por consumo / participación. |
 
 ---
 
