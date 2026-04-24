@@ -5,6 +5,7 @@ from datetime import datetime, date, timedelta
 from typing import Optional, Dict, Any, List, Union
 from app.models.consumption import ConsumoEnriquecido, ConsumoTimeSeries
 from app.config import settings
+from app.core.local_calendar import utc_range_for_local_calendar_day, local_hour_from_utc_timestamp
 import structlog
 
 logger = structlog.get_logger()
@@ -45,7 +46,8 @@ class ConsumptionRepository:
     async def get_daily_total(
         self,
         household_id: Union[int, str],
-        target_date: date
+        target_date: date,
+        tz: str,
     ) -> Optional[Dict[str, Any]]:
         """
         Obtiene el consumo total del día y estadísticas
@@ -53,15 +55,14 @@ class ConsumptionRepository:
         """
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
-        
-        start = datetime.combine(target_date, datetime.min.time())
-        end = datetime.combine(target_date, datetime.max.time())
-        
+
+        start, end_exclusive = utc_range_for_local_calendar_day(target_date, tz)
+
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {"$gte": start, "$lte": end}
+                    "timestamp": {"$gte": start, "$lt": end_exclusive},
                 }
             },
             {
@@ -85,12 +86,12 @@ class ConsumptionRepository:
                 peak_doc = await self.collection.find_one(
                     {
                         "id_vivienda": household_id,
-                        "timestamp": {"$gte": start, "$lte": end},
-                        "valor_kwh": results[0]["peak_power_kw"]
+                        "timestamp": {"$gte": start, "$lt": end_exclusive},
+                        "valor_kwh": results[0]["peak_power_kw"],
                     }
                 )
                 if peak_doc:
-                    peak_hour = peak_doc["timestamp"].hour
+                    peak_hour = local_hour_from_utc_timestamp(peak_doc["timestamp"], tz)
             
             results[0]["peak_hour"] = peak_hour
             return results[0]
@@ -100,30 +101,34 @@ class ConsumptionRepository:
     async def get_hourly_consumption(
         self,
         household_id: Union[int, str],
-        target_date: date
+        target_date: date,
+        tz: str,
     ) -> List[Dict[str, Any]]:
         """
-        Obtiene consumo por hora para un día
+        Obtiene consumo por hora para un día civil en `tz` (0-23 = hora local).
         """
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
-        
-        start = datetime.combine(target_date, datetime.min.time())
-        end = datetime.combine(target_date, datetime.max.time())
-        
+
+        start, end_exclusive = utc_range_for_local_calendar_day(target_date, tz)
+
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {"$gte": start, "$lte": end}
+                    "timestamp": {"$gte": start, "$lt": end_exclusive},
                 }
             },
             {
                 "$group": {
-                    "_id": {"hour": {"$hour": "$timestamp"}},
+                    "_id": {
+                        "hour": {
+                            "$hour": {"date": "$timestamp", "timezone": tz},
+                        }
+                    },
                     "consumption_kwh": {"$sum": "$valor_kwh"},
                     "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
-                    "tarifa_promedio": {"$avg": "$tarifa_aplicada.precio_kwh"}
+                    "tarifa_promedio": {"$avg": "$tarifa_aplicada.precio_kwh"},
                 }
             },
             {"$sort": {"_id.hour": 1}}
@@ -157,7 +162,8 @@ class ConsumptionRepository:
         self,
         household_id: Union[int, str],
         start_date: date,
-        end_date: date
+        end_date: date,
+        tz: str,
     ) -> Dict[str, Dict[str, float]]:
         """
         Obtiene consumo total por día en un rango
@@ -165,22 +171,28 @@ class ConsumptionRepository:
         """
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
-        
+
+        range_start, _ = utc_range_for_local_calendar_day(start_date, tz)
+        _, range_end_exclusive = utc_range_for_local_calendar_day(end_date, tz)
+
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {
-                        "$gte": datetime.combine(start_date, datetime.min.time()),
-                        "$lte": datetime.combine(end_date, datetime.max.time())
-                    }
+                    "timestamp": {"$gte": range_start, "$lt": range_end_exclusive},
                 }
             },
             {
                 "$group": {
-                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
+                    "_id": {
+                        "$dateToString": {
+                            "format": "%Y-%m-%d",
+                            "date": "$timestamp",
+                            "timezone": tz,
+                        }
+                    },
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"}
+                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
                 }
             }
         ]
@@ -196,29 +208,32 @@ class ConsumptionRepository:
     async def get_monthly_totals(
         self,
         household_id: Union[int, str],
-        year: int
+        year: int,
+        tz: str,
     ) -> Dict[int, Dict[str, float]]:
         """
         Obtiene consumo total por mes para un año
         """
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
-        
-        start_date = datetime(year, 1, 1)
-        end_date = datetime(year, 12, 31, 23, 59, 59)
-        
+
+        start_d = date(year, 1, 1)
+        end_d = date(year, 12, 31)
+        start_utc, _ = utc_range_for_local_calendar_day(start_d, tz)
+        _, end_exclusive = utc_range_for_local_calendar_day(end_d, tz)
+
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {"$gte": start_date, "$lte": end_date}
+                    "timestamp": {"$gte": start_utc, "$lt": end_exclusive},
                 }
             },
             {
                 "$group": {
-                    "_id": {"$month": "$timestamp"},
+                    "_id": {"$month": {"date": "$timestamp", "timezone": tz}},
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"}
+                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
                 }
             }
         ]
@@ -254,13 +269,14 @@ class ConsumptionRepository:
     async def get_previous_day_total(
         self,
         household_id: Union[int, str],
-        target_date: date
+        target_date: date,
+        tz: str,
     ) -> Optional[float]:
         """
         Obtiene el consumo total del día anterior
         """
         previous_date = target_date - timedelta(days=1)
-        daily_total = await self.get_daily_total(household_id, previous_date)
+        daily_total = await self.get_daily_total(household_id, previous_date, tz)
         
         if daily_total:
             return daily_total["total_consumption_kwh"]
@@ -270,22 +286,22 @@ class ConsumptionRepository:
     async def get_week_average(
         self,
         household_id: Union[int, str],
-        target_date: date
+        target_date: date,
+        tz: str,
     ) -> Optional[float]:
         """
         Obtiene el consumo promedio de los últimos 7 días
         """
         end_date = target_date - timedelta(days=1)
         start_date = target_date - timedelta(days=7)
-        
+        range_start, _ = utc_range_for_local_calendar_day(start_date, tz)
+        _, range_end_exclusive = utc_range_for_local_calendar_day(end_date, tz)
+
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {
-                        "$gte": datetime.combine(start_date, datetime.min.time()),
-                        "$lte": datetime.combine(end_date, datetime.max.time())
-                    }
+                    "timestamp": {"$gte": range_start, "$lt": range_end_exclusive},
                 }
             },
             {

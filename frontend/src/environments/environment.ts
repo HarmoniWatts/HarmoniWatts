@@ -19,6 +19,12 @@ export const environment = {
   harmoniRegisterBaseUrl: '' as string,
   /** API Spring Boot viviendas. Sin barra final. */
   viviendaApiBaseUrl: '' as string,
+  /** API Spring Boot electrodomésticos por vivienda. Sin barra final. */
+  electrodomesticosApiBaseUrl: '' as string,
+  /**
+   * Base URL del insights-service (dashboard). Vacío: se usa `apiBaseUrl`.
+   */
+  dashboardInsightsBaseUrl: '' as string | undefined,
   /** Si el usuario tiene varias viviendas, se envía como `householdId` en las peticiones del dashboard. */
   defaultHouseholdId: undefined as string | undefined,
   /** Rutas versionadas del contrato DASHBOARD-API.md (sustituibles por entorno / despliegue). */

@@ -54,7 +54,12 @@ async def get_current_consumption(
 async def get_daily_total(
     household_id: str = Path(..., description="ID de la vivienda"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    timezone: str = Query(
+        settings.DEFAULT_TIMEZONE,
+        alias="timezone",
+        description="Zona IANA del día civil (ej. America/Bogota)",
+    ),
+    db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
     Endpoint para obtener el consumo acumulado del día (kWh) y costo (COP)
@@ -69,7 +74,7 @@ async def get_daily_total(
     service = ConsumptionService(repository)
     
     target_date = date_param or datetime.utcnow().date()
-    result = await service.get_daily_total(household_id, target_date)
+    result = await service.get_daily_total(household_id, target_date, timezone)
     
     return result
 
@@ -87,7 +92,12 @@ async def get_daily_total(
 async def get_hourly_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    timezone: str = Query(
+        settings.DEFAULT_TIMEZONE,
+        alias="timezone",
+        description="Zona IANA para agrupar horas 0–23 del día civil",
+    ),
+    db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
     Obtiene serie temporal con consumo por hora (0-23)
@@ -104,7 +114,7 @@ async def get_hourly_series(
     
     target_date = date_param or datetime.now(timezone.utc).date()
     
-    series = await service.get_hourly_series(household_id, target_date)
+    series = await service.get_hourly_series(household_id, target_date, timezone)
     
     return TimeSeriesResponse(
         id_vivienda=household_id,
@@ -127,7 +137,12 @@ async def get_daily_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     year: int = Query(..., description="Año (ej: 2025)", ge=2020, le=2030),
     month: int = Query(..., description="Mes (1-12)", ge=1, le=12),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    timezone: str = Query(
+        settings.DEFAULT_TIMEZONE,
+        alias="timezone",
+        description="Zona IANA para asignar cada lectura a un día civil",
+    ),
+    db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
     Obtiene serie temporal con consumo por día del mes
@@ -141,7 +156,7 @@ async def get_daily_series(
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    result = await service.get_daily_series(household_id, year, month)
+    result = await service.get_daily_series(household_id, year, month, timezone)
     
     return TimeSeriesResponse(
         id_vivienda=household_id,
@@ -163,7 +178,12 @@ async def get_daily_series(
 async def get_monthly_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     year: int = Query(..., description="Año (ej: 2025)", ge=2020, le=2030),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    timezone: str = Query(
+        settings.DEFAULT_TIMEZONE,
+        alias="timezone",
+        description="Zona IANA para agrupar por mes civil",
+    ),
+    db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
     Obtiene serie temporal con consumo por mes del año
@@ -180,7 +200,7 @@ async def get_monthly_series(
     meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", 
              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
     
-    result = await service.get_monthly_series(household_id, year)
+    result = await service.get_monthly_series(household_id, year, timezone)
     
     return TimeSeriesResponse(
         id_vivienda=household_id,
@@ -203,7 +223,12 @@ async def get_yearly_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     start_year: int = Query(..., description="Año inicial", ge=2020, le=2030),
     end_year: int = Query(..., description="Año final", ge=2020, le=2030),
-    db: AsyncIOMotorDatabase = Depends(get_database)
+    timezone: str = Query(
+        settings.DEFAULT_TIMEZONE,
+        alias="timezone",
+        description="Zona IANA (coherente con series mensuales)",
+    ),
+    db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
     Obtiene serie temporal con consumo por año
@@ -220,7 +245,7 @@ async def get_yearly_series(
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    result = await service.get_yearly_series(household_id, start_year, end_year)
+    result = await service.get_yearly_series(household_id, start_year, end_year, timezone)
     
     return TimeSeriesResponse(
         id_vivienda=household_id,

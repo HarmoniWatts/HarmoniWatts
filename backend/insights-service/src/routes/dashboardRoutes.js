@@ -1,6 +1,13 @@
 import { Router } from 'express';
 const router = Router();
-import { getSummary, getConsumptionChart } from '../controllers/dashboardController.js';
+import {
+  getSummary,
+  getConsumptionChart,
+  getRecommendations,
+  getAppliancesTop,
+  postRecommendationApply,
+  postRecommendationDismiss,
+} from '../controllers/dashboardController.js';
 
 /**
  * @swagger
@@ -81,5 +88,13 @@ router.get('/dashboard/summary', getSummary);
  *         description: Servicio no disponible
  */
 router.get('/dashboard/consumption-chart', getConsumptionChart);
+
+router.get('/dashboard/recommendations', getRecommendations);
+
+router.get('/dashboard/appliances/top', getAppliancesTop);
+
+router.post('/recommendations/:id/apply', postRecommendationApply);
+
+router.post('/recommendations/:id/dismiss', postRecommendationDismiss);
 
 export default router;
