@@ -25,7 +25,9 @@ export class DashShellComponent {
     const updateCuentaActive = (): void => {
       const path = this.router.url.split('?')[0];
       this.cuentaSectionActive.set(
-        path === '/cuenta' || path.startsWith('/perfil') || path === '/mi-vivienda',
+        path.startsWith('/cuenta') ||
+          path.startsWith('/perfil') ||
+          path === '/mi-vivienda',
       );
     };
     updateCuentaActive();

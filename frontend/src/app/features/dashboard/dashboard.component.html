@@ -67,7 +67,7 @@
           @if (summary) {
             <div class="dash-kpi-value dash-text-amber">{{ formatCop(summary.estimatedCostTodayCop) }}</div>
             <div class="dash-kpi-sub">
-              Tarifa actual: {{ summary.currentTariffSlot.label }} Â·
+              Tarifa actual: {{ summary.currentTariffSlot.label }} ·
               {{ summary.currentTariffSlot.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh
             </div>
           } @else {
@@ -101,7 +101,7 @@
 
         <article class="dash-card dash-kpi dash-kpi-alert">
           <div class="dash-kpi-head">
-            <div class="dash-kpi-title dash-text-red">PrÃ³xima Franja</div>
+            <div class="dash-kpi-title dash-text-red">Próxima Franja</div>
             <div class="dash-kpi-ic dash-kpi-ic-red">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10" />
@@ -126,7 +126,7 @@
       <div class="dash-content-grid">
         <div class="dash-col-left">
           <section class="dash-card dash-chart-card">
-            <h2 class="dash-section-title">Consumo vs. PredicciÃ³n â€” Hoy</h2>
+            <h2 class="dash-section-title">Consumo vs. Predicción — Hoy</h2>
             @if (chartVm) {
               <div class="dash-chart-legend-row">
                 <div class="dash-chart-legend-spacer" [style.width.px]="chartVm.chartPad.left"></div>
@@ -139,7 +139,7 @@
                     <svg width="40" height="10" class="dash-legend-dash" aria-hidden="true">
                       <line x1="0" y1="5" x2="40" y2="5" stroke="#67e8f9" stroke-width="2" stroke-dasharray="7 6" />
                     </svg>
-                    <span>PredicciÃ³n IA</span>
+                    <span>Predicción IA</span>
                   </div>
                 </div>
               </div>
@@ -149,7 +149,7 @@
                   [attr.viewBox]="'0 0 ' + chartVm.chartInnerWidth + ' ' + chartVm.chartHeight"
                   preserveAspectRatio="xMidYMid meet"
                   role="img"
-                  aria-label="GrÃ¡fico consumo vs predicciÃ³n por hora"
+                  aria-label="Gráfico consumo vs predicción por hora"
                 >
                   <defs>
                     <linearGradient id="dashConsumoRealAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -277,12 +277,12 @@
                 </svg>
               </div>
               @if (chartVm.predictionUnavailable) {
-                <p class="dash-chart-note">PredicciÃ³n no disponible en este momento.</p>
+                <p class="dash-chart-note">Predicción no disponible en este momento.</p>
               }
             } @else {
               <div class="dash-skeleton dash-skeleton-chart"></div>
               @if (sectionError().chart) {
-                <p class="dash-inline-err">No se pudo cargar el grÃ¡fico.</p>
+                <p class="dash-inline-err">No se pudo cargar el gráfico.</p>
               }
             }
           </section>
@@ -359,8 +359,8 @@
                       [style.color]="ui.fg"
                     >
                       <span class="dash-franja-label">
-                        {{ formatTariffType(row.band.type) }} Â·
-                        {{ row.band.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh ({{ row.band.startHour }}:00â€“{{
+                        {{ formatTariffType(row.band.type) }} ·
+                        {{ row.band.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh ({{ row.band.startHour }}:00–{{
                           row.band.endHour
                         }}:00)
                       </span>
@@ -377,7 +377,7 @@
           </section>
 
           <section class="dash-card">
-            <h2 class="dash-section-title">ElectrodomÃ©sticos de Mayor Consumo</h2>
+            <h2 class="dash-section-title">Electrodomésticos de Mayor Consumo</h2>
             @if (appliances?.items?.length) {
               <div class="dash-app-list">
                 @for (item of appliances!.items; track item.id) {

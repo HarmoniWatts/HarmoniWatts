@@ -1,0 +1,179 @@
+<div class="ed-page">
+  <header class="ed-head">
+    <a routerLink="/cuenta" class="ed-back">← Volver a Cuenta</a>
+    <h1 class="ed-title">Electrodomésticos</h1>
+    <p class="ed-sub">
+      Registra equipos por vivienda (potencia, uso y horario) para identificar cargas optimizables. Los datos se guardan en
+      PostgreSQL.
+    </p>
+  </header>
+
+  @if (error()) {
+    <p class="ed-error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="ed-toolbar">
+    <div class="ed-field">
+      <span class="ed-field-label">Vivienda</span>
+      <select
+        class="ed-select"
+        name="vivienda"
+        [(ngModel)]="selectedViviendaId"
+        (ngModelChange)="onViviendaChange()"
+        [disabled]="loading() || !viviendas().length"
+      >
+        @for (v of viviendas(); track v.id) {
+          <option [ngValue]="v.id">{{ v.tipo }} — {{ v.ubicacion }}</option>
+        }
+      </select>
+    </div>
+    <button type="button" class="ed-btn ed-btn--ghost" (click)="startCreate()" [disabled]="loading() || !selectedViviendaId">
+      Nuevo registro
+    </button>
+    <button
+      type="button"
+      class="ed-btn ed-btn--ghost"
+      (click)="reloadList()"
+      [disabled]="loading() || !selectedViviendaId"
+    >
+      Actualizar lista
+    </button>
+  </div>
+
+  @if (!viviendas().length && !loading()) {
+    <p class="ed-muted">
+      No hay viviendas.
+      <a routerLink="/mi-vivienda">Registra una vivienda</a>
+      primero.
+    </p>
+  }
+
+  <section class="ed-form" aria-labelledby="ed-form-title">
+    <h2 id="ed-form-title" class="ed-section-title">{{ editingId ? 'Editar' : 'Añadir' }} electrodoméstico</h2>
+    <div class="ed-form-grid">
+      <div class="ed-field">
+        <span class="ed-field-label">Tipo</span>
+        <select class="ed-select" name="tipo" [(ngModel)]="idTipoPredefinido" [disabled]="loading() || !tipos().length">
+          @for (t of tipos(); track t.id) {
+            <option [ngValue]="t.id">{{ t.nombreEs }}</option>
+          }
+        </select>
+      </div>
+      @if (esTipoOtro()) {
+        <div class="ed-field">
+          <span class="ed-field-label">Nombre personalizado <span class="ed-muted">*</span></span>
+          <input
+            class="ed-input"
+            type="text"
+            name="nombre"
+            [(ngModel)]="nombre"
+            maxlength="100"
+            placeholder="Ej. freidora de aire"
+          />
+        </div>
+      }
+      <div class="ed-field">
+        <span class="ed-field-label">Marca <span class="ed-muted">(opcional)</span></span>
+        <select class="ed-select" name="marca" [(ngModel)]="idMarcaPredefinida" [disabled]="loading() || !marcas().length">
+          <option [ngValue]="null">Sin marca</option>
+          @for (m of marcas(); track m.id) {
+            <option [ngValue]="m.id">{{ m.nombre }}</option>
+          }
+        </select>
+      </div>
+      @if (esMarcaOtro()) {
+        <div class="ed-field">
+          <span class="ed-field-label">Especificar marca <span class="ed-muted">*</span></span>
+          <input class="ed-input" type="text" name="marcaOtro" [(ngModel)]="marcaOtro" maxlength="100" placeholder="Marca" />
+        </div>
+      }
+      <div class="ed-field">
+        <span class="ed-field-label">Potencia (W) <span class="ed-muted">*</span></span>
+        <input class="ed-input ed-input--number" type="number" name="potenciaW" [(ngModel)]="potenciaW" min="1" step="1" />
+      </div>
+      <div class="ed-field">
+        <span class="ed-field-label">Uso habitual (veces / semana) <span class="ed-muted">*</span></span>
+        <input
+          class="ed-input ed-input--number"
+          type="number"
+          name="usoSemanal"
+          [(ngModel)]="usoSemanal"
+          min="0"
+          max="168"
+          step="1"
+        />
+      </div>
+      <div class="ed-field">
+        <span class="ed-field-label">Horario habitual <span class="ed-muted">(opcional)</span></span>
+        <input class="ed-input ed-input--time" type="time" name="horarioHabitual" [(ngModel)]="horarioHabitual" step="60" />
+      </div>
+      @if (editingId) {
+        <label class="ed-check-row">
+          <input type="checkbox" name="activo" [(ngModel)]="activo" />
+          Activo en el sistema
+        </label>
+      }
+      <label class="ed-check-row">
+        <input type="checkbox" name="esDesplazable" [(ngModel)]="esDesplazable" />
+        Uso desplazable en el tiempo
+      </label>
+    </div>
+
+    <div class="ed-actions">
+      <button type="button" class="ed-btn" (click)="guardar()" [disabled]="loading() || !selectedViviendaId">
+        {{ editingId ? 'Guardar cambios' : 'Guardar' }}
+      </button>
+      @if (editingId) {
+        <button type="button" class="ed-btn ed-btn--ghost" (click)="cancelarEdicion()" [disabled]="loading()">
+          Cancelar edición
+        </button>
+      }
+      <button type="button" class="ed-btn ed-btn--ghost" disabled title="Próximamente: análisis de imagen con IA">
+        Rellenar con IA (foto)
+      </button>
+    </div>
+  </section>
+
+  <h2 class="ed-section-title">Registrados en esta vivienda</h2>
+  <div class="ed-table-wrap">
+    <table class="ed-table">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Marca</th>
+          <th>W</th>
+          <th>Veces/sem.</th>
+          <th>Horario</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items(); track row.id) {
+          <tr>
+            <td>{{ row.nombre }}</td>
+            <td>{{ row.tipoNombre }}</td>
+            <td>{{ row.marcaNombre === 'Otro' && row.marcaOtro ? row.marcaOtro : (row.marcaNombre ?? '—') }}</td>
+            <td>{{ row.potenciaW }}</td>
+            <td>{{ row.usoSemanal }}</td>
+            <td>{{ row.horarioHabitual ?? '—' }}</td>
+            <td>
+              <div class="ed-table-actions">
+                <button type="button" class="ed-btn ed-btn--ghost" (click)="startEdit(row)" [disabled]="loading()">
+                  Editar
+                </button>
+                <button type="button" class="ed-btn ed-btn--danger" (click)="eliminar(row)" [disabled]="loading()">
+                  Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="ed-muted" style="padding: 1.25rem 1rem">Sin registros para esta vivienda.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

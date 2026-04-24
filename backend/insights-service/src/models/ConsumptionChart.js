@@ -59,13 +59,16 @@ class ConsumptionChart {
       date: this.date,
       timezone: this.timezone,
       granularity: this.granularity,
-      maxKwhScale: this.maxKwhScale,
       hours: this.hours,
       actualKwh: this.actualKwh,
       currentHourLocal: this.currentHourLocal,
-      tariffBands: this.tariffBands
+      tariffBands: this.tariffBands,
     };
-    
+
+    if (this.maxKwhScale != null && Number.isFinite(this.maxKwhScale)) {
+      result.maxKwhScale = this.maxKwhScale;
+    }
+
     if (this.predictedKwh) {
       result.predictedKwh = this.predictedKwh;
     }

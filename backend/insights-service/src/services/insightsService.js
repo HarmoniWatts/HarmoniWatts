@@ -1,6 +1,7 @@
 import { getDateInTimezone, getCurrentInTimezone, formatISO, formatDate, getCurrentHour } from '../utils/dateUtils.js';
 import { getTariffByHour, calculateEstimatedCost, getNextHighTariffWindow, calculateSavings } from '../utils/tariffUtils.js';
 import { defaultTimezone, tariffBands as _tariffBands } from '../config/index.js';
+import { maxKwhScaleFromHourlySeries } from '../utils/chartScale.js';
 
 class InsightsService {
   constructor(consumptionService, predictionService) {
@@ -16,15 +17,16 @@ class InsightsService {
 
     // Fetch data from services
     const [todayConsumption, yesterdayConsumption, predictionTotal, actualSeries] = await Promise.all([
-      this.consumptionService.getDailyTotal(householdId, targetDate.format('YYYY-MM-DD')),
-      this.consumptionService.getDailyTotal(householdId, yesterday.format('YYYY-MM-DD')),
+      this.consumptionService.getDailyTotal(householdId, targetDate.format('YYYY-MM-DD'), timezone),
+      this.consumptionService.getDailyTotal(householdId, yesterday.format('YYYY-MM-DD'), timezone),
       this.predictionService.getDailyTotal(householdId, targetDate.format('YYYY-MM-DD')),
-      this.consumptionService.getDailySeries(householdId, targetDate.format('YYYY-MM-DD'))
+      this.consumptionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD'), timezone),
     ]);
 
-    // Calculate consumption vs yesterday
-    const consumptionTodayKwh = todayConsumption?.totalKwh || 0;
-    const consumptionYesterdayKwh = yesterdayConsumption?.totalKwh || 0;
+    // Calculate consumption vs yesterday (contrato FastAPI: total_consumption_kwh)
+    const consumptionTodayKwh = todayConsumption?.total_consumption_kwh ?? todayConsumption?.totalKwh ?? 0;
+    const consumptionYesterdayKwh =
+      yesterdayConsumption?.total_consumption_kwh ?? yesterdayConsumption?.totalKwh ?? 0;
     let consumptionVsYesterdayPercent = 0;
     
     if (consumptionYesterdayKwh > 0) {
@@ -94,14 +96,14 @@ class InsightsService {
     };
   }
 
-  async getConsumptionChart(householdId, dateStr, timezone = config.defaultTimezone) {
+  async getConsumptionChart(householdId, dateStr, timezone = defaultTimezone) {
     const targetDate = getDateInTimezone(dateStr, timezone);
     const currentHour = getCurrentHour(timezone);
 
     // Fetch actual and predicted series - Usar getHourlySeries para ambos
     const [actualData, predictedData] = await Promise.all([
-      this.consumptionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD')), // ← Usar getHourlySeries
-      this.predictionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD'))    // ← Usar getHourlySeries
+      this.consumptionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD'), timezone),
+      this.predictionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD')),
     ]);
     
     // Extraer las series (asumiendo que getHourlySeries retorna { series: [...] })
@@ -126,11 +128,9 @@ class InsightsService {
     return Math.round((v + noise) * 1000) / 1000; // mantener hasta 3 decimales
   });
   //// Fin de fallback
-    
-    // Calculate max scale for the chart
-    const maxActual = Math.max(...actualKwh);
-    const maxPredicted = predictedKwh ? Math.max(...predictedKwh) : 0;
-    const maxKwhScale = Math.ceil(Math.max(maxActual, maxPredicted) * 1.2);
+
+    // Eje Y: solo a partir del insumo (serie horaria = agregado de valor_kwh por hora)
+    const maxKwhScale = maxKwhScaleFromHourlySeries(actualKwh, predictedKwh, 1.08);
 
     // Prepare tariff bands for the chart (solo las bandas del día)
     const tariffBands = _tariffBands.map(band => ({
@@ -145,7 +145,7 @@ class InsightsService {
       date: formatDate(targetDate, timezone),
       timezone: timezone,
       granularity: "HOUR",
-      maxKwhScale: maxKwhScale,
+      ...(maxKwhScale != null ? { maxKwhScale } : {}),
       hours: Array.from({ length: 24 }, (_, i) => i),
       actualKwh: actualKwh.map(v => Math.round(v * 1000) / 1000), // Redondear a 3 decimales
       currentHourLocal: currentHour,

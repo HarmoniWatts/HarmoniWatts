@@ -8,6 +8,7 @@ from app.models.consumption import (
     DailyTotalResponse,
     TimeSeriesResponse
 )
+from app.config import settings
 import structlog
 
 logger = structlog.get_logger()
@@ -46,15 +47,17 @@ class ConsumptionService:
     async def get_daily_total(
         self,
         household_id: Union[int, str],
-        target_date: Optional[date] = None
+        target_date: Optional[date] = None,
+        tz: Optional[str] = None,
     ) -> DailyTotalResponse:
         """
         Obtiene el consumo total acumulado del día con costo
         """
         if target_date is None:
             target_date = datetime.utcnow().date()
-        
-        daily_stats = await self.repository.get_daily_total(household_id, target_date)
+        tz = tz or settings.DEFAULT_TIMEZONE
+
+        daily_stats = await self.repository.get_daily_total(household_id, target_date, tz)
         
         if not daily_stats:
             logger.info(
@@ -73,7 +76,7 @@ class ConsumptionService:
             )
         
         # Calcular variación vs día anterior
-        yesterday_total = await self.repository.get_previous_day_total(household_id, target_date)
+        yesterday_total = await self.repository.get_previous_day_total(household_id, target_date, tz)
         yesterday_variation = None
         if yesterday_total and yesterday_total > 0:
             yesterday_variation = (
@@ -93,13 +96,15 @@ class ConsumptionService:
     async def get_hourly_series(
         self, 
         household_id: Union[int, str], 
-        target_date: date
+        target_date: date,
+        tz: Optional[str] = None,
     ) -> Dict[str, List[float]]:
         """
         Retorna series horarias de consumo y costo
         """
+        tz = tz or settings.DEFAULT_TIMEZONE
         hourly_data = await self.repository.get_hourly_consumption(
-            household_id, target_date
+            household_id, target_date, tz
         )
         
         consumption = [0.0] * 24
@@ -119,7 +124,8 @@ class ConsumptionService:
         self, 
         household_id: Union[int, str], 
         year: int, 
-        month: int
+        month: int,
+        tz: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Retorna consumo diario para un mes completo
@@ -129,9 +135,10 @@ class ConsumptionService:
         
         start_date = date(year, month, 1)
         end_date = date(year, month, days_in_month)
-        
+        tz = tz or settings.DEFAULT_TIMEZONE
+
         daily_totals = await self.repository.get_daily_totals(
-            household_id, start_date, end_date
+            household_id, start_date, end_date, tz
         )
         
         labels = []
@@ -160,12 +167,14 @@ class ConsumptionService:
     async def get_monthly_series(
         self, 
         household_id: Union[int, str], 
-        year: int
+        year: int,
+        tz: Optional[str] = None,
     ) -> Dict[str, List[float]]:
         """
         Retorna consumo mensual para un año
         """
-        monthly_totals = await self.repository.get_monthly_totals(household_id, year)
+        tz = tz or settings.DEFAULT_TIMEZONE
+        monthly_totals = await self.repository.get_monthly_totals(household_id, year, tz)
         
         values_kwh = [0.0] * 12
         values_cost = [0.0] * 12
@@ -183,16 +192,18 @@ class ConsumptionService:
         self, 
         household_id: Union[int, str], 
         start_year: int, 
-        end_year: int
+        end_year: int,
+        tz: Optional[str] = None,
     ) -> Dict[str, List[float]]:
         """
         Retorna consumo anual para un rango de años
         """
+        tz = tz or settings.DEFAULT_TIMEZONE
         values_kwh = []
         values_cost = []
         
         for year in range(start_year, end_year + 1):
-            monthly_data = await self.repository.get_monthly_totals(household_id, year)
+            monthly_data = await self.repository.get_monthly_totals(household_id, year, tz)
             total_kwh = sum(data["kwh"] for data in monthly_data.values())
             total_cost = sum(data["cost"] for data in monthly_data.values())
             values_kwh.append(total_kwh)

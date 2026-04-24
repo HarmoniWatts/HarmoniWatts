@@ -24,6 +24,13 @@ export const routes: Routes = [
           import('./features/vivienda/mi-vivienda.component').then((m) => m.MiViviendaComponent),
       },
       {
+        path: 'cuenta/electrodomesticos',
+        loadComponent: () =>
+          import('./features/electrodomesticos/electrodomesticos-page.component').then(
+            (m) => m.ElectrodomesticosPageComponent,
+          ),
+      },
+      {
         path: 'perfil/editar/datos',
         loadComponent: () =>
           import('./features/profile/perfil-datos.component').then((m) => m.PerfilDatosComponent),

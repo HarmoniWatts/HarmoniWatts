@@ -16,7 +16,9 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
 
   private baseUrl(): string {
-    return (environment.apiBaseUrl ?? '').replace(/\/$/, '');
+    const env = environment as typeof environment & { dashboardInsightsBaseUrl?: string };
+    const raw = env.dashboardInsightsBaseUrl || env.apiBaseUrl || '';
+    return raw.replace(/\/$/, '');
   }
 
   private url(path: string): string {

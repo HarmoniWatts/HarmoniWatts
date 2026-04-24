@@ -45,6 +45,14 @@ const viviendaBearerCondition = viviendaBase
     })
   : null;
 
+const electroBase = (environment.electrodomesticosApiBaseUrl ?? '').replace(/\/$/, '');
+const electrodomesticosBearerCondition = electroBase
+  ? createInterceptorCondition<IncludeBearerTokenCondition>({
+      urlPattern: new RegExp(`^${escapeRegExp(electroBase)}(/.*)?$`, 'i'),
+      bearerPrefix: 'Bearer',
+    })
+  : null;
+
 const harmoniRegBase = (environment.harmoniRegisterBaseUrl ?? '').replace(/\/$/, '');
 const harmoniRegisterBearerCondition =
   harmoniRegBase && harmoniRegBase !== apiBase
@@ -65,6 +73,7 @@ export const appConfig: ApplicationConfig = {
         keycloakBearerCondition,
         apiBearerCondition,
         ...(viviendaBearerCondition ? [viviendaBearerCondition] : []),
+        ...(electrodomesticosBearerCondition ? [electrodomesticosBearerCondition] : []),
         ...(harmoniRegisterBearerCondition ? [harmoniRegisterBearerCondition] : []),
       ],
     },

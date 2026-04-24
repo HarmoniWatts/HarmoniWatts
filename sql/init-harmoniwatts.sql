@@ -40,14 +40,68 @@ COMMENT ON COLUMN Vivienda.zona_climatica IS 'Zona climática según ubicación'
 CREATE INDEX idx_vivienda_id_usuario ON Vivienda(id_usuario);
 
 -- =====================================================
+-- TABLAS: CATÁLOGOS (tipos y marcas predefinidos; incluyen «Otro»)
+-- =====================================================
+CREATE TABLE electrodomestico_tipo_predefinido (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(50) NOT NULL UNIQUE,
+    nombre_es VARCHAR(100) NOT NULL,
+    orden SMALLINT NOT NULL DEFAULT 0,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+COMMENT ON TABLE electrodomestico_tipo_predefinido IS 'Tipos de electrodoméstico seleccionables (codigo OTRO = personalizado)';
+
+CREATE TABLE marca_predefinida (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    orden SMALLINT NOT NULL DEFAULT 0,
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+COMMENT ON TABLE marca_predefinida IS 'Marcas seleccionables (nombre «Otro» = texto libre en marca_otro)';
+
+INSERT INTO electrodomestico_tipo_predefinido (codigo, nombre_es, orden) VALUES
+    ('LAVADORA', 'Lavadora', 10),
+    ('LAVAVAJILLAS', 'Lavavajillas', 20),
+    ('TERMO_ELECTRICO', 'Termo eléctrico / calentador', 30),
+    ('VEHICULO_ELECTRICO', 'Vehículo eléctrico (EV)', 40),
+    ('AIRE_ACONDICIONADO', 'Aire acondicionado', 50),
+    ('NEVERA', 'Nevera / refrigerador', 60),
+    ('CONGELADOR', 'Congelador', 70),
+    ('HORNO', 'Horno', 80),
+    ('MICROONDAS', 'Microondas', 90),
+    ('SECADORA', 'Secadora', 100),
+    ('VITROCERAMICA', 'Vitrocerámica / cocina eléctrica', 110),
+    ('TELEVISOR', 'Televisor', 120),
+    ('OTRO', 'Otro (personalizado)', 999);
+
+INSERT INTO marca_predefinida (nombre, orden) VALUES
+    ('Samsung', 10),
+    ('LG', 20),
+    ('Whirlpool', 30),
+    ('Bosch', 40),
+    ('Mabe', 50),
+    ('Electrolux', 60),
+    ('Haier', 70),
+    ('Panasonic', 80),
+    ('Daikin', 90),
+    ('Mitsubishi Electric', 100),
+    ('Generico / sin marca', 200),
+    ('Otro', 999);
+
+-- =====================================================
 -- TABLA: ELECTRODOMESTICO
 -- =====================================================
 CREATE TABLE Electrodomestico (
     id_electro BIGSERIAL PRIMARY KEY,
     id_vivienda BIGINT NOT NULL,
+    id_tipo_predefinido INTEGER NOT NULL REFERENCES electrodomestico_tipo_predefinido(id),
+    id_marca_predefinida INTEGER REFERENCES marca_predefinida(id),
+    marca_otro VARCHAR(100),
     nombre VARCHAR(100) NOT NULL,
     tipo VARCHAR(50) NOT NULL,
-    potencia_w INTEGER,
+    potencia_w INTEGER NOT NULL,
     es_desplazable BOOLEAN DEFAULT FALSE,
     uso_semanal INTEGER,
     horario_habitual TIME,
@@ -56,12 +110,18 @@ CREATE TABLE Electrodomestico (
 );
 
 COMMENT ON TABLE Electrodomestico IS 'Aparatos eléctricos del hogar';
+COMMENT ON COLUMN Electrodomestico.id_tipo_predefinido IS 'FK al catálogo; codigo OTRO = nombre personalizado';
+COMMENT ON COLUMN Electrodomestico.id_marca_predefinida IS 'FK marca; si es «Otro», usar marca_otro';
+COMMENT ON COLUMN Electrodomestico.marca_otro IS 'Texto libre si la marca elegida es «Otro»';
+COMMENT ON COLUMN Electrodomestico.tipo IS 'Redundante: mismo codigo del tipo predefinido (consultas legadas)';
 COMMENT ON COLUMN Electrodomestico.es_desplazable IS 'Indica si el electrodoméstico puede moverse a otra hora';
 COMMENT ON COLUMN Electrodomestico.uso_semanal IS 'Veces por semana que se usa (estimado)';
-COMMENT ON COLUMN Electrodomestico.horario_habitual IS 'Horario típico de uso';
+COMMENT ON COLUMN Electrodomestico.horario_habitual IS 'Horario preferente o típico de uso (TIME, opcional)';
 
 CREATE INDEX idx_electro_vivienda ON Electrodomestico(id_vivienda);
 CREATE INDEX idx_electro_activo ON Electrodomestico(activo);
+CREATE INDEX idx_electro_tipo_pre ON Electrodomestico(id_tipo_predefinido);
+CREATE INDEX idx_electro_marca_pre ON Electrodomestico(id_marca_predefinida);
 
 -- =====================================================
 -- TABLA: PREFERENCIACONFORT
