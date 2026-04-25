@@ -1,0 +1,48 @@
+<div class="pe-page">
+  <header class="pe-head">
+    <h1 class="pe-title">Editar perfil</h1>
+    <p class="pe-sub">Edita tus datos o tu contraseña desde las pantallas siguientes; los cambios se aplican en Keycloak vía la API.</p>
+  </header>
+
+  <section class="dash-card pe-card">
+    <h2 class="dash-section-title">Información actual</h2>
+    @if (profileLoading()) {
+      <p class="dash-muted">Cargando perfil…</p>
+    } @else {
+      <dl class="pe-dl">
+        <div class="pe-dl-row">
+          <dt>Correo</dt>
+          <dd>{{ email() ?? '—' }}</dd>
+        </div>
+        <div class="pe-dl-row">
+          <dt>Nombre</dt>
+          <dd>{{ nombreCompleto() ?? '—' }}</dd>
+        </div>
+        <div class="pe-dl-row">
+          <dt>Usuario</dt>
+          <dd>{{ username() ?? '—' }}</dd>
+        </div>
+      </dl>
+    }
+  </section>
+
+  <section class="dash-card pe-card">
+    <h2 class="dash-section-title">Acciones</h2>
+    <ul class="pe-actions">
+      <li>
+        <div>
+          <div class="pe-action-title">Editar información personal</div>
+          <p class="pe-action-desc">Nombre, apellidos y correo (formulario en la app, guardado en Keycloak).</p>
+        </div>
+        <a routerLink="/perfil/editar/datos" class="dash-btn-apply pe-link-btn">Abrir</a>
+      </li>
+      <li>
+        <div>
+          <div class="pe-action-title">Cambiar contraseña</div>
+          <p class="pe-action-desc">Contraseña actual y nueva; verificación y actualización vía API.</p>
+        </div>
+        <a routerLink="/perfil/editar/contrasena" class="dash-btn-apply pe-link-btn">Abrir</a>
+      </li>
+    </ul>
+  </section>
+</div>

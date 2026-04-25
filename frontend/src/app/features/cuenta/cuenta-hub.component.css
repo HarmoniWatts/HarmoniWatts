@@ -1,0 +1,100 @@
+@import '../dashboard/dashboard.component.css';
+
+.ch-page {
+  max-width: 880px;
+}
+
+.ch-head {
+  margin-bottom: 1.5rem;
+}
+
+.ch-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.ch-sub {
+  margin: 0.4rem 0 0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.ch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.ch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.15rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  border: 1px solid rgba(42, 49, 66, 0.95);
+  background: rgba(15, 23, 42, 0.45);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+a.ch-card:hover {
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.12);
+  transform: translateY(-1px);
+}
+
+.ch-card--disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  border-color: rgba(42, 49, 66, 0.75);
+  background: rgba(15, 23, 42, 0.28);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ch-card-cta--muted {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.ch-card-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 211, 238, 0.12);
+  color: #22d3ee;
+}
+
+.ch-card-ic svg {
+  width: 22px;
+  height: 22px;
+}
+
+.ch-card-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.ch-card-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.ch-card-cta {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #22d3ee;
+}

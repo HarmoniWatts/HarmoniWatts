@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  insights-service:
+    build:
+      context: ./backend/insights-service
+      dockerfile: Dockerfile
+    container_name: insights-service
+    ports:
+      - "7001:7001"
+    environment:
+      - NODE_ENV=production
+      - PORT=7001
+      - CONSUMPTION_SERVICE_URL=http://host.docker.internal:8001
+      - PREDICTION_SERVICE_URL=http://host.docker.internal:3003
+      - DEFAULT_TIMEZONE=America/Bogota
+    env_file:
+      - .env.docker
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - insights-network
+
+networks:
+  insights-network:
+    driver: bridge

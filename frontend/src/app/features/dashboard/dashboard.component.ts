@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import Keycloak from 'keycloak-js';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -51,7 +50,6 @@ export interface ChartViewModel {
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
-  private readonly keycloak = inject(Keycloak);
   private readonly dashboardApi = inject(DashboardService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -83,10 +81,6 @@ export class DashboardComponent implements OnInit {
 
   reload(): void {
     this.loadAll();
-  }
-
-  logout(): void {
-    this.keycloak.logout({ redirectUri: window.location.origin + '/auth/login' });
   }
 
   absNumber(n: number): number {
@@ -297,8 +291,11 @@ export class DashboardComponent implements OnInit {
     const predicted = chart.predictedKwh ?? null;
     const predictionUnavailable = chart.predictionUnavailable === true || predicted === null;
 
-    const maxFromData = Math.max(1, ...actual, ...(predicted ?? []));
-    const maxKwh = Math.max(chart.maxKwhScale ?? 0, maxFromData, 1);
+    // Eje Y solo desde el insumo (series horarias en kWh, agregado de valor_kwh en backend)
+    const seriesValues = [...actual, ...(predicted ?? [])].filter((v) => Number.isFinite(v));
+    const maxFromData = seriesValues.length ? Math.max(0, ...seriesValues) : 0;
+    const maxKwh =
+      maxFromData > 0 ? this.niceCeilKwh(maxFromData * 1.06) : this.chartEmptyAxisMaxKwh();
 
     const plotW = CHART_INNER_WIDTH - CHART_PAD.left - CHART_PAD.right;
     const plotH = CHART_HEIGHT - CHART_PAD.top - CHART_PAD.bottom;
@@ -349,7 +346,7 @@ export class DashboardComponent implements OnInit {
     for (let i = 0; i <= 5; i++) {
       const value = (maxKwh * (5 - i)) / 5;
       const y = CHART_PAD.top + (1 - value / maxKwh) * plotH;
-      const label = value < 0.05 ? '0' : value >= 10 ? String(Math.round(value)) : value.toFixed(1);
+      const label = this.formatYTickLabel(value, maxKwh);
       yTicks.push({ value, y, label });
     }
 
@@ -383,5 +380,43 @@ export class DashboardComponent implements OnInit {
       realPoints,
       baselineY,
     };
+  }
+
+  /** Eje Y: tope redondeado “amable” (1, 2, 5, 10 × potencia de 10) con margen visual. */
+  private niceCeilKwh(peak: number): number {
+    if (!Number.isFinite(peak) || peak <= 0) {
+      return this.chartEmptyAxisMaxKwh();
+    }
+    const x = peak;
+    const exp = Math.floor(Math.log10(x));
+    const pow = Math.pow(10, exp);
+    const f = x / pow;
+    let nf: number;
+    if (f <= 1) nf = 1;
+    else if (f <= 2) nf = 2;
+    else if (f <= 5) nf = 5;
+    else nf = 10;
+    return nf * pow;
+  }
+
+  /** Cuando no hay consumo, escala pequeña fija para que el gráfico no ocupe 0–1 kWh artificialmente. */
+  private chartEmptyAxisMaxKwh(): number {
+    return 0.1;
+  }
+
+  private formatYTickLabel(value: number, maxKwh: number): string {
+    if (value <= 0 || Math.abs(value) < 1e-9) {
+      return '0';
+    }
+    if (maxKwh < 0.15) {
+      return value.toFixed(2);
+    }
+    if (maxKwh < 1.5) {
+      return value.toFixed(1);
+    }
+    if (maxKwh < 20) {
+      return String(Math.round(value * 10) / 10);
+    }
+    return String(Math.round(value));
   }
 }

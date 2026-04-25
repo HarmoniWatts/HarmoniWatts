@@ -1,0 +1,133 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": [
+      "_id",
+      "condiciones_externas",
+      "contexto_temporal",
+      "id_tarifa_usuario",
+      "id_vivienda",
+      "tarifa_aplicada",
+      "tarifas_alternativas",
+      "timestamp",
+      "valor_kwh"
+    ],
+    "properties": {
+      "_id": {
+        "bsonType": "objectId"
+      },
+      "condiciones_externas": {
+        "bsonType": "object",
+        "properties": {
+          "fuente_clima": {
+            "bsonType": "string"
+          },
+          "humedad": {
+            "bsonType": "null"
+          },
+          "nubosidad": {
+            "bsonType": "null"
+          },
+          "precipitacion": {
+            "bsonType": "null"
+          },
+          "temperatura": {
+            "bsonType": "null"
+          }
+        },
+        "required": [
+          "fuente_clima",
+          "humedad",
+          "nubosidad",
+          "precipitacion",
+          "temperatura"
+        ]
+      },
+      "contexto_temporal": {
+        "bsonType": "object",
+        "properties": {
+          "anio": {
+            "bsonType": "int"
+          },
+          "dia_semana": {
+            "bsonType": "int"
+          },
+          "es_festivo": {
+            "bsonType": "bool"
+          },
+          "estacion": {
+            "bsonType": "string"
+          },
+          "hora_del_dia": {
+            "bsonType": "int"
+          },
+          "mes": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "anio",
+          "dia_semana",
+          "es_festivo",
+          "estacion",
+          "hora_del_dia",
+          "mes"
+        ]
+      },
+      "id_tarifa_usuario": {
+        "bsonType": "null"
+      },
+      "id_vivienda": {
+        "bsonType": "int"
+      },
+      "tarifa_aplicada": {
+        "bsonType": "object",
+        "properties": {
+          "costo_total": {
+            "bsonType": "double"
+          },
+          "franja_aplicada": {
+            "bsonType": "string"
+          },
+          "id_franja": {
+            "bsonType": "null"
+          },
+          "id_tarifa": {
+            "bsonType": "int"
+          },
+          "moneda": {
+            "bsonType": "string"
+          },
+          "nombre_tarifa": {
+            "bsonType": "string"
+          },
+          "precio_kwh": {
+            "bsonType": "double"
+          },
+          "tipo_tarifa": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "costo_total",
+          "franja_aplicada",
+          "id_franja",
+          "id_tarifa",
+          "moneda",
+          "nombre_tarifa",
+          "precio_kwh",
+          "tipo_tarifa"
+        ]
+      },
+      "tarifas_alternativas": {
+        "bsonType": "array"
+      },
+      "timestamp": {
+        "bsonType": "date"
+      },
+      "valor_kwh": {
+        "bsonType": "double"
+      }
+    }
+  }
+}
