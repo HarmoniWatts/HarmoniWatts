@@ -3,8 +3,14 @@
 .env.local
 .env.*.local
 
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+
 # Dependencias y builds
 node_modules/
+frontend/.angular/
 dist/
 target/
 build/

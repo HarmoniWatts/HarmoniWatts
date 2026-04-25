@@ -20,6 +20,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-harmoniwatts-db.sh:/docker-entrypoint-initdb.d/02-harmoniwatts-db.sh:ro
     ports:
       # Exponer solo si necesitas conectar desde host (DBeaver, TablePlus, etc.)
       - "${POSTGRES_PORT:-5432}:5432"
@@ -95,9 +96,64 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-harmoniwatts}
       KEYCLOAK_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
       KEYCLOAK_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KEYCLOAK_FRONTEND_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-harmoniwatts-frontend}
     ports:
       - "8081:8081"
     depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # API viviendas (Spring Boot — solo dominio vivienda; Keycloak vía harmoni-register)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-vivienda-api:
+    build:
+      context: ./harmoniwatts-vivienda-api
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-vivienda-api
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/harmoniwatts
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # iss del JWT (navegador); debe coincidir con el token emitido por Keycloak
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}
+      # Claves JWK: URL alcanzable desde el contenedor de la API (red Docker)
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}/protocol/openid-connect/certs
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - keycloak-network
+
+  # ---------------------------------------------------------------------------
+  # API electrodomésticos (Spring Boot — CRUD por vivienda; JWT Keycloak)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-electrodomesticos-api:
+    build:
+      context: ./harmoniwatts-electrodomesticos-api
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-electrodomesticos-api
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/harmoniwatts
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}/protocol/openid-connect/certs
+    ports:
+      - "${HW_ELECTRODOMESTICOS_API_PORT:-8083}:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
       keycloak:
         condition: service_started
     networks:
@@ -121,13 +177,155 @@ services:
     networks:
       - keycloak-network
 
+  # ---------------------------------------------------------------------------
+  # MongoDB — datos de consumo (consumption-service + seed desde BD/datos)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-mongodb:
+    image: mongo:7
+    container_name: harmoniwatts-mongodb
+    restart: unless-stopped
+    ports:
+      - "${HW_MONGODB_PORT:-27018}:27017"
+    volumes:
+      - harmoniwatts_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
+    networks:
+      - harmoniwatts-backend
+
+  # ---------------------------------------------------------------------------
+  # Mongo Express — interfaz web para inspeccionar BD/colecciones (desarrollo)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-mongo-express:
+    image: mongo-express:latest
+    container_name: harmoniwatts-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://harmoniwatts-mongodb:27017/
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: ${HW_MONGO_EXPRESS_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${HW_MONGO_EXPRESS_PASSWORD:-changeme}
+    ports:
+      - "${HW_MONGO_EXPRESS_PORT:-8089}:8081"
+    depends_on:
+      harmoniwatts-mongodb:
+        condition: service_healthy
+    networks:
+      - harmoniwatts-backend
+
+  # ---------------------------------------------------------------------------
+  # Seed Mongo (one-shot; evita scripts .sh con CRLF en Windows en initdb.d)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-mongo-seed:
+    image: mongo:7
+    container_name: harmoniwatts-mongo-seed
+    networks:
+      - harmoniwatts-backend
+    depends_on:
+      harmoniwatts-mongodb:
+        condition: service_healthy
+    volumes:
+      - ./BD/datos/harmoniwatts.consumos_enriquecidos.json:/seed/consumos.json:ro
+      - ./docker/mongo/shift-timestamps.js:/seed/shift-timestamps.js:ro
+      - ./docker/mongo/reconcile-contexto.js:/seed/reconcile-contexto.js:ro
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        URI="mongodb://harmoniwatts-mongodb:27017/harmoniwatts"
+        C=$$(mongosh "$$URI" --quiet --eval 'db.consumos_enriquecidos.countDocuments()')
+        if [ "$$C" -eq 0 ]; then
+          echo "[harmoniwatts-mongo-seed] Importando consumos_enriquecidos..."
+          mongoimport --uri="$$URI" --collection=consumos_enriquecidos --file=/seed/consumos.json --jsonArray
+          echo "[harmoniwatts-mongo-seed] Desplazando timestamps y contexto_temporal (UTC)..."
+          mongosh "$$URI" /seed/shift-timestamps.js
+        else
+          echo "[harmoniwatts-mongo-seed] Colección ya tiene $$C documentos; omitiendo import."
+          echo "[harmoniwatts-mongo-seed] Reconciliando contexto_temporal con timestamp..."
+          mongosh "$$URI" /seed/reconcile-contexto.js
+        fi
+        echo "[harmoniwatts-mongo-seed] Listo."
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Consumption service (FastAPI → MongoDB)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-consumption-service:
+    build:
+      context: ./backend/consumption-service
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-consumption-service
+    restart: unless-stopped
+    environment:
+      MONGODB_HOST: harmoniwatts-mongodb
+      MONGODB_PORT: "27017"
+      MONGODB_DATABASE: harmoniwatts
+      ENVIRONMENT: development
+      CONSUMPTION_COLLECTION: consumos_enriquecidos
+      HOUSEHOLD_ID_TYPE: int
+      DEFAULT_TIMEZONE: America/Bogota
+    ports:
+      - "${HW_CONSUMPTION_SERVICE_PORT:-8001}:8001"
+    depends_on:
+      harmoniwatts-mongodb:
+        condition: service_healthy
+      harmoniwatts-mongo-seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - harmoniwatts-backend
+
+  # ---------------------------------------------------------------------------
+  # Insights service (Node — agrega consumo + predicción; expone /api/v1/dashboard)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-insights-service:
+    build:
+      context: ./backend/insights-service
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-insights-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "7001"
+      CONSUMPTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
+      PREDICTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
+      DEFAULT_TIMEZONE: America/Bogota
+    ports:
+      - "${HW_INSIGHTS_SERVICE_PORT:-7001}:7001"
+    depends_on:
+      harmoniwatts-consumption-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7001/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - harmoniwatts-backend
+
 volumes:
   keycloak_postgres_data:
     name: keycloak_postgres_data
   keycloak_data:
     name: keycloak_data
+  harmoniwatts_mongo_data:
+    name: harmoniwatts_mongo_data
 
 networks:
   keycloak-network:
     name: keycloak-network
+    driver: bridge
+  harmoniwatts-backend:
+    name: harmoniwatts-backend
     driver: bridge

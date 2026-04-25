@@ -12,6 +12,9 @@ if (!adminPassword && process.env.NODE_ENV !== 'test') {
   console.warn('KEYCLOAK_ADMIN_PASSWORD no está definida; el registro fallará hasta configurarla.');
 }
 
+/** Cliente público del SPA (grant password para verificar contraseña actual). */
+const frontendClientId = env.KEYCLOAK_FRONTEND_CLIENT_ID || 'harmoniwatts-frontend';
+
 export const config = {
   port: Number(env.PORT) || 8081,
   keycloak: {
@@ -19,5 +22,6 @@ export const config = {
     realm,
     adminUsername,
     adminPassword,
+    frontendClientId,
   },
 };

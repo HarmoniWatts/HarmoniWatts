@@ -1,0 +1,21 @@
+GET /api/v1/insights/consumption-chart
+  Query parameters:
+    - date (opcional): YYYY-MM-DD
+    - householdId (obligatorio): ID de la vivienda
+
+Response 200 OK:
+{
+  "date": "2026-03-30",
+  "timezone": "America/Bogota",
+  "granularity": "HOUR",
+  "maxKwhScale": 15.0,
+  "hours": [0, 1, 2, ..., 23],
+  "actualKwh": [3.2, 2.8, ..., 4.0],
+  "predictedKwh": [3.0, 2.7, ..., 3.8],
+  "currentHourLocal": 13,
+  "tariffBands": [
+    { "type": "VALLE", "startHour": 0, "endHour": 6, "energyPriceCopPerKwh": 280 },
+    { "type": "MEDIA", "startHour": 6, "endHour": 10, "energyPriceCopPerKwh": 520 },
+    { "type": "PUNTA", "startHour": 10, "endHour": 13, "energyPriceCopPerKwh": 980 }
+  ]
+}

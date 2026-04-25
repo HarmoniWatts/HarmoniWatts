@@ -1,0 +1,442 @@
+﻿      @if (loadError()) {
+        <div class="dash-banner dash-banner-error" role="alert">{{ loadError() }}</div>
+      }
+
+      <div class="dash-toolbar">
+        <label class="dash-date-label">
+          <span>Fecha</span>
+          <input
+            class="dash-date-input"
+            type="date"
+            [value]="selectedDate()"
+            (change)="onDateChange(($any($event.target).value))"
+          />
+        </label>
+        <button type="button" class="dash-btn-ghost" (click)="reload()" [disabled]="loading()">Actualizar</button>
+      </div>
+
+      <div class="dash-kpi-grid">
+        <article class="dash-card dash-kpi">
+          <div class="dash-kpi-head">
+            <div class="dash-kpi-title">Consumo Hoy</div>
+            <div class="dash-kpi-ic dash-kpi-ic-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </div>
+          </div>
+          @if (summary) {
+            <div class="dash-kpi-value dash-text-cyan">{{ summary.consumptionTodayKwh | number: '1.1-1' }} kWh</div>
+            <div
+              class="dash-kpi-trend"
+              [class.dash-kpi-trend-down]="summary.consumptionVsYesterdayPercent <= 0"
+              [class.dash-kpi-trend-up]="summary.consumptionVsYesterdayPercent > 0"
+            >
+              @if (summary.consumptionVsYesterdayPercent <= 0) {
+                <svg class="dash-trend-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                  <polyline points="17 18 23 18 23 12" />
+                </svg>
+              } @else {
+                <svg class="dash-trend-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                  <polyline points="17 6 23 6 23 12" />
+                </svg>
+              }
+              <span>{{ absNumber(summary.consumptionVsYesterdayPercent) | number: '1.0-0' }}% vs ayer</span>
+            </div>
+          } @else {
+            <div class="dash-skeleton dash-skeleton-lg"></div>
+            <div class="dash-skeleton dash-skeleton-sm"></div>
+            @if (sectionError().summary) {
+              <p class="dash-inline-err">No se pudo cargar el resumen.</p>
+            }
+          }
+        </article>
+
+        <article class="dash-card dash-kpi">
+          <div class="dash-kpi-head">
+            <div class="dash-kpi-title">Costo Estimado</div>
+            <div class="dash-kpi-ic dash-kpi-ic-amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+          </div>
+          @if (summary) {
+            <div class="dash-kpi-value dash-text-amber">{{ formatCop(summary.estimatedCostTodayCop) }}</div>
+            <div class="dash-kpi-sub">
+              Tarifa actual: {{ summary.currentTariffSlot.label }} ·
+              {{ summary.currentTariffSlot.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh
+            </div>
+          } @else {
+            <div class="dash-skeleton dash-skeleton-lg"></div>
+            <div class="dash-skeleton dash-skeleton-sm"></div>
+          }
+        </article>
+
+        <article class="dash-card dash-kpi">
+          <div class="dash-kpi-head">
+            <div class="dash-kpi-title">Ahorro Acumulado</div>
+            <div class="dash-kpi-ic dash-kpi-ic-emerald">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+              </svg>
+            </div>
+          </div>
+          @if (summary) {
+            <div class="dash-kpi-value dash-text-emerald">{{ formatCop(summary.savingsAccumulatedCop) }}</div>
+            <div class="dash-kpi-sub">{{ summary.savingsPeriod.label }}</div>
+          } @else {
+            <div class="dash-skeleton dash-skeleton-lg"></div>
+            <div class="dash-skeleton dash-skeleton-sm"></div>
+          }
+        </article>
+
+        <article class="dash-card dash-kpi dash-kpi-alert">
+          <div class="dash-kpi-head">
+            <div class="dash-kpi-title dash-text-red">Próxima Franja</div>
+            <div class="dash-kpi-ic dash-kpi-ic-red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+          </div>
+          @if (summary) {
+            <div class="dash-kpi-value dash-text-red-lg">
+              {{ summary.nextHighTariffWindow.displayHint ?? summary.nextHighTariffWindow.label }}
+            </div>
+            <div class="dash-kpi-sub-red">
+              {{ formatWindowRange(summary.nextHighTariffWindow.startsAt, summary.nextHighTariffWindow.endsAt) }}
+            </div>
+          } @else {
+            <div class="dash-skeleton dash-skeleton-lg"></div>
+            <div class="dash-skeleton dash-skeleton-sm"></div>
+          }
+        </article>
+      </div>
+
+      <div class="dash-content-grid">
+        <div class="dash-col-left">
+          <section class="dash-card dash-chart-card">
+            <h2 class="dash-section-title">Consumo vs. Predicción — Hoy</h2>
+            @if (chartVm) {
+              <div class="dash-chart-legend-row">
+                <div class="dash-chart-legend-spacer" [style.width.px]="chartVm.chartPad.left"></div>
+                <div class="dash-chart-legend">
+                  <div class="dash-legend-item">
+                    <span class="dash-legend-line dash-legend-real"></span>
+                    <span>Consumo real</span>
+                  </div>
+                  <div class="dash-legend-item">
+                    <svg width="40" height="10" class="dash-legend-dash" aria-hidden="true">
+                      <line x1="0" y1="5" x2="40" y2="5" stroke="#67e8f9" stroke-width="2" stroke-dasharray="7 6" />
+                    </svg>
+                    <span>Predicción IA</span>
+                  </div>
+                </div>
+              </div>
+              <div class="dash-chart-svg-wrap">
+                <svg
+                  class="dash-chart-svg"
+                  [attr.viewBox]="'0 0 ' + chartVm.chartInnerWidth + ' ' + chartVm.chartHeight"
+                  preserveAspectRatio="xMidYMid meet"
+                  role="img"
+                  aria-label="Gráfico consumo vs predicción por hora"
+                >
+                  <defs>
+                    <linearGradient id="dashConsumoRealAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.45" />
+                      <stop offset="55%" stop-color="#06b6d4" stop-opacity="0.18" />
+                      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.02" />
+                    </linearGradient>
+                    <clipPath id="dashChartPlotClip">
+                      <rect
+                        [attr.x]="chartVm.chartPad.left"
+                        [attr.y]="chartVm.chartPad.top"
+                        [attr.width]="chartVm.plotW"
+                        [attr.height]="chartVm.plotH"
+                      />
+                    </clipPath>
+                  </defs>
+                  <g clip-path="url(#dashChartPlotClip)">
+                    @for (r of chartVm.tariffRects; track $index) {
+                      <rect
+                        [attr.x]="r.x"
+                        [attr.y]="chartVm.chartPad.top"
+                        [attr.width]="r.width"
+                        [attr.height]="chartVm.plotH"
+                        [attr.fill]="r.color"
+                        opacity="0.38"
+                      />
+                    }
+                  </g>
+                  @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+                    <line
+                      [attr.x1]="chartVm.chartPad.left"
+                      [attr.y1]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
+                      [attr.x2]="chartVm.chartInnerWidth - chartVm.chartPad.right"
+                      [attr.y2]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
+                      stroke="#1e293b"
+                      stroke-opacity="0.85"
+                      stroke-width="1"
+                    />
+                  }
+                  <text
+                    [attr.x]="14"
+                    [attr.y]="chartVm.chartPad.top + chartVm.plotH / 2"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    [attr.transform]="'rotate(-90, 14,' + (chartVm.chartPad.top + chartVm.plotH / 2) + ')'"
+                    fill="#64748b"
+                    font-size="11"
+                    font-weight="600"
+                  >
+                    kWh
+                  </text>
+                  @for (t of chartVm.yTicks; track t.value) {
+                    <text
+                      [attr.x]="chartVm.chartPad.left - 6"
+                      [attr.y]="t.y + 4"
+                      text-anchor="end"
+                      fill="#64748b"
+                      font-size="11"
+                      class="tabular-nums"
+                    >
+                      {{ t.label }}
+                    </text>
+                  }
+                  @for (hl of chartVm.hourLabels; track hl.hour) {
+                    <text
+                      [attr.x]="hl.x"
+                      [attr.y]="chartVm.chartHeight - 8"
+                      text-anchor="middle"
+                      [attr.fill]="hl.isCurrent ? '#22d3ee' : '#64748b'"
+                      [attr.font-size]="hl.isCurrent ? 11 : 9"
+                      [attr.font-weight]="hl.isCurrent ? 700 : 400"
+                      class="tabular-nums"
+                    >
+                      {{ hl.hour.toString().padStart(2, '0') }}:00
+                    </text>
+                  }
+                  <line
+                    [attr.x1]="chartVm.currentHourX"
+                    [attr.y1]="chartVm.chartPad.top"
+                    [attr.x2]="chartVm.currentHourX"
+                    [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
+                    stroke="#e2e8f0"
+                    stroke-width="1.5"
+                    opacity="0.85"
+                  />
+                  <g clip-path="url(#dashChartPlotClip)">
+                    @if (chartVm.realAreaPath) {
+                      <path [attr.d]="chartVm.realAreaPath" fill="url(#dashConsumoRealAreaGrad)" stroke="none" />
+                    }
+                    @if (chartVm.predLinePath && !chartVm.predictionUnavailable) {
+                      <path
+                        [attr.d]="chartVm.predLinePath"
+                        fill="none"
+                        stroke="#67e8f9"
+                        stroke-width="2"
+                        stroke-dasharray="7 6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        opacity="0.9"
+                        class="dash-pred-line"
+                      />
+                    }
+                    <path
+                      [attr.d]="chartVm.realLinePath"
+                      fill="none"
+                      stroke="#22d3ee"
+                      stroke-width="2.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="dash-real-line"
+                    />
+                  </g>
+                  @for (p of chartVm.realPoints; track $index) {
+                    <circle
+                      [attr.cx]="p.x"
+                      [attr.cy]="p.y"
+                      [attr.r]="p.isCurrent ? 5.5 : 2.25"
+                      fill="#22d3ee"
+                      [attr.stroke]="p.isCurrent ? '#0a0e14' : 'none'"
+                      [attr.stroke-width]="p.isCurrent ? 2 : 0"
+                      [attr.opacity]="p.isCurrent ? 1 : 0.45"
+                      [class.dash-dot-glow]="p.isCurrent"
+                    />
+                  }
+                </svg>
+              </div>
+              @if (chartVm.predictionUnavailable) {
+                <p class="dash-chart-note">Predicción no disponible en este momento.</p>
+              }
+            } @else {
+              <div class="dash-skeleton dash-skeleton-chart"></div>
+              @if (sectionError().chart) {
+                <p class="dash-inline-err">No se pudo cargar el gráfico.</p>
+              }
+            }
+          </section>
+
+          <section class="dash-card dash-reco-card">
+            <h2 class="dash-section-title">Recomendaciones IA</h2>
+            @if (recommendations?.items?.length) {
+              <div class="dash-reco-grid">
+                @for (rec of recommendations!.items; track rec.id) {
+                  <article class="dash-reco-item">
+                    <div class="dash-reco-row">
+                      <div class="dash-reco-ic">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M9 18h6" />
+                          <path d="M10 22h4" />
+                          <path d="M12 2a7 7 0 0 0-4 13v3h8v-3a7 7 0 0 0-4-13z" />
+                        </svg>
+                      </div>
+                      <div class="dash-reco-text">
+                        <div class="dash-reco-title">{{ rec.title }}</div>
+                        <p>{{ rec.body }}</p>
+                        @if (rec.estimatedSavingsCop != null) {
+                          <p class="dash-reco-save">Ahorro estimado: {{ formatCop(rec.estimatedSavingsCop) }}</p>
+                        }
+                      </div>
+                    </div>
+                    <div class="dash-reco-actions">
+                      <button
+                        type="button"
+                        class="dash-btn-apply"
+                        (click)="applyRecommendation(rec.id)"
+                        [disabled]="actionBusyId() === rec.id"
+                      >
+                        Aplicar
+                      </button>
+                      <button
+                        type="button"
+                        class="dash-btn-dismiss"
+                        (click)="dismissRecommendation(rec.id)"
+                        [disabled]="actionBusyId() === rec.id"
+                      >
+                        Ignorar
+                      </button>
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="dash-muted">No hay recomendaciones para esta fecha.</p>
+              @if (sectionError().reco) {
+                <p class="dash-inline-err">No se pudieron cargar las recomendaciones.</p>
+              }
+            }
+          </section>
+        </div>
+
+        <div class="dash-col-right">
+          <section class="dash-card">
+            <h2 class="dash-section-title">Franjas Horarias Activas</h2>
+            @if (chart?.tariffBands?.length) {
+              <div class="dash-franja-list">
+                @for (row of franjaRows(chart!); track row.band.startHour + '-' + row.band.endHour) {
+                  @let ui = tariffBandUiColor(row.band.type);
+                  <div class="dash-franja-row">
+                    <div
+                      class="dash-franja-time"
+                      [class.dash-franja-time-active]="row.rowIdx === row.activeIdx"
+                    >
+                      {{ row.band.startHour.toString().padStart(2, '0') }}:00
+                    </div>
+                    <div
+                      class="dash-franja-bar"
+                      [style.background]="ui.bg"
+                      [style.color]="ui.fg"
+                    >
+                      <span class="dash-franja-label">
+                        {{ formatTariffType(row.band.type) }} ·
+                        {{ row.band.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh ({{ row.band.startHour }}:00–{{
+                          row.band.endHour
+                        }}:00)
+                      </span>
+                      @if (row.rowIdx === row.activeIdx) {
+                        <span class="dash-franja-dot" title="Franja vigente"></span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="dash-muted">Sin datos de franjas.</p>
+            }
+          </section>
+
+          <section class="dash-card">
+            <h2 class="dash-section-title">Electrodomésticos de Mayor Consumo</h2>
+            @if (appliances?.items?.length) {
+              <div class="dash-app-list">
+                @for (item of appliances!.items; track item.id) {
+                  <div class="dash-app-row">
+                    <div class="dash-app-head">
+                      <span class="dash-app-ic" aria-hidden="true">
+                        @switch (applianceIconKind(item.category)) {
+                          @case ('heat') {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M12 9a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0v-1" />
+                              <path d="M16 15h2a2 2 0 0 0 2-2v-2a4 4 0 0 0-4-4h-2" />
+                              <path d="M8 15H6a2 2 0 0 1-2-2v-2a4 4 0 0 1 4-4h2" />
+                            </svg>
+                          }
+                          @case ('washer') {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="12" cy="13" r="4" />
+                              <path d="M7 7h.01M17 7h.01" />
+                            </svg>
+                          }
+                          @case ('hvac') {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M12 22c5-3 5-9 0-12-5 3-5 9 0 12z" />
+                              <path d="M5 12h14" />
+                            </svg>
+                          }
+                          @case ('fridge') {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="4" y="3" width="16" height="18" rx="2" />
+                              <line x1="12" y1="8" x2="12" y2="21" />
+                            </svg>
+                          }
+                          @default {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M9 18h6" />
+                              <path d="M10 22h4" />
+                              <path d="M12 2a7 7 0 0 0-4 13v3h8v-3a7 7 0 0 0-4-13z" />
+                            </svg>
+                          }
+                        }
+                      </span>
+                      <span class="dash-app-name">{{ item.name }}</span>
+                      @if (item.consumptionKwh != null) {
+                        <span class="dash-app-kwh">{{ item.consumptionKwh | number: '1.1-1' }} kWh</span>
+                      }
+                    </div>
+                    <div class="dash-app-track">
+                      <div class="dash-app-fill" [style.width.%]="item.sharePercent" [style.background]="barGradient(item.sharePercent)"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="dash-muted">Sin datos de electrodomésticos.</p>
+              @if (sectionError().appliances) {
+                <p class="dash-inline-err">No se pudo cargar el ranking.</p>
+              }
+            }
+          </section>
+        </div>
+      </div>
