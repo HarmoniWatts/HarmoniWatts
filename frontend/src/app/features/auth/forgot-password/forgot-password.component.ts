@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { LogoComponent } from '../../../shared/components/logo';
+import { ThemeToggleComponent } from '../../../shared/components/theme-toggle';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [FormsModule, RouterLink, LogoComponent],
+  imports: [FormsModule, RouterLink, LogoComponent, ThemeToggleComponent],
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.css'],
 })

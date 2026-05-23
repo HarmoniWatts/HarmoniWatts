@@ -14,6 +14,7 @@ import {
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
+import { readStoredKeycloakTokens } from './core/auth/keycloak-direct-grant.util';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -91,6 +92,20 @@ export const appConfig: ApplicationConfig = {
         // Sin silentCheckSsoRedirectUri para evitar iframe y error CSP "frame-ancestors 'self'".
         // Keycloak hará redirect completo si necesita comprobar sesión.
         pkceMethod: 'S256',
+        // Rehidratación de sesión tras F5: si la pestaña tiene tokens persistidos
+        // del flujo Direct Grant, los pasamos a `init()`. Keycloak validará el
+        // access token y, si está expirado, intentará refrescarlo con el refresh
+        // token. Si el refresh ya no es válido, queda no-autenticado y el guard
+        // mandará al login del SPA (sin saltar a la página de Keycloak).
+        ...(() => {
+          const stored = readStoredKeycloakTokens();
+          if (!stored) return {};
+          return {
+            token: stored.access_token,
+            refreshToken: stored.refresh_token,
+            ...(stored.id_token ? { idToken: stored.id_token } : {}),
+          };
+        })(),
       },
       features: [
         withAutoRefreshToken({

@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import Keycloak from 'keycloak-js';
 import { environment } from '../../../../environments/environment';
 import { LogoComponent } from '../../../shared/components/logo';
+import { ThemeToggleComponent } from '../../../shared/components/theme-toggle';
 
 export type PasswordStrength = 'weak' | 'medium' | 'strong' | 'very-strong' | '';
 
@@ -25,7 +26,7 @@ function getPasswordStrength(pwd: string): PasswordStrength {
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, LogoComponent],
+  imports: [FormsModule, RouterLink, LogoComponent, ThemeToggleComponent],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css'],
 })

@@ -4,11 +4,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import Keycloak from 'keycloak-js';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle';
+import {
+  clearStoredKeycloakTokens,
+  persistKeycloakTokens,
+} from '../../core/auth/keycloak-direct-grant.util';
 
 @Component({
   selector: 'app-dash-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   templateUrl: './dash-shell.component.html',
   styleUrl: './dash-shell.component.css',
 })
@@ -41,6 +46,26 @@ export class DashShellComponent {
         void this.refreshKeycloakToken();
       });
 
+    /* Mantén sessionStorage sincronizado tras cada refresh exitoso del token,
+       para que F5 use siempre el último access/refresh válido. */
+    const previousOnRefresh = this.keycloak.onAuthRefreshSuccess;
+    this.keycloak.onAuthRefreshSuccess = () => {
+      if (this.keycloak.token && this.keycloak.refreshToken) {
+        persistKeycloakTokens({
+          access_token: this.keycloak.token,
+          refresh_token: this.keycloak.refreshToken,
+          id_token: this.keycloak.idToken ?? undefined,
+        });
+      }
+      previousOnRefresh?.();
+    };
+
+    const previousOnLogout = this.keycloak.onAuthLogout;
+    this.keycloak.onAuthLogout = () => {
+      clearStoredKeycloakTokens();
+      previousOnLogout?.();
+    };
+
     void this.refreshKeycloakToken();
 
     const onVisibility = (): void => {
@@ -67,7 +92,19 @@ export class DashShellComponent {
       .catch(() => undefined);
   }
 
+  /**
+   * Cierre de sesión: invalida la sesión en Keycloak y vuelve al login.
+   * Pide confirmación al usuario para evitar cierres accidentales.
+   */
   logout(): void {
+    const confirmed =
+      typeof window === 'undefined'
+        ? true
+        : window.confirm('¿Cerrar tu sesión en HarmoniWatts?');
+    if (!confirmed) {
+      return;
+    }
+    clearStoredKeycloakTokens();
     this.keycloak.logout({ redirectUri: window.location.origin + '/auth/login' });
   }
 

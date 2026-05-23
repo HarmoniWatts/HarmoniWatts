@@ -1,0 +1,266 @@
+/**
+ * HarmoniWatts — Design Tokens
+ *
+ * Capa única de tokens de color para tematización. Dos niveles:
+ *
+ *  1) Primitivos: paleta cruda (no usar directamente en componentes).
+ *  2) Semánticos: lo que consumen los componentes (`--color-bg`,
+ *     `--color-surface-1`, `--color-text`, etc.). Cambian según el tema.
+ *
+ * El tema se selecciona vía atributo en <html>: `data-theme="dark|light"`.
+ * El default (sin atributo) es oscuro para preservar el diseño actual.
+ *
+ * Convenciones:
+ *  - Si necesitas un color nuevo, primero añádelo aquí (preferiblemente
+ *    como semántico) y consúmelo desde el componente con `var(--token)`.
+ *  - Evita hex/rgba sueltos en los CSS de componentes.
+ */
+
+:root,
+:root[data-theme='dark'] {
+  /* ===== Paleta primitiva (compartida entre temas) ===== */
+  --hw-white: #ffffff;
+  --hw-black: #000000;
+
+  --hw-slate-50: #f8fafc;
+  --hw-slate-100: #f1f5f9;
+  --hw-slate-200: #e2e8f0;
+  --hw-slate-300: #cbd5e1;
+  --hw-slate-400: #94a3b8;
+  --hw-slate-500: #64748b;
+  --hw-slate-600: #475569;
+  --hw-slate-700: #334155;
+  --hw-slate-800: #1e293b;
+  --hw-slate-900: #0f172a;
+  --hw-slate-950: #020617;
+
+  --hw-cyan-300: #67e8f9;
+  --hw-cyan-400: #22d3ee;
+  --hw-cyan-500: #06b6d4;
+  --hw-cyan-600: #0891b2;
+  --hw-cyan-700: #0e7490;
+
+  --hw-green-300: #86efac;
+  --hw-green-400: #4ade80;
+  --hw-green-500: #22c55e;
+  --hw-green-600: #16a34a;
+
+  --hw-emerald-300: #6ee7b7;
+  --hw-emerald-400: #34d399;
+  --hw-emerald-500: #10b981;
+
+  --hw-amber-300: #fcd34d;
+  --hw-amber-400: #fbbf24;
+  --hw-amber-500: #f59e0b;
+  --hw-amber-600: #d97706;
+
+  --hw-orange-500: #f97316;
+
+  --hw-red-300: #fca5a5;
+  --hw-red-400: #f87171;
+  --hw-red-500: #ef4444;
+  --hw-red-600: #dc2626;
+  --hw-red-700: #b91c1c;
+  --hw-red-900: #7f1d1d;
+
+  --hw-rose-400: #fb7185;
+
+  --hw-blue-600: #2563eb;
+  --hw-blue-700: #1d4ed8;
+
+  /* ===== Semánticos — Tema oscuro (default) ===== */
+
+  /* Fondos / superficies */
+  --color-bg: radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      rgba(34, 211, 238, 0.09),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #172033 0%, #131b2e 50%, #12192a 100%);
+  --color-bg-solid: #12192a;
+  --color-bg-page: var(--hw-slate-900);
+  --color-app-text: var(--hw-slate-100);
+
+  --color-surface-1: rgba(15, 23, 42, 0.45); /* tarjeta translúcida */
+  --color-surface-2: rgba(15, 23, 42, 0.35);
+  --color-surface-3: rgba(15, 23, 42, 0.55);
+  --color-surface-elev: linear-gradient(165deg, #1a222e 0%, #121820 100%);
+  --color-surface-elev-strong: linear-gradient(165deg, #1a222e 0%, #0f1419 100%);
+  --color-surface-sidebar: linear-gradient(180deg, #1a2638 0%, #152030 100%);
+  --color-surface-panel: rgba(30, 41, 59, 0.88);
+  --color-surface-input: rgba(15, 23, 42, 0.6);
+  --color-surface-input-strong: rgba(15, 23, 42, 0.65);
+  --color-surface-card-toolbar: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.55) 0%,
+    rgba(19, 28, 48, 0.4) 100%
+  );
+
+  /* Texto */
+  --color-text: var(--hw-slate-100);
+  --color-text-strong: var(--hw-slate-50);
+  --color-text-muted: var(--hw-slate-400);
+  --color-text-subtle: var(--hw-slate-500);
+  --color-text-on-accent: var(--hw-slate-900);
+
+  /* Bordes */
+  --color-border: rgba(42, 49, 66, 0.95);
+  --color-border-soft: rgba(42, 49, 66, 0.75);
+  --color-border-strong: rgba(55, 65, 81, 0.6);
+  --color-border-input: rgba(148, 163, 184, 0.35);
+  --color-border-divider: rgba(255, 255, 255, 0.06);
+
+  /* Acento (marca) */
+  --color-accent: var(--hw-cyan-400);
+  --color-accent-soft: rgba(34, 211, 238, 0.12);
+  --color-accent-soft-hover: rgba(34, 211, 238, 0.18);
+  --color-accent-strong: var(--hw-cyan-300);
+  --color-accent-end: var(--hw-green-400);
+  --color-accent-glow: rgba(34, 211, 238, 0.45);
+  --color-accent-ring: rgba(34, 211, 238, 0.2);
+  --color-accent-border: rgba(34, 211, 238, 0.4);
+
+  /* Estados */
+  --color-success: var(--hw-emerald-400);
+  --color-success-soft: rgba(34, 197, 94, 0.15);
+  --color-success-text: var(--hw-green-300);
+  --color-warning: var(--hw-amber-400);
+  --color-warning-soft: rgba(245, 158, 11, 0.15);
+  --color-warning-text: var(--hw-amber-300);
+  --color-danger: var(--hw-red-400);
+  --color-danger-soft: rgba(239, 68, 68, 0.1);
+  --color-danger-text: var(--hw-red-300);
+  --color-danger-banner-bg: rgba(127, 29, 29, 0.35);
+  --color-danger-banner-border: rgba(248, 113, 113, 0.35);
+  --color-danger-banner-text: #fecaca;
+
+  /* Sombras */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card-strong: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 25px 50px -12px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+
+  /* Tarifas (significado de negocio: oscuro y claro mantienen el código) */
+  --color-tariff-valle-bg: var(--hw-green-500);
+  --color-tariff-valle-fg: var(--hw-slate-900);
+  --color-tariff-punta-bg: var(--hw-red-700);
+  --color-tariff-punta-fg: var(--hw-white);
+  --color-tariff-llano-bg: #eab308;
+  --color-tariff-llano-fg: var(--hw-slate-900);
+
+  /* Gráficos */
+  --color-chart-real: var(--hw-cyan-400);
+  --color-chart-pred: var(--hw-cyan-300);
+  --color-chart-grid: #1e293b;
+  --color-chart-axis: var(--hw-slate-500);
+  --color-chart-current: var(--hw-slate-200);
+
+  /* Auth: focos / cuadrícula del fondo */
+  --color-auth-bg: var(--hw-slate-900);
+  --color-auth-grid: rgba(34, 211, 238, 0.07);
+  --color-auth-shimmer: rgba(34, 211, 238, 0.03);
+  --color-auth-focus-1: rgba(34, 211, 238, 0.14);
+  --color-auth-focus-2: rgba(34, 211, 238, 0.05);
+  --color-auth-focus-3: rgba(34, 211, 238, 0.12);
+  --color-auth-focus-4: rgba(34, 211, 238, 0.04);
+}
+
+/* ===== Tema claro ===== */
+:root[data-theme='light'] {
+  /* Fondos / superficies */
+  --color-bg: radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      rgba(6, 182, 212, 0.18),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #eef2f7 0%, #e6ecf3 50%, #dde4ee 100%);
+  --color-bg-solid: #f1f5f9;
+  --color-bg-page: var(--hw-slate-50);
+  --color-app-text: var(--hw-slate-900);
+
+  --color-surface-1: rgba(255, 255, 255, 0.9);
+  --color-surface-2: rgba(255, 255, 255, 0.75);
+  --color-surface-3: rgba(255, 255, 255, 0.95);
+  --color-surface-elev: linear-gradient(165deg, #ffffff 0%, #f1f5f9 100%);
+  --color-surface-elev-strong: linear-gradient(165deg, #ffffff 0%, #e2e8f0 100%);
+  --color-surface-sidebar: linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
+  --color-surface-panel: rgba(255, 255, 255, 0.96);
+  --color-surface-input: #ffffff;
+  --color-surface-input-strong: #ffffff;
+  --color-surface-card-toolbar: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(241, 245, 249, 0.85) 100%
+  );
+
+  /* Texto */
+  --color-text: var(--hw-slate-900);
+  --color-text-strong: #0b1220;
+  --color-text-muted: var(--hw-slate-600);
+  --color-text-subtle: var(--hw-slate-500);
+  --color-text-on-accent: var(--hw-white);
+
+  /* Bordes */
+  --color-border: rgba(15, 23, 42, 0.12);
+  --color-border-soft: rgba(15, 23, 42, 0.08);
+  --color-border-strong: rgba(15, 23, 42, 0.18);
+  --color-border-input: rgba(15, 23, 42, 0.18);
+  --color-border-divider: rgba(15, 23, 42, 0.08);
+
+  /* Acento — bajamos saturación/luminosidad para legibilidad sobre blanco */
+  --color-accent: var(--hw-cyan-600);
+  --color-accent-soft: rgba(8, 145, 178, 0.12);
+  --color-accent-soft-hover: rgba(8, 145, 178, 0.18);
+  --color-accent-strong: var(--hw-cyan-700);
+  --color-accent-end: var(--hw-green-600);
+  --color-accent-glow: rgba(8, 145, 178, 0.25);
+  --color-accent-ring: rgba(8, 145, 178, 0.25);
+  --color-accent-border: rgba(8, 145, 178, 0.45);
+
+  /* Estados */
+  --color-success: var(--hw-green-600);
+  --color-success-soft: rgba(34, 197, 94, 0.18);
+  --color-success-text: var(--hw-green-600);
+  --color-warning: var(--hw-amber-600);
+  --color-warning-soft: rgba(245, 158, 11, 0.2);
+  --color-warning-text: var(--hw-amber-600);
+  --color-danger: var(--hw-red-600);
+  --color-danger-soft: rgba(220, 38, 38, 0.1);
+  --color-danger-text: var(--hw-red-600);
+  --color-danger-banner-bg: rgba(248, 113, 113, 0.18);
+  --color-danger-banner-border: rgba(220, 38, 38, 0.35);
+  --color-danger-banner-text: var(--hw-red-700);
+
+  /* Sombras (más sutiles en claro) */
+  --shadow-card: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --shadow-card-strong: 0 10px 28px rgba(15, 23, 42, 0.12);
+  --shadow-panel: 0 25px 50px -12px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.04) inset;
+
+  /* Tarifas — mismo código de color, ajustamos contraste */
+  --color-tariff-valle-bg: var(--hw-green-500);
+  --color-tariff-valle-fg: var(--hw-white);
+  --color-tariff-punta-bg: var(--hw-red-600);
+  --color-tariff-punta-fg: var(--hw-white);
+  --color-tariff-llano-bg: var(--hw-amber-500);
+  --color-tariff-llano-fg: var(--hw-slate-900);
+
+  /* Gráficos */
+  --color-chart-real: var(--hw-cyan-600);
+  --color-chart-pred: var(--hw-cyan-500);
+  --color-chart-grid: rgba(15, 23, 42, 0.1);
+  --color-chart-axis: var(--hw-slate-600);
+  --color-chart-current: var(--hw-slate-700);
+
+  /* Auth */
+  --color-auth-bg: var(--hw-slate-50);
+  --color-auth-grid: rgba(8, 145, 178, 0.08);
+  --color-auth-shimmer: rgba(8, 145, 178, 0.04);
+  --color-auth-focus-1: rgba(8, 145, 178, 0.16);
+  --color-auth-focus-2: rgba(8, 145, 178, 0.06);
+  --color-auth-focus-3: rgba(8, 145, 178, 0.14);
+  --color-auth-focus-4: rgba(8, 145, 178, 0.04);
+}
+
+/* Si el navegador prefiere claro y el usuario no eligió tema, lo respetamos.
+   Hace falta que el script de inicialización (index.html) deje el atributo. */

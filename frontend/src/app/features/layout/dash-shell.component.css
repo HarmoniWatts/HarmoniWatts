@@ -27,15 +27,15 @@ a.dash-user-row--cuenta {
 }
 
 a.dash-user-row--cuenta:hover {
-  background: rgba(34, 211, 238, 0.08);
+  background: var(--color-accent-soft);
 }
 
 a.dash-user-row--cuenta.dash-user-row--active {
-  background: rgba(34, 211, 238, 0.14);
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.28);
+  background: var(--color-accent-soft-hover);
+  box-shadow: 0 0 0 1px var(--color-accent-border);
 }
 
 a.dash-user-row--cuenta:focus-visible {
-  outline: 2px solid rgba(34, 211, 238, 0.55);
+  outline: 2px solid var(--color-accent-border);
   outline-offset: 2px;
 }
