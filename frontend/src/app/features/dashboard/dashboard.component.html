@@ -184,7 +184,7 @@
                       [attr.y1]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
                       [attr.x2]="chartVm.chartInnerWidth - chartVm.chartPad.right"
                       [attr.y2]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
-                      stroke="#1e293b"
+                      class="dash-chart-grid-line"
                       stroke-opacity="0.85"
                       stroke-width="1"
                     />
@@ -195,7 +195,7 @@
                     text-anchor="middle"
                     dominant-baseline="middle"
                     [attr.transform]="'rotate(-90, 14,' + (chartVm.chartPad.top + chartVm.plotH / 2) + ')'"
-                    fill="#64748b"
+                    class="dash-chart-axis-text"
                     font-size="11"
                     font-weight="600"
                   >
@@ -206,9 +206,8 @@
                       [attr.x]="chartVm.chartPad.left - 6"
                       [attr.y]="t.y + 4"
                       text-anchor="end"
-                      fill="#64748b"
+                      class="dash-chart-axis-text tabular-nums"
                       font-size="11"
-                      class="tabular-nums"
                     >
                       {{ t.label }}
                     </text>
@@ -218,10 +217,11 @@
                       [attr.x]="hl.x"
                       [attr.y]="chartVm.chartHeight - 8"
                       text-anchor="middle"
-                      [attr.fill]="hl.isCurrent ? '#22d3ee' : '#64748b'"
+                      [class.dash-chart-axis-text]="!hl.isCurrent"
+                      [class.dash-chart-axis-current]="hl.isCurrent"
+                      class="tabular-nums"
                       [attr.font-size]="hl.isCurrent ? 11 : 9"
                       [attr.font-weight]="hl.isCurrent ? 700 : 400"
-                      class="tabular-nums"
                     >
                       {{ hl.hour.toString().padStart(2, '0') }}:00
                     </text>
@@ -231,7 +231,7 @@
                     [attr.y1]="chartVm.chartPad.top"
                     [attr.x2]="chartVm.currentHourX"
                     [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
-                    stroke="#e2e8f0"
+                    class="dash-chart-now-line"
                     stroke-width="1.5"
                     opacity="0.85"
                   />
@@ -243,23 +243,21 @@
                       <path
                         [attr.d]="chartVm.predLinePath"
                         fill="none"
-                        stroke="#67e8f9"
+                        class="dash-pred-line"
                         stroke-width="2"
                         stroke-dasharray="7 6"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         opacity="0.9"
-                        class="dash-pred-line"
                       />
                     }
                     <path
                       [attr.d]="chartVm.realLinePath"
                       fill="none"
-                      stroke="#22d3ee"
+                      class="dash-real-line"
                       stroke-width="2.75"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="dash-real-line"
                     />
                   </g>
                   @for (p of chartVm.realPoints; track $index) {
@@ -267,8 +265,8 @@
                       [attr.cx]="p.x"
                       [attr.cy]="p.y"
                       [attr.r]="p.isCurrent ? 5.5 : 2.25"
-                      fill="#22d3ee"
-                      [attr.stroke]="p.isCurrent ? '#0a0e14' : 'none'"
+                      class="dash-chart-dot"
+                      [class.dash-chart-dot--current]="p.isCurrent"
                       [attr.stroke-width]="p.isCurrent ? 2 : 0"
                       [attr.opacity]="p.isCurrent ? 1 : 0.45"
                       [class.dash-dot-glow]="p.isCurrent"

@@ -12,14 +12,14 @@
   gap: 0.35rem;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-decoration: none;
   margin-bottom: 0.35rem;
   transition: color 0.15s ease;
 }
 
 .ed-back:hover {
-  color: #22d3ee;
+  color: var(--color-accent);
 }
 
 .ed-head {
@@ -31,34 +31,34 @@
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #f8fafc;
+  color: var(--color-text-strong);
 }
 
 .ed-sub {
   margin: 0.5rem 0 0;
   font-size: 1rem;
   line-height: 1.55;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   max-width: 52ch;
 }
 
 .ed-error {
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.08);
-  color: #fecaca;
+  border: 1px solid var(--color-danger-banner-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger-banner-text);
   font-size: 0.95rem;
   margin: 0 0 1rem;
 }
 
 .ed-muted {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
 }
 
 .ed-muted a {
-  color: #22d3ee;
+  color: var(--color-accent);
   font-weight: 600;
   text-decoration: none;
 }
@@ -76,9 +76,9 @@
   margin-bottom: 1.35rem;
   padding: 1.1rem 1.25rem;
   border-radius: 16px;
-  border: 1px solid rgba(42, 49, 66, 0.95);
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.55) 0%, rgba(19, 28, 48, 0.4) 100%);
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.04);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-card-toolbar);
+  box-shadow: 0 0 0 1px var(--color-accent-soft);
 }
 
 .ed-field {
@@ -91,7 +91,7 @@
 .ed-field-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--color-text);
   letter-spacing: 0.01em;
 }
 
@@ -104,10 +104,10 @@
   font-size: 1rem;
   font-family: inherit;
   line-height: 1.4;
-  color: #f1f5f9;
+  color: var(--color-text);
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--color-border-input);
+  background: var(--color-surface-input-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition:
     border-color 0.15s ease,
@@ -125,23 +125,19 @@
   background-size: 1.15rem;
 }
 
-.ed-input:hover:not(:disabled) {
-  border-color: rgba(34, 211, 238, 0.35);
-  background: rgba(15, 23, 42, 0.8);
-}
-
+.ed-input:hover:not(:disabled),
 .ed-select:hover:not(:disabled) {
-  border-color: rgba(34, 211, 238, 0.35);
-  background-color: rgba(15, 23, 42, 0.88);
+  border-color: var(--color-accent-border);
+  background-color: var(--color-surface-3);
 }
 
 .ed-select:focus,
 .ed-input:focus {
   outline: none;
-  border-color: rgba(34, 211, 238, 0.55);
+  border-color: var(--color-accent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 3px rgba(34, 211, 238, 0.12);
+    0 0 0 3px var(--color-accent-ring);
 }
 
 .ed-select:disabled,
@@ -154,20 +150,24 @@
   color-scheme: dark;
 }
 
+[data-theme='light'] .ed-input--time {
+  color-scheme: light;
+}
+
 .ed-form {
-  border: 1px solid rgba(42, 49, 66, 0.95);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 1.35rem 1.5rem;
   margin-bottom: 1.5rem;
-  background: linear-gradient(160deg, rgba(15, 23, 42, 0.5) 0%, rgba(18, 26, 44, 0.38) 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  background: var(--color-surface-card-toolbar);
+  box-shadow: var(--shadow-card);
 }
 
 .ed-section-title {
   margin: 0 0 1.1rem;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--color-text-strong);
   letter-spacing: -0.01em;
 }
 
@@ -185,14 +185,14 @@
   min-height: 2.75rem;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--color-text);
   cursor: pointer;
 }
 
 .ed-form-grid input[type='checkbox'] {
   width: 1.15rem;
   height: 1.15rem;
-  accent-color: #22d3ee;
+  accent-color: var(--color-accent);
   cursor: pointer;
 }
 
@@ -202,16 +202,16 @@
   gap: 0.65rem;
   margin-top: 1.35rem;
   padding-top: 1.15rem;
-  border-top: 1px solid rgba(51, 65, 85, 0.5);
+  border-top: 1px solid var(--color-border-soft);
 }
 
 .ed-btn {
   padding: 0.6rem 1.15rem;
   min-height: 2.65rem;
   border-radius: 12px;
-  border: 1px solid rgba(34, 211, 238, 0.4);
-  background: linear-gradient(180deg, rgba(34, 211, 238, 0.18) 0%, rgba(34, 211, 238, 0.08) 100%);
-  color: #e0fafe;
+  border: 1px solid var(--color-accent-border);
+  background: linear-gradient(180deg, var(--color-accent-soft-hover) 0%, var(--color-accent-soft) 100%);
+  color: var(--color-accent);
   font-size: 0.95rem;
   font-weight: 600;
   font-family: inherit;
@@ -223,8 +223,8 @@
 }
 
 .ed-btn:hover:not(:disabled) {
-  border-color: rgba(34, 211, 238, 0.65);
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.12);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 20px var(--color-accent-soft);
 }
 
 .ed-btn:active:not(:disabled) {
@@ -237,33 +237,33 @@
 }
 
 .ed-btn--ghost {
-  border-color: rgba(71, 85, 105, 0.85);
-  background: rgba(15, 23, 42, 0.35);
-  color: #e2e8f0;
+  border-color: var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
   box-shadow: none;
 }
 
 .ed-btn--ghost:hover:not(:disabled) {
-  border-color: rgba(148, 163, 184, 0.45);
+  border-color: var(--color-border-input);
   box-shadow: none;
 }
 
 .ed-btn--danger {
-  border-color: rgba(248, 113, 113, 0.45);
-  color: #fecaca;
-  background: rgba(248, 113, 113, 0.1);
+  border-color: var(--color-danger-banner-border);
+  color: var(--color-danger-banner-text);
+  background: var(--color-danger-soft);
 }
 
 .ed-btn--danger:hover:not(:disabled) {
-  border-color: rgba(248, 113, 113, 0.65);
-  box-shadow: 0 0 16px rgba(248, 113, 113, 0.1);
+  border-color: var(--color-danger);
+  box-shadow: 0 0 16px var(--color-danger-soft);
 }
 
 .ed-table-wrap {
   overflow-x: auto;
   border-radius: 16px;
-  border: 1px solid rgba(42, 49, 66, 0.95);
-  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
 }
 
 .ed-table {
@@ -276,21 +276,21 @@
 .ed-table td {
   padding: 0.85rem 1rem;
   text-align: left;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.85);
-  color: #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .ed-table th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-weight: 600;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--color-surface-3);
 }
 
 .ed-table tbody tr:hover {
-  background: rgba(34, 211, 238, 0.04);
+  background: var(--color-accent-soft);
 }
 
 .ed-table tbody tr:last-child td {

@@ -1,0 +1,62 @@
+:host {
+  display: inline-flex;
+}
+
+/* En modo flotante el botón se posiciona `fixed`; el host no debe ocupar
+   espacio para no afectar contenedores grid/flex (p. ej. la página de
+   registro). */
+:host(.theme-toggle-host--floating) {
+  display: contents;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 0.5rem;
+  padding: 0.45rem;
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.theme-toggle svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.theme-toggle:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent-ring);
+}
+
+.theme-toggle__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Variante flotante: para pantallas tipo auth, posicionada por el contenedor.
+   Aquí sí queremos un “pill” visible porque está sobre fondos sin chrome. */
+.theme-toggle--floating {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+}

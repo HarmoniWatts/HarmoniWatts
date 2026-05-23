@@ -101,14 +101,27 @@ export class DashboardComponent implements OnInit {
   tariffBandUiColor(type: TariffType): { bg: string; fg: string } {
     const t = String(type).toUpperCase();
     if (t === 'VALLE') {
-      return { bg: '#22c55e', fg: 'var(--dash-franja-fg-dark)' };
+      return {
+        bg: 'var(--color-tariff-valle-bg)',
+        fg: 'var(--color-tariff-valle-fg)',
+      };
     }
     if (t === 'PUNTA') {
-      return { bg: '#b91c1c', fg: '#ffffff' };
+      return {
+        bg: 'var(--color-tariff-punta-bg)',
+        fg: 'var(--color-tariff-punta-fg)',
+      };
     }
-    return { bg: '#eab308', fg: 'var(--dash-franja-fg-dark)' };
+    return {
+      bg: 'var(--color-tariff-llano-bg)',
+      fg: 'var(--color-tariff-llano-fg)',
+    };
   }
 
+  /**
+   * Color para los rectángulos de fondo en el chart (sobre fondo más oscuro).
+   * Mantenemos tonos algo más bajos que las píldoras para no saturar.
+   */
   tariffChartColor(type: TariffType): string {
     const t = String(type).toUpperCase();
     if (t === 'VALLE') {

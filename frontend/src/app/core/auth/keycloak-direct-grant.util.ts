@@ -11,6 +11,61 @@ type KcJwt = {
 };
 
 /**
+ * Tokens persistidos para sobrevivir a recargas de la pestaña (F5).
+ *
+ * Por qué sessionStorage y no localStorage:
+ * - El flujo Resource Owner Password no genera cookie SSO en Keycloak; al
+ *   recargar, `check-sso` no encuentra sesión y el guard redirige al login.
+ * - Persistir por pestaña (sessionStorage) es el mejor compromiso entre
+ *   continuidad de sesión y seguridad: se borra al cerrar la pestaña y no
+ *   se comparte entre pestañas.
+ *
+ * Riesgo conocido: cualquier script ejecutado en la app puede leer estos
+ * tokens (riesgo XSS). Asegúrate de no inyectar HTML sin sanitizar.
+ */
+const STORAGE_KEY = 'harmoniwatts.kc.tokens';
+
+export interface StoredKcTokens {
+  access_token: string;
+  refresh_token: string;
+  id_token?: string;
+}
+
+export function persistKeycloakTokens(tokens: StoredKcTokens): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+  } catch {
+    /* almacenamiento no disponible: la sesión no sobrevivirá a F5 */
+  }
+}
+
+export function readStoredKeycloakTokens(): StoredKcTokens | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredKcTokens>;
+    if (parsed && typeof parsed.access_token === 'string' && typeof parsed.refresh_token === 'string') {
+      return {
+        access_token: parsed.access_token,
+        refresh_token: parsed.refresh_token,
+        id_token: typeof parsed.id_token === 'string' ? parsed.id_token : undefined,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearStoredKeycloakTokens(): void {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* nada que hacer */
+  }
+}
+
+/**
  * Aplica tokens del flujo resource owner (password) al adaptador keycloak-js.
  * Debe replicar lo que hace el `setToken` interno; si no, `updateToken()` y el
  * interceptor Bearer fallan hasta recargar la página.
@@ -82,4 +137,11 @@ export function applyKeycloakResourceOwnerPasswordTokens(
       kc.tokenTimeoutHandle = setTimeout(kc.onTokenExpired, expiresIn);
     }
   }
+
+  /* Persistimos para que F5 no obligue al usuario a iniciar sesión otra vez. */
+  persistKeycloakTokens({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    id_token: idToken ?? undefined,
+  });
 }

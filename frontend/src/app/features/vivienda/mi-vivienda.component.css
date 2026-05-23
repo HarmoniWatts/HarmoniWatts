@@ -12,12 +12,12 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text-strong);
 }
 
 .mv-sub {
   margin: 0.35rem 0 0;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
 }
 
@@ -41,16 +41,22 @@
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.85rem;
-  color: #cbd5e1;
+  color: var(--color-text);
 }
 
 .mv-input {
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.55);
-  color: #f1f5f9;
+  border: 1px solid var(--color-border-input);
+  background: var(--color-surface-input-strong);
+  color: var(--color-text);
   padding: 0.55rem 0.65rem;
   font-size: 0.95rem;
+}
+
+.mv-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
 }
 
 .mv-actions {
@@ -75,10 +81,10 @@
 }
 
 .mv-row {
-  border: 1px solid rgba(42, 49, 66, 0.95);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 0.85rem 1rem;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--color-surface-2);
 }
 
 .mv-summary {
