@@ -28,7 +28,7 @@ public final class ElectrodomesticoDtos {
       Integer idMarcaPredefinida,
       @Size(max = 100) String marcaOtro,
       @Size(max = 100) String nombre,
-      @NotNull @Positive Integer potenciaW,
+      @NotNull @Positive Double consumoKwhDia,
       @NotNull @Min(0) @Max(168) Integer usoSemanal,
       /** Opcional. Formato hora local ISO, p. ej. `18:30` o `18:30:00` → columna `horario_habitual`. */
       String horarioHabitual,
@@ -39,7 +39,7 @@ public final class ElectrodomesticoDtos {
       Integer idMarcaPredefinida,
       @Size(max = 100) String marcaOtro,
       @Size(max = 100) String nombre,
-      @NotNull @Positive Integer potenciaW,
+      @NotNull @Positive Double consumoKwhDia,
       @NotNull @Min(0) @Max(168) Integer usoSemanal,
       String horarioHabitual,
       Boolean esDesplazable,
@@ -56,7 +56,7 @@ public final class ElectrodomesticoDtos {
       String marcaNombre,
       String marcaOtro,
       String nombre,
-      Integer potenciaW,
+      Double consumoKwhDia,
       Integer usoSemanal,
       String horarioHabitual,
       Boolean esDesplazable,
@@ -75,11 +75,28 @@ public final class ElectrodomesticoDtos {
           m != null ? m.getNombre() : null,
           e.getMarcaOtro(),
           e.getNombre(),
-          e.getPotenciaW(),
+          e.getConsumoKwhDia(),
           e.getUsoSemanal(),
           e.getHorarioHabitual() != null ? e.getHorarioHabitual().toString() : null,
           e.getDesplazable(),
           e.getActivo());
     }
   }
+
+  /** Respuesta del análisis IA para prellenar el formulario de registro. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record VisionAnalysisResponse(
+      String marcaDetectada,
+      String modeloDetectado,
+      String tipoSugerido,
+      Double consumoKwhDiaEstimado,
+      Double confianza,
+      String fuenteConsumo,
+      Integer idTipoPredefinido,
+      String tipoNombre,
+      Integer idMarcaPredefinida,
+      String marcaOtro,
+      String nombreSugerido,
+      Boolean bajaConfianza,
+      String advertencia) {}
 }

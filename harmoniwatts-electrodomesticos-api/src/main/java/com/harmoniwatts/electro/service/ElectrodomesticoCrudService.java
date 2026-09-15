@@ -157,7 +157,7 @@ public class ElectrodomesticoCrudService {
     e.setTipoPredefinido(tipo);
     e.setTipo(tipo.getCodigo());
     e.setNombre(nombre);
-    e.setPotenciaW(body.potenciaW());
+    e.setConsumoKwhDia(body.consumoKwhDia());
     e.setUsoSemanal(body.usoSemanal());
     e.setHorarioHabitual(parseHorarioHabitual(body.horarioHabitual()));
     e.setDesplazable(Boolean.TRUE.equals(body.esDesplazable()));
@@ -179,7 +179,7 @@ public class ElectrodomesticoCrudService {
     e.setTipoPredefinido(tipo);
     e.setTipo(tipo.getCodigo());
     e.setNombre(nombre);
-    e.setPotenciaW(body.potenciaW());
+    e.setConsumoKwhDia(body.consumoKwhDia());
     e.setUsoSemanal(body.usoSemanal());
     e.setHorarioHabitual(parseHorarioHabitual(body.horarioHabitual()));
     e.setDesplazable(Boolean.TRUE.equals(body.esDesplazable()));

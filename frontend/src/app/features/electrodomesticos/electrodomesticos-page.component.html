@@ -3,7 +3,7 @@
     <a routerLink="/cuenta" class="ed-back">← Volver a Cuenta</a>
     <h1 class="ed-title">Electrodomésticos</h1>
     <p class="ed-sub">
-      Registra equipos por vivienda (potencia, uso y horario) para identificar cargas optimizables. Los datos se guardan en
+      Registra equipos por vivienda (consumo diario en kWh, uso y horario) para identificar cargas optimizables. Los datos se guardan en
       PostgreSQL.
     </p>
   </header>
@@ -48,6 +48,79 @@
     </p>
   }
 
+  <section class="ed-vision" aria-labelledby="ed-vision-title">
+    <h2 id="ed-vision-title" class="ed-section-title">Analizar con IA (foto)</h2>
+    <p class="ed-muted ed-vision-hint">
+      Activa la cámara o sube una foto del electrodoméstico o su etiqueta energética. La IA sugerirá marca, tipo y
+      consumo diario (kWh/día); siempre puedes editar antes de guardar.
+    </p>
+
+    @if (visionError()) {
+      <p class="ed-error ed-vision-msg" role="alert">{{ visionError() }}</p>
+    }
+    @if (visionAdvertencia()) {
+      <p class="ed-vision-warn" role="status">{{ visionAdvertencia() }}</p>
+    }
+
+    <div class="ed-vision-actions">
+      <button
+        type="button"
+        class="ed-btn ed-btn--ghost"
+        (click)="iniciarCamara(visionVideo)"
+        [disabled]="loading() || visionLoading() || cameraActive()"
+      >
+        Activar cámara
+      </button>
+      <label class="ed-btn ed-btn--ghost ed-file-label" [class.ed-file-label--disabled]="loading() || visionLoading()">
+        Subir imagen
+        <input
+          type="file"
+          class="ed-file-input"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          (change)="onArchivoSeleccionado($event)"
+          [disabled]="loading() || visionLoading()"
+        />
+      </label>
+      @if (cameraActive()) {
+        <button type="button" class="ed-btn ed-btn--ghost" (click)="stopCamera()">Cerrar cámara</button>
+      }
+      @if (visionPreviewUrl()) {
+        <button type="button" class="ed-btn ed-btn--ghost" (click)="clearVisionState()">Quitar imagen</button>
+      }
+    </div>
+
+  <div class="ed-vision-preview-wrap">
+      <div class="ed-vision-camera" [class.ed-vision-camera--hidden]="!cameraActive()">
+        <video #visionVideo class="ed-vision-video" playsinline muted></video>
+        @if (cameraActive()) {
+          <button
+            type="button"
+            class="ed-btn"
+            (click)="capturarDesdeCamara(visionVideo, visionCanvas)"
+            [disabled]="visionLoading()"
+          >
+            Capturar foto
+          </button>
+        }
+      </div>
+      @if (visionPreviewUrl(); as preview) {
+        <img [src]="preview" alt="Vista previa para análisis IA" class="ed-vision-thumb" />
+      }
+      <canvas #visionCanvas class="ed-vision-canvas" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="ed-vision-analyze">
+      <button
+        type="button"
+        class="ed-btn"
+        (click)="analizarImagenSeleccionada()"
+        [disabled]="loading() || visionLoading() || !visionPreviewUrl()"
+      >
+        {{ visionLoading() ? 'Analizando…' : 'Analizar imagen' }}
+      </button>
+    </div>
+  </section>
+
   <section class="ed-form" aria-labelledby="ed-form-title">
     <h2 id="ed-form-title" class="ed-section-title">{{ editingId ? 'Editar' : 'Añadir' }} electrodoméstico</h2>
     <div class="ed-form-grid">
@@ -87,9 +160,80 @@
           <input class="ed-input" type="text" name="marcaOtro" [(ngModel)]="marcaOtro" maxlength="100" placeholder="Marca" />
         </div>
       }
-      <div class="ed-field">
-        <span class="ed-field-label">Potencia (W) <span class="ed-muted">*</span></span>
-        <input class="ed-input ed-input--number" type="number" name="potenciaW" [(ngModel)]="potenciaW" min="1" step="1" />
+      <div class="ed-field ed-field--consumo">
+        <div class="ed-field-label-row">
+          <span class="ed-field-label">Consumo (kWh/día) <span class="ed-muted">*</span></span>
+          <button
+            type="button"
+            class="ed-info-btn"
+            (click)="toggleCalcInfo()"
+            [attr.aria-expanded]="showCalcInfo()"
+            aria-controls="ed-consumo-help"
+            title="Cómo se calcula el kWh/día"
+          >
+            i
+          </button>
+        </div>
+        <input
+          class="ed-input ed-input--number"
+          type="number"
+          name="consumoKwhDia"
+          [(ngModel)]="consumoKwhDia"
+          min="0.0001"
+          step="0.0001"
+          placeholder="Ej. 1.5"
+        />
+        @if (showCalcInfo()) {
+          <div id="ed-consumo-help" class="ed-consumo-help" role="note">
+            <p>
+              <strong>kWh/mes → kWh/día:</strong> divide entre 30.<br />
+              <strong>Solo watts:</strong> kWh/día = (W × horas de uso al día) ÷ 1000.
+            </p>
+            <div class="ed-calc" aria-label="Calculadora de kWh por día">
+              <span class="ed-calc-title">Calculadora rápida</span>
+              <div class="ed-calc-row">
+                <label class="ed-calc-label">
+                  Potencia (W)
+                  <input
+                    class="ed-input ed-input--number"
+                    type="number"
+                    name="calcPotenciaW"
+                    [(ngModel)]="calcPotenciaW"
+                    min="1"
+                    step="1"
+                  />
+                </label>
+                <label class="ed-calc-label">
+                  Horas / día
+                  <input
+                    class="ed-input ed-input--number"
+                    type="number"
+                    name="calcHorasDia"
+                    [(ngModel)]="calcHorasDia"
+                    min="0.1"
+                    max="24"
+                    step="0.1"
+                  />
+                </label>
+              </div>
+              <div class="ed-calc-result">
+                <span>
+                  Resultado:
+                  <strong>{{ calcResultadoKwhDia != null ? (calcResultadoKwhDia | number: '1.2-4') : '—' }}</strong>
+                  kWh/día
+                </span>
+                <button
+                  type="button"
+                  class="ed-btn ed-btn--ghost"
+                  (click)="aplicarCalculoKwh()"
+                  [disabled]="calcResultadoKwhDia == null"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       </div>
       <div class="ed-field">
         <span class="ed-field-label">Uso habitual (veces / semana) <span class="ed-muted">*</span></span>
@@ -128,9 +272,6 @@
           Cancelar edición
         </button>
       }
-      <button type="button" class="ed-btn ed-btn--ghost" disabled title="Próximamente: análisis de imagen con IA">
-        Rellenar con IA (foto)
-      </button>
     </div>
   </section>
 
@@ -142,7 +283,7 @@
           <th>Nombre</th>
           <th>Tipo</th>
           <th>Marca</th>
-          <th>W</th>
+          <th>kWh/día</th>
           <th>Veces/sem.</th>
           <th>Horario</th>
           <th>Acciones</th>
@@ -154,7 +295,7 @@
             <td>{{ row.nombre }}</td>
             <td>{{ row.tipoNombre }}</td>
             <td>{{ row.marcaNombre === 'Otro' && row.marcaOtro ? row.marcaOtro : (row.marcaNombre ?? '—') }}</td>
-            <td>{{ row.potenciaW }}</td>
+            <td>{{ row.consumoKwhDia | number: '1.2-4' }}</td>
             <td>{{ row.usoSemanal }}</td>
             <td>{{ row.horarioHabitual ?? '—' }}</td>
             <td>

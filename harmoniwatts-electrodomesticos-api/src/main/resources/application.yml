@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: harmoniwatts-electrodomesticos-api
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 8MB
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/harmoniwatts}
     username: ${SPRING_DATASOURCE_USERNAME:keycloak_user}
@@ -19,6 +23,31 @@ harmoniwatts:
   oauth2:
     issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/harmoniwatts}
     jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/harmoniwatts/protocol/openid-connect/certs}
+  vision:
+    # chain = failover automático; o un solo provider: gemini | openai | mistral
+    provider: ${HW_VISION_PROVIDER:chain}
+    chain-order: ${HW_VISION_CHAIN_ORDER:gemini,openai,mistral}
+    max-image-long-side: ${HW_VISION_MAX_IMAGE_LONG_SIDE:1024}
+    low-confidence-threshold: ${HW_VISION_LOW_CONFIDENCE:0.7}
+    ollama:
+      base-url: ${HW_OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${HW_OLLAMA_VISION_MODEL:moondream}
+      timeout-seconds: ${HW_OLLAMA_TIMEOUT_SECONDS:120}
+    mistral:
+      api-key: ${MISTRAL_API_KEY:}
+      model: ${HW_MISTRAL_VISION_MODEL:pixtral-12b-2409}
+      base-url: ${HW_MISTRAL_BASE_URL:https://api.mistral.ai}
+      timeout-seconds: ${HW_MISTRAL_TIMEOUT_SECONDS:90}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: ${HW_GEMINI_VISION_MODEL:gemini-3.6-flash}
+      base-url: ${HW_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      timeout-seconds: ${HW_GEMINI_TIMEOUT_SECONDS:90}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${HW_OPENAI_VISION_MODEL:gpt-4o-mini}
+      base-url: ${HW_OPENAI_BASE_URL:https://api.openai.com}
+      timeout-seconds: ${HW_OPENAI_TIMEOUT_SECONDS:90}
 
 management:
   endpoints:
@@ -31,3 +60,5 @@ management:
         enabled: true
 
 logging.level.org.springframework.security: INFO
+logging.level.com.harmoniwatts.electro.adapter.vision: INFO
+logging.level.com.harmoniwatts.electro.service.ElectrodomesticoVisionService: INFO

@@ -21,6 +21,9 @@ services:
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-harmoniwatts-db.sh:/docker-entrypoint-initdb.d/02-harmoniwatts-db.sh:ro
+      # Restore automático en primer arranque si existen dumps (ver docs/SNAPSHOTS-BACKUP-RESTORE.md)
+      - ./docker/postgres/03-restore-snapshots.sh:/docker-entrypoint-initdb.d/03-restore-snapshots.sh:ro
+      - ./docker/snapshots/postgres:/docker-entrypoint-initdb.d/snapshots:ro
     ports:
       # Exponer solo si necesitas conectar desde host (DBeaver, TablePlus, etc.)
       - "${POSTGRES_PORT:-5432}:5432"
@@ -149,13 +152,22 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}
       KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-harmoniwatts}/protocol/openid-connect/certs
-    ports:
-      - "${HW_ELECTRODOMESTICOS_API_PORT:-8083}:8083"
+      # Visión en nube con failover: gemini → openai → mistral (docs/VISION-PROVIDERS.md)
+      HW_VISION_PROVIDER: ${HW_VISION_PROVIDER:-chain}
+      HW_VISION_CHAIN_ORDER: ${HW_VISION_CHAIN_ORDER:-gemini,openai,mistral}
+      HW_GEMINI_VISION_MODEL: ${HW_GEMINI_VISION_MODEL:-gemini-3.6-flash}
+      HW_MISTRAL_VISION_MODEL: ${HW_MISTRAL_VISION_MODEL:-pixtral-12b-2409}
+      HW_OPENAI_VISION_MODEL: ${HW_OPENAI_VISION_MODEL:-gpt-4o-mini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
       keycloak:
         condition: service_started
+    ports:
+      - "${HW_ELECTRODOMESTICOS_API_PORT:-8083}:8083"
     networks:
       - keycloak-network
 
@@ -218,7 +230,7 @@ services:
       - harmoniwatts-backend
 
   # ---------------------------------------------------------------------------
-  # Seed Mongo (one-shot; evita scripts .sh con CRLF en Windows en initdb.d)
+  # Seed Mongo (one-shot): preferir snapshot (mongodump); si no, JSON demo + shift
   # ---------------------------------------------------------------------------
   harmoniwatts-mongo-seed:
     image: mongo:7
@@ -232,6 +244,7 @@ services:
       - ./BD/datos/harmoniwatts.consumos_enriquecidos.json:/seed/consumos.json:ro
       - ./docker/mongo/shift-timestamps.js:/seed/shift-timestamps.js:ro
       - ./docker/mongo/reconcile-contexto.js:/seed/reconcile-contexto.js:ro
+      - ./docker/snapshots/mongo:/snapshots/mongo:ro
     entrypoint:
       - bash
       - -c
@@ -239,15 +252,19 @@ services:
         set -e
         URI="mongodb://harmoniwatts-mongodb:27017/harmoniwatts"
         C=$$(mongosh "$$URI" --quiet --eval 'db.consumos_enriquecidos.countDocuments()')
-        if [ "$$C" -eq 0 ]; then
-          echo "[harmoniwatts-mongo-seed] Importando consumos_enriquecidos..."
-          mongoimport --uri="$$URI" --collection=consumos_enriquecidos --file=/seed/consumos.json --jsonArray
-          echo "[harmoniwatts-mongo-seed] Desplazando timestamps y contexto_temporal (UTC)..."
-          mongosh "$$URI" /seed/shift-timestamps.js
-        else
+        SNAP="/snapshots/mongo/harmoniwatts"
+        if [ "$$C" -gt 0 ]; then
           echo "[harmoniwatts-mongo-seed] Colección ya tiene $$C documentos; omitiendo import."
           echo "[harmoniwatts-mongo-seed] Reconciliando contexto_temporal con timestamp..."
           mongosh "$$URI" /seed/reconcile-contexto.js
+        elif [ -d "$$SNAP" ] && [ -n "$$(ls -A "$$SNAP" 2>/dev/null)" ]; then
+          echo "[harmoniwatts-mongo-seed] Restaurando snapshot mongodump (sin shift de fechas)..."
+          mongorestore --uri="$$URI" --db=harmoniwatts "$$SNAP"
+        else
+          echo "[harmoniwatts-mongo-seed] Sin snapshot; importando consumos demo (JSON)..."
+          mongoimport --uri="$$URI" --collection=consumos_enriquecidos --file=/seed/consumos.json --jsonArray
+          echo "[harmoniwatts-mongo-seed] Desplazando timestamps y contexto_temporal (UTC)..."
+          mongosh "$$URI" /seed/shift-timestamps.js
         fi
         echo "[harmoniwatts-mongo-seed] Listo."
     restart: "no"
@@ -314,6 +331,37 @@ services:
     networks:
       - harmoniwatts-backend
 
+  # ---------------------------------------------------------------------------
+  # Frontend Angular (ng serve / npm start) — http://localhost:4200
+  # El navegador llama a las APIs vía localhost; las URLs están en environment.development.ts
+  # ---------------------------------------------------------------------------
+  harmoniwatts-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-frontend
+    restart: unless-stopped
+    ports:
+      - "${HW_FRONTEND_PORT:-4200}:4200"
+    volumes:
+      # Hot reload: cambios locales en ./frontend se reflejan en el contenedor
+      - ./frontend:/app
+      - harmoniwatts_frontend_node_modules:/app/node_modules
+    depends_on:
+      keycloak:
+        condition: service_started
+      harmoni-register:
+        condition: service_started
+      harmoniwatts-vivienda-api:
+        condition: service_started
+      harmoniwatts-electrodomesticos-api:
+        condition: service_started
+      harmoniwatts-insights-service:
+        condition: service_healthy
+    networks:
+      - keycloak-network
+      - harmoniwatts-backend
+
 volumes:
   keycloak_postgres_data:
     name: keycloak_postgres_data
@@ -321,6 +369,8 @@ volumes:
     name: keycloak_data
   harmoniwatts_mongo_data:
     name: harmoniwatts_mongo_data
+  harmoniwatts_frontend_node_modules:
+    name: harmoniwatts_frontend_node_modules
 
 networks:
   keycloak-network:

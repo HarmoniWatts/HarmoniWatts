@@ -28,3 +28,9 @@ Thumbs.db
 *.log
 tmp/
 temp/
+
+# Snapshots de datos (pg_dump / mongodump) — compartir por ZIP, no por git
+docker/snapshots/postgres/*.dump
+docker/snapshots/mongo/harmoniwatts/
+docker/snapshots/MANIFEST.txt
+harmoniwatts-snapshots-*.zip
