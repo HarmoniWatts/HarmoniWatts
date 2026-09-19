@@ -104,8 +104,12 @@ HarmoniWatts/
 ├── keycloak-realm/                # Configuración Keycloak predefin ido
 ├── docker/                        # Docker Compose configs
 ├── docs/                          # Documentación técnica
-│   ├── architecture/              # Diagramas C4 compilables + DSL
-│   ├── ARQUITECTURA-HarmoniWatts.md
+│   ├── architecture/              # Diagramas C4 y de secuencia (imágenes) + DSL
+│   ├── imagenes/
+│   │   ├── mockups/               # Maquetas de UI (login, dashboard, perfil, tarifas)
+│   │   └── diagramas/             # BPM, mapa del sitio, flujos y ramas Git
+│   ├── latex/                     # Fuentes .tex (arquitectura de información, investigación IA)
+│   ├── ARQUITECTURA-MAESTRA.md
 │   ├── AUTH-FLOW.md
 │   ├── KEYCLOAK-*.md
 │   ├── HarmoniWatts_BPM.md
@@ -121,16 +125,15 @@ HarmoniWatts/
 
 | Documento | Descripción | Ubicación |
 |-----------|-------------|-----------|
-| **Diagramas C4 (Structurizr DSL)** | Contexto, contenedores, componentes de todos los servicios | `docs/architecture/workspace.dsl` |
-| **Diagramas de Secuencia (Mermaid)** | 6 flujos: ingesta, dashboards, predicciones, autenticación, etc. | `docs/architecture/sequence-diagrams.mmd` |
-| **Diccionario de Datos** | Esquemas MongoDB + PostgreSQL, índices, políticas de retención | `docs/architecture/DATA_DICTIONARY.md` |
-| **Guía de Arquitectura** | Cómo compilar diagramas, referencias de C4 model, recursos | `docs/architecture/README.md` |
+| **Diagramas C4 y de secuencia** | Contexto, contenedores, componentes de cada servicio y 6 flujos, como imágenes | [`docs/architecture/C4-DIAGRAMAS.md`](docs/architecture/C4-DIAGRAMAS.md) |
+| **Documento maestro de arquitectura** | Visión unificada de servicios, datos y flujos | [`docs/ARQUITECTURA-MAESTRA.md`](docs/ARQUITECTURA-MAESTRA.md) |
+| **Diccionario de Datos** | Esquemas MongoDB + PostgreSQL, índices, políticas de retención | [`docs/architecture/DATA_DICTIONARY.md`](docs/architecture/DATA_DICTIONARY.md) |
+| **Fuente de los diagramas C4** | Structurizr DSL para regenerar las imágenes | [`docs/architecture/workspace.dsl`](docs/architecture/workspace.dsl) |
 
 ### 📖 Documentación de Operación y Configuración
 
 | Documento | Descripción |
 |-----------|-------------|
-| [ARQUITECTURA-HarmoniWatts.md](docs/ARQUITECTURA-HarmoniWatts.md) | Diagramas Mermaid: contexto, contenedores, despliegue |
 | [KEYCLOAK-REALM-CLIENT.md](docs/KEYCLOAK-REALM-CLIENT.md) | Configuración del realm, cliente y IdP en Keycloak |
 | [REGISTER-API.md](docs/REGISTER-API.md) | API de registro y olvidé contraseña (harmoni-register) |
 | [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP para emails de verificación |

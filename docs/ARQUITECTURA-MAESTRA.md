@@ -44,54 +44,23 @@ Orquestación:         Docker Compose (dev)
 
 ### 📍 Ubicación
 
-- **Archivo DSL:** [`docs/architecture/workspace.dsl`](architecture/workspace.dsl)
-- **Diagramas Mermaid (GitHub):** [`docs/architecture/C4-DIAGRAMAS.md`](architecture/C4-DIAGRAMAS.md) ⭐ **VER AQUÍ PARA IMÁGENES**
-- **Formato:** Structurizr DSL (compilable en línea, Docker o CLI)
+- **Imágenes y descripción de cada diagrama:** [`docs/architecture/C4-DIAGRAMAS.md`](architecture/C4-DIAGRAMAS.md) ⭐ **VER AQUÍ**
+- **Fuente (Structurizr DSL):** [`docs/architecture/workspace.dsl`](architecture/workspace.dsl)
 - **Diagramas incluidos:**
-  - C4 Level 1: System Context (con diagrama Mermaid)
-  - C4 Level 2: Container Architecture (con diagrama Mermaid)
-  - C4 Level 3: Component diagrams (5 microservicios, cada uno con Mermaid)
-  - Flujos de datos y orquestación asincrónica
-  - Estilos y colores aplicados
+  - C4 Level 1: System Context
+  - C4 Level 2: Container Architecture
+  - C4 Level 3: Component diagrams (6 microservicios)
 
-### 🔧 Cómo Compilar
-
-#### Opción 1: Online (Recomendado - Sin instalación)
-```
-1. Ir a https://structurizr.com/dsl
-2. Copiar contenido de docs/architecture/workspace.dsl
-3. Pegar en el editor (lado izquierdo)
-4. Los diagramas se renderizan automáticamente (lado derecho)
-5. Exportar como SVG/PNG desde el menú
-```
-
-#### Opción 2: Docker Local
-```bash
-# Requiere Docker
-docker run -it --rm -p 8080:8080 -v ./docs/architecture:/workspace structurizr/lite:latest
-
-# Luego abrir http://localhost:8080 en el navegador
-# Navegar a workspace.dsl para ver los diagramas interactivos
-```
-
-#### Opción 3: Structurizr CLI
-```bash
-# Descargar desde https://github.com/structurizr/cli/releases
-
-# Exportar a PlantUML
-structurizr export -workspace workspace.dsl -format plantuml
-
-# Exportar a Mermaid
-structurizr export -workspace workspace.dsl -format mermaid
-```
+Las imágenes se generan desde el DSL con Structurizr (playground online o `structurizr/lite` en Docker) y se exportan a `docs/architecture/images/`.
 
 ### 📊 Diagramas Disponibles en el DSL
 
 #### Level 1: System Context
 **Actores externos:**
 - 👤 Usuario Residencial (propietario/arrendatario)
-- ⚡ Empresa Energética (proveedor de tarifas)
-- 📱 Dispositivo IoT (medidor inteligente)
+- ⚡ Empresa Energética (recibe las lecturas del contador y las entrega al Consumption Service)
+- 📱 Dispositivo IoT (contador inteligente; reporta a la Empresa Energética)
+- 🏷️ Comercializador de Tarifas (sistema externo; envía las tarifas al Tariff Service)
 
 **Sistema HarmoniWatts** como caja negra.
 
@@ -320,15 +289,13 @@ POST /api/v1/tariffs/update            → Actualizar tarifas
 
 ## Diagramas de Secuencia
 
-**Ubicación:** [`docs/architecture/sequence-diagrams.mmd`](architecture/sequence-diagrams.mmd)
-
-**Formato:** Mermaid (compilable en GitHub, VS Code, online)
+**Ubicación:** imágenes en [`docs/architecture/images/`](architecture/images/) (`sequence-*.png`), mostradas en [`C4-DIAGRAMAS.md`](architecture/C4-DIAGRAMAS.md); fuente Mermaid en `docs/architecture/sequence-*.mmd`.
 
 ### Flujos Documentados
 
 #### 1. Ingesta de Datos en Tiempo Real
 ```
-IoT Device → Consumption API → Celery Task → MongoDB
+IoT Device → Empresa Energética → Consumption API → Celery Task → MongoDB
 Procesamiento asincrónico, 202 Accepted inmediato
 ```
 
@@ -509,7 +476,6 @@ services:
 
 | Documento | Tema |
 |-----------|------|
-| [`ARQUITECTURA-HarmoniWatts.md`](ARQUITECTURA-HarmoniWatts.md) | Diagramas Mermaid: contexto, contenedores, despliegue |
 | [`HarmoniWatts_BPM.md`](HarmoniWatts_BPM.md) | Procesos de negocio (BPMN 2.0) |
 | [`HarmoniWatts_ReleasePlan.md`](HarmoniWatts_ReleasePlan.md) | Plan de releases y entregas |
 | [`AUTH-FLOW.md`](AUTH-FLOW.md) | Flujo de autenticación OIDC/OAuth2 |

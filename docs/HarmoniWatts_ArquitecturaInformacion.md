@@ -9,7 +9,7 @@
 | **Fecha de entrega** | Mayo 2026 |
 | **Profesor** | Javier Mauricio Reyes Vera PhD. |
 
-**Referencias del proyecto:** [HarmoniWatts_BPM.md](HarmoniWatts_BPM.md) · [ARQUITECTURA-HarmoniWatts.md](ARQUITECTURA-HarmoniWatts.md) · [DASHBOARD-API.md](DASHBOARD-API.md)
+**Referencias del proyecto:** [HarmoniWatts_BPM.md](HarmoniWatts_BPM.md) · [ARQUITECTURA-MAESTRA.md](ARQUITECTURA-MAESTRA.md) · [DASHBOARD-API.md](DASHBOARD-API.md)
 
 **Leyenda de estado en el mapa del sitio**
 
@@ -54,7 +54,7 @@ Respecto al mapa del sitio inicial del proyecto, se aplicaron estos **ajustes**:
 
 ### 2.1.1 Diagrama del mapa del sitio
 
-![Mapa del sitio HarmoniWatts](HarmoniWatts_MapaSitio.png)
+![Mapa del sitio HarmoniWatts](imagenes/diagramas/HarmoniWatts_MapaSitio.png)
 
 *Figura: verde = implementado; naranja = planificado. Sin leyenda en el diagrama; la distinción se explica en la tabla §2.2.*
 

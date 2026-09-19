@@ -5,6 +5,7 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
         user = person "Usuario Residencial" "Propietario/arrendatario que monitorea su consumo"
         utility = person "Empresa Energética" "Proveedor de energía eléctrica"
         iot_device = person "Dispositivo IoT" "Medidor inteligente/Sensor de consumo"
+        tariff_provider = softwareSystem "Comercializador de Tarifas" "Sistema externo de gestión de tarifas energéticas dinámicas"
 
         # Sistema Principal
         harmoniwatts = softwareSystem "HarmoniWatts" "Sistema inteligente de análisis y predicción de consumo energético" {
@@ -45,9 +46,10 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
                 data_aggregator = component "Data Aggregator" "Agregación de datos históricos" "Python Service"
             }
 
-            tariff_api = container "Tariff Service" "Gestión de tarifas energéticas" "Java/Spring Boot (Mockado)" {
+            tariff_api = container "Tariff Service" "Persistencia y gestión de tarifas energéticas" "Java/Spring Boot" {
                 tariff_controller = component "Tariff Controller" "Endpoints de tarifas" "Spring Controller"
                 tariff_service = component "Tariff Service" "Lógica de tarifas" "Spring Service"
+                tariff_repo = component "Tariff Repository" "Acceso a datos de tarifas" "Spring JPA"
             }
 
             # Bases de Datos
@@ -72,8 +74,9 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
         # Relaciones de Usuario
         user -> web "Usa"
         user -> utility "Paga servicios"
-        iot_device -> consumption_api "Envía lecturas de consumo"
-        utility -> harmoniwatts "Proporciona tarifas y datos"
+        iot_device -> utility "Envía lecturas de consumo (contador inteligente)"
+        utility -> consumption_api "Proporciona datos históricos de consumo"
+        tariff_provider -> tariff_api "Envía tarifas energéticas dinámicas"
 
         # Relaciones Frontend-Backend
         web -> consumption_api "GET /api/v1/consumption"
@@ -95,6 +98,7 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
         consumption_api -> redis "Task queue (Celery)"
         houses_api -> postgresql "Lee/escribe datos de viviendas"
         appliances_api -> postgresql "Lee/escribe datos de dispositivos"
+        tariff_api -> postgresql "Lee/escribe tarifas por hora"
 
         # Relaciones internas de Consumption Service
         api_routes -> data_service "Procesa requests"
@@ -107,11 +111,16 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
         insights_service -> consumption_client "Consulta consumo"
         insights_service -> prediction_client "Solicita predicciones"
 
+        # Relaciones internas de Tariff Service
+        tariff_controller -> tariff_service "Procesa requests"
+        tariff_service -> tariff_repo "Accede a datos"
+
         # Relaciones internas de Bases de Datos
         mongo_driver -> consumption_collection "Lee/escribe"
         mongo_driver -> daily_summaries "Lee/escribe"
         houses_repo -> households_table "Lee/escribe"
         appliances_repo -> appliances_table "Lee/escribe"
+        tariff_repo -> postgresql "Lee/escribe tarifas"
     }
 
     views {
@@ -122,6 +131,7 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
 
         container harmoniwatts {
             include *
+            include user utility iot_device tariff_provider
             autoLayout
         }
 
@@ -146,6 +156,11 @@ workspace "HarmoniWatts" "Sistema de Predicción y Análisis de Consumo Energét
         }
 
         component prediction_api {
+            include *
+            autoLayout
+        }
+
+        component tariff_api {
             include *
             autoLayout
         }

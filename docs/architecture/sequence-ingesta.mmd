@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant IoT as 📱 IoT Device
+    participant ConAPI as 🔵 Consumption API
+    participant Celery as ⏱️ Celery Task
+    participant MongoDB as 🗄️ MongoDB
+    
+    IoT->>ConAPI: POST /ingest {consumption: 5.2kWh}
+    ConAPI->>ConAPI: Valida JWT token
+    ConAPI-->>IoT: 202 Accepted
+    ConAPI->>Celery: Queue task
+    Celery->>MongoDB: Insert consumption_readings
+    MongoDB-->>Celery: ✓ Stored
