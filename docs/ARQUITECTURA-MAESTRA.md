@@ -40,16 +40,18 @@ Orquestación:         Docker Compose (dev)
 
 ---
 
-## Diagramas C4 (Compilables)
+## Diagramas C4 (Compilables + Visualización)
 
 ### 📍 Ubicación
 
 - **Archivo DSL:** [`docs/architecture/workspace.dsl`](architecture/workspace.dsl)
+- **Diagramas Mermaid (GitHub):** [`docs/architecture/C4-DIAGRAMAS.md`](architecture/C4-DIAGRAMAS.md) ⭐ **VER AQUÍ PARA IMÁGENES**
 - **Formato:** Structurizr DSL (compilable en línea, Docker o CLI)
-- **Diagra mas incluidos:**
-  - C4 Level 1: System Context
-  - C4 Level 2: Container Architecture
-  - C4 Level 3: Component diagrams (5 microservicios)
+- **Diagramas incluidos:**
+  - C4 Level 1: System Context (con diagrama Mermaid)
+  - C4 Level 2: Container Architecture (con diagrama Mermaid)
+  - C4 Level 3: Component diagrams (5 microservicios, cada uno con Mermaid)
+  - Flujos de datos y orquestación asincrónica
   - Estilos y colores aplicados
 
 ### 🔧 Cómo Compilar
