@@ -28,9 +28,9 @@ No se crean features/fix/issues desde `main` ni desde `release` (salvo hotfix).
 
 ## 2. Mapa de ramas (branching)
 
-![Mapa de ramas Git — HarmoniWatts](harmoniwatts-git-branching-diagram.png)
+![Mapa de ramas Git — HarmoniWatts](imagenes/diagramas/harmoniwatts-git-branching-diagram.png)
 
-*Archivo en esta carpeta:* [`harmoniwatts-git-branching-diagram.png`](harmoniwatts-git-branching-diagram.png)
+*Archivo en esta carpeta:* [`harmoniwatts-git-branching-diagram.png`](imagenes/diagramas/harmoniwatts-git-branching-diagram.png)
 
 **Lectura rápida**
 

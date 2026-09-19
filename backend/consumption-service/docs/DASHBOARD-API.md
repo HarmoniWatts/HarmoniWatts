@@ -1,6 +1,6 @@
 # Contrato REST — Dashboard HarmoniWatts (opción B)
 
-Documento de referencia para proponer e implementar la API que alimenta la **pantalla de dashboard** (KPIs del día, gráfico consumo vs predicción, franjas horarias, recomendaciones IA y top de electrodomésticos). Complementa la visión de [ARQUITECTURA-HarmoniWatts.md](ARQUITECTURA-HarmoniWatts.md).
+Documento de referencia para proponer e implementar la API que alimenta la **pantalla de dashboard** (KPIs del día, gráfico consumo vs predicción, franjas horarias, recomendaciones IA y top de electrodomésticos). Complementa la visión de [ARQUITECTURA-MAESTRA.md](../../../docs/ARQUITECTURA-MAESTRA.md).
 
 ---
 

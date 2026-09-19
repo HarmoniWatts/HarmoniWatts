@@ -15,6 +15,7 @@
 | **Vivienda API Components** | `images/c4-component-vivienda.png` | Level 3: Detalles internos |
 | **Electrodomésticos API Components** | `images/c4-component-appliances.png` | Level 3: Detalles internos |
 | **Prediction Service Components** | `images/c4-component-prediction.png` | Level 3: Detalles internos |
+| **Tariff Service Components** | `images/c4-component-tariff.png` | Level 3: Detalles internos |
 
 ---
 
@@ -24,8 +25,9 @@
 
 **Descripción:**
 - **Usuario Residencial:** Propietario/arrendatario que monitorea su consumo
-- **Empresa Energética:** Proveedor de tarifas y datos históricos
-- **Dispositivo IoT:** Medidor inteligente que envía lecturas en tiempo real
+- **Dispositivo IoT:** Contador inteligente que envía las lecturas a la Empresa Energética
+- **Empresa Energética:** Recibe las lecturas del contador y entrega los datos de consumo al Consumption Service
+- **Comercializador de Tarifas:** Sistema externo que envía las tarifas al Tariff Service
 - **HarmoniWatts:** Sistema centralizado de análisis y predicción
 
 ---
@@ -66,9 +68,9 @@
 - Predicción de consumo mensual
 - API REST para consultas
 
-**Tariff Service (Java/Spring Boot)** 🔄 Mockado
-- Gestión de tarifas energéticas dinámicas
-- Integración con proveedores
+**Tariff Service (Java/Spring Boot)** 🔄 Implementación actual mockeada
+- Recibe las tarifas del Comercializador externo
+- Persiste las tarifas por hora en PostgreSQL
 
 ### 🔐 Autenticación
 - **Keycloak** - SSO, OIDC/OAuth2, gestión de identidades
@@ -134,38 +136,42 @@
 
 ---
 
-## 🔄 Diagramas de Secuencia
+### ⚙️ Tariff Service - Componentes Internos
 
-Los diagramas de secuencia se encuentran en:
-- **Archivo Mermaid:** [`docs/architecture/sequence-diagrams.mmd`](sequence-diagrams.mmd)
-- **Descripción:** 6 flujos principales del sistema
-  - Ingesta de datos en tiempo real
-  - Visualización de dashboards
-  - Predicción de electrodomésticos
-  - Autenticación con Keycloak
-  - Recomendaciones de ahorro (futuro)
-  - Integración con proveedor de energía (futuro)
+![Tariff Service Components](images/c4-component-tariff.png)
+
+**Componentes:**
+- **Tariff Controller:** Endpoints de tarifas
+- **Tariff Service:** Lógica de tarifas
+- **Tariff Repository:** Persistencia de tarifas por hora en PostgreSQL (Spring JPA)
 
 ---
 
-## 📥 Compilar Diagramas Interactivos (Structurizr)
+## 🔄 Diagramas de Secuencia
 
-Si deseas modificar o explorar interactivamente los diagramas C4:
+### Ingesta de datos IoT
+![Ingesta](images/sequence-ingesta.png)
 
-### Opción 1: Online (Recomendado - Sin instalación)
-```
-1. Ir a https://structurizr.com/dsl
-2. Copiar contenido de docs/architecture/workspace.dsl
-3. Pegar en el editor (lado izquierdo)
-4. Los diagramas se renderizan automáticamente (lado derecho)
-5. Exportar como PNG/SVG desde el menú
-```
+### Visualización de dashboards
+![Dashboard](images/sequence-dashboard.png)
 
-### Opción 2: Docker Local
-```bash
-docker run -it --rm -p 8080:8080 -v ./docs/architecture:/workspace structurizr/lite:latest
-# Luego abrir http://localhost:8080
-```
+### Registro y predicción de electrodomésticos
+![Predicción](images/sequence-prediccion.png)
+
+### Autenticación con Keycloak
+![Autenticación](images/sequence-autenticacion.png)
+
+### Recomendaciones de ahorro (futuro)
+![Recomendaciones](images/sequence-recomendaciones.png)
+
+### Integración de tarifas
+![Tarifas](images/sequence-tariffas.png)
+
+---
+
+## 🛠️ Regenerar los diagramas
+
+Los C4 se generan desde [`workspace.dsl`](workspace.dsl) con Structurizr (playground online o `structurizr/lite` en Docker) y se exportan a `images/`. Los de secuencia tienen su fuente Mermaid en `sequence-*.mmd`, junto a `images/`.
 
 ---
 
@@ -188,8 +194,7 @@ docker run -it --rm -p 8080:8080 -v ./docs/architecture:/workspace structurizr/l
 
 - **Documento Maestro:** `docs/ARQUITECTURA-MAESTRA.md`
 - **Diccionario de Datos:** `docs/architecture/DATA_DICTIONARY.md`
-- **Diagramas de Secuencia:** `docs/architecture/sequence-diagrams.mmd`
-- **Archivo DSL:** `docs/architecture/workspace.dsl` (para compilación online)
+- **Archivo DSL:** `docs/architecture/workspace.dsl` (fuente de los C4)
 - **C4 Model:** https://c4model.com/
 - **Structurizr:** https://structurizr.com/
 
