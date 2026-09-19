@@ -1,0 +1,118 @@
+%% Flujo 1: Ingesta de Datos de Consumo en Tiempo Real
+sequenceDiagram
+    participant IoT as 📱 IoT Device
+    participant ConAPI as 🔵 Consumption API
+    participant Celery as ⏱️ Celery Task
+    participant MongoDB as 🗄️ MongoDB
+    participant Redis as 🔴 Redis
+
+    IoT->>ConAPI: POST /ingest<br/>{household_id, consumption_kwh}
+    ConAPI->>ConAPI: Valida JWT token<br/>(via Keycloak)
+    ConAPI->>Redis: Enqueue task
+    ConAPI-->>IoT: 202 Accepted
+    Celery->>Redis: Consume task
+    Celery->>MongoDB: Insert consumption_readings
+    MongoDB-->>Celery: ✓ Stored
+    Note over Celery,MongoDB: Procesamiento asincrónico
+
+---
+
+%% Flujo 2: Visualización de Dashboards
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend (Angular)
+    participant InsightsAPI as 🟢 Insights API
+    participant ConAPI as 🔵 Consumption API
+    participant PredictionAPI as 🟡 Prediction API
+    participant TariffAPI as 🟣 Tariff API
+
+    User->>Frontend: Abre dashboard
+    Frontend->>InsightsAPI: GET /api/v1/dashboard/summary
+    InsightsAPI->>ConAPI: GET /api/v1/consumption/current
+    ConAPI-->>InsightsAPI: {consumption: 5.2kW}
+    InsightsAPI->>PredictionAPI: POST /predict<br/>{household_id}
+    PredictionAPI-->>InsightsAPI: {prediction: 250kWh/mes}
+    InsightsAPI->>TariffAPI: GET /tariffs
+    TariffAPI-->>InsightsAPI: {cost_per_kwh: 0.142}
+    InsightsAPI->>InsightsAPI: Aggregate & calculate
+    InsightsAPI-->>Frontend: {summary, charts,<br/>recommendations}
+    Frontend->>Frontend: Render charts
+    Frontend-->>User: ✓ Dashboard actualizado
+
+---
+
+%% Flujo 3: Registro y Predicción de Electrodomésticos
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend
+    participant AppAPI as 🟠 Appliances API
+    participant PredictionAPI as 🟡 Prediction API
+    participant ConAPI as 🔵 Consumption API
+    participant PostgreSQL as 🗄️ PostgreSQL
+
+    User->>Frontend: Registra AC (5000W)
+    Frontend->>AppAPI: POST /api/v1/appliances<br/>{type: "AC", power: 5000}
+    AppAPI->>AppAPI: Clasifica dispositivo
+    AppAPI->>ConAPI: GET /api/v1/consumption/historical<br/>{last_30_days}
+    ConAPI-->>AppAPI: {consumption_history}
+    AppAPI->>PredictionAPI: POST /predict/monthly<br/>{appliance_data,<br/>historical_consumption}
+    PredictionAPI->>PredictionAPI: Ejecuta ML Model
+    PredictionAPI-->>AppAPI: {prediction: 150kWh/mes,<br/>confidence: 0.92}
+    AppAPI->>PostgreSQL: INSERT appliances
+    PostgreSQL-->>AppAPI: ✓ Stored
+    AppAPI-->>Frontend: {appliance_id, prediction,<br/>cost_projection: $21.30}
+    Frontend-->>User: ✓ AC registrado
+
+---
+
+%% Flujo 4: Autenticación con Keycloak
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend
+    participant Keycloak as 🔐 Keycloak
+    participant ConAPI as 🔵 Consumption API
+    participant InsightsAPI as 🟢 Insights API
+
+    User->>Frontend: Ingresa credenciales
+    Frontend->>Keycloak: POST /auth<br/>{username, password}
+    Keycloak-->>Frontend: {access_token, refresh_token}
+    Frontend->>Frontend: Almacena token
+    Frontend->>ConAPI: GET /api/v1/consumption<br/>Authorization: Bearer {token}
+    ConAPI->>Keycloak: Valida token
+    Keycloak-->>ConAPI: ✓ Valid
+    ConAPI-->>Frontend: {consumption_data}
+    Frontend-->>User: ✓ Autenticado
+
+---
+
+%% Flujo 5: Recomendaciones de Ahorro (Futuro)
+sequenceDiagram
+    participant InsightsAPI as 🟢 Insights API
+    participant ConAPI as 🔵 Consumption API
+    participant AppAPI as 🟠 Appliances API
+    participant PredictionAPI as 🟡 Prediction API
+
+    InsightsAPI->>ConAPI: GET /consumption/pattern
+    ConAPI-->>InsightsAPI: {high_consumption_hours: [18-21]}
+    InsightsAPI->>AppAPI: GET /appliances/top-consumers<br/>{household_id}
+    AppAPI-->>InsightsAPI: [{AC: 150kWh}, {Refrigerador: 120kWh}]
+    InsightsAPI->>PredictionAPI: POST /recommendations<br/>{consumption_pattern, appliances}
+    PredictionAPI-->>InsightsAPI: [{text: "Usar AC 2h menos",<br/>potential_savings: 10kWh}]
+    Note over InsightsAPI,PredictionAPI: IA analiza patrones<br/>y genera recomendaciones
+
+---
+
+%% Flujo 6: Integración con Proveedor de Energía (Futuro)
+sequenceDiagram
+    participant Utility as ⚡ Empresa Energética
+    participant TariffAPI as 🟣 Tariff API
+    participant Insights as 🟢 Insights API
+    participant User as 👤 Usuario
+
+    Utility->>TariffAPI: POST /tariffs/update<br/>{new_rates}
+    TariffAPI->>TariffAPI: Almacena tarifas
+    TariffAPI->>Insights: Notificación tariff_updated
+    Insights->>Insights: Recalcula costos
+    Insights->>User: Alerta: "Cambio de tarifas"
+    Note over TariffAPI,Insights: Sincronización en tiempo real
+

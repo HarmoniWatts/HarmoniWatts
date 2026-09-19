@@ -5,6 +5,7 @@
 [![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
 [![Versión](https://img.shields.io/badge/Versión-1.0.0-blue)]()
 [![Estado](https://img.shields.io/badge/Estado-Prototipo%20Académico-orange)]()
+[![Documentación](https://img.shields.io/badge/Documentación-Confluencia-blue)](https://giia.atlassian.net/wiki/spaces/HarmoniWatts)
 
 ---
 
@@ -63,41 +64,241 @@ El flujo completo incluye:
 
 ---
 
-## 🛠️ Stack técnico (actual y objetivo)
+## 🛠️ Stack técnico
 
-| Capa | Implementado hoy | Objetivo / roadmap (release plan) |
-|------|-------------------|-------------------------------------|
-| **Frontend** | **Angular 21+**, Keycloak JS / keycloak-angular | Dashboard, gráficos (p. ej. librería de charts del ecosistema Angular) |
-| **Identidad** | **Keycloak** (OIDC/OAuth2), realm `harmoniwatts` | Igual; endurecer SMTP y service accounts en producción |
-| **Registro / acciones email** | **harmoni-register** (Node) — Admin API | Opcional migración a servicio Java si se unifica el backend |
-| **Backend de negocio** | — | **Java 21** (API de dominio, hexagonal) |
-| **IA / predicción** | — | Python **FastAPI** (SmartLoadPredictor), modelo STLF |
-| **Base de datos** | **PostgreSQL** (Keycloak) | **PostgreSQL** para datos de negocio |
-| **Mensajería** | — | Kafka / Azure Event Hubs (según decisión de arquitectura) |
-| **Despliegue** | **Docker Compose** (dev) | Contenedores + orquestación (p. ej. AKS) según sprint |
+### Implementado hoy
+
+| Capa | Tecnología | Detalles |
+|------|-----------|----------|
+| **Frontend** | **Angular 21+** | SPA con Keycloak-Angular, dashboard interactivo |
+| **Identidad** | **Keycloak** (OIDC/OAuth2) | Realm `harmoniwatts`, soporte Google IdP, SMTP para emails |
+| **Registro de usuarios** | **harmoni-register** (Node.js) | Admin API para crear usuarios sin exponer credenciales |
+| **Base de datos (Identidad)** | **PostgreSQL** | Persistencia de Keycloak |
+| **Despliegue** | **Docker Compose** | Stack local para desarrollo |
+
+### En desarrollo / Próximas fases
+
+| Capa | Tecnología | Estado |
+|------|-----------|--------|
+| **Backend de negocio** | **Java 21** + Spring Boot | 🔄 Parcialmente implementado (Vivienda, Electrodomésticos APIs) |
+| **Consumption Service** | **Python/FastAPI** | ✅ Implementado (ingesta de datos IoT) |
+| **Insights Service** | **Node.js/Express** | ✅ Implementado (dashboards, análisis) |
+| **Prediction Service (IA)** | **Python/FastAPI** + TensorFlow/scikit-learn | ⏳ Planeado Q4 2026 |
+| **Mensajería** | Kafka / Azure Event Hubs | 🔄 Planeado |
+| **Orquestación** | Kubernetes / AKS | 🔄 Futuro |
 
 ---
 
 ## 📁 Estructura del Repositorio
 
-*(En construcción.)*
+```
+HarmoniWatts/
+├── frontend/                      # Angular SPA
+├── backend/
+│   ├── consumption-service/       # FastAPI - Ingesta IoT
+│   └── insights-service/          # Express.js - Dashboards
+├── harmoniwatts-vivienda-api/     # Spring Boot - Viviendas
+├── harmoniwatts-electrodomesticos-api/  # Spring Boot - Dispositivos
+├── harmoniwatts-api/              # Spring Boot - API Gateway (planeado)
+├── harmoni-register/              # Node.js - Admin API
+├── keycloak-realm/                # Configuración Keycloak predefin ido
+├── docker/                        # Docker Compose configs
+├── docs/                          # Documentación técnica
+│   ├── architecture/              # Diagramas C4 compilables + DSL
+│   ├── ARQUITECTURA-HarmoniWatts.md
+│   ├── AUTH-FLOW.md
+│   ├── KEYCLOAK-*.md
+│   ├── HarmoniWatts_BPM.md
+│   └── HarmoniWatts_ReleasePlan.md
+└── sql/                           # Scripts iniciales
+```
 
 ---
 
-## 📚 Documentación
+## 📚 Documentación Técnica
 
-La documentación del proyecto está en la carpeta **`docs/`**. Referencia principal:
+### 🔗 Documentación de Arquitectura (Prioridad)
+
+| Documento | Descripción | Ubicación |
+|-----------|-------------|-----------|
+| **Diagramas C4 (Structurizr DSL)** | Contexto, contenedores, componentes de todos los servicios | `docs/architecture/workspace.dsl` |
+| **Diagramas de Secuencia (Mermaid)** | 6 flujos: ingesta, dashboards, predicciones, autenticación, etc. | `docs/architecture/sequence-diagrams.mmd` |
+| **Diccionario de Datos** | Esquemas MongoDB + PostgreSQL, índices, políticas de retención | `docs/architecture/DATA_DICTIONARY.md` |
+| **Guía de Arquitectura** | Cómo compilar diagramas, referencias de C4 model, recursos | `docs/architecture/README.md` |
+
+### 📖 Documentación de Operación y Configuración
 
 | Documento | Descripción |
 |-----------|-------------|
-| [ARQUITECTURA-HarmoniWatts.md](docs/ARQUITECTURA-HarmoniWatts.md) | Arquitectura: contexto, contenedores, componentes, despliegue y flujos (Mermaid) |
+| [ARQUITECTURA-HarmoniWatts.md](docs/ARQUITECTURA-HarmoniWatts.md) | Diagramas Mermaid: contexto, contenedores, despliegue |
 | [KEYCLOAK-REALM-CLIENT.md](docs/KEYCLOAK-REALM-CLIENT.md) | Configuración del realm, cliente y IdP en Keycloak |
-| [REGISTER-API.md](docs/REGISTER-API.md) | API de registro de usuarios y olvidé contraseña (harmoni-register) |
-| [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP en Keycloak (correos de verificación y restablecimiento) |
-| [DOCKER-KEYCLOAK.md](docs/DOCKER-KEYCLOAK.md) | Despliegue de Keycloak con Docker; realm preconfigurado vía `keycloak-realm/` |
-| [AUTH-FLOW.md](docs/AUTH-FLOW.md) | Flujo de autenticación (OIDC/OAuth2) |
-| [HarmoniWatts_BPM.md](docs/HarmoniWatts_BPM.md) | Procesos y modelo BPM del sistema |
+| [REGISTER-API.md](docs/REGISTER-API.md) | API de registro y olvidé contraseña (harmoni-register) |
+| [KEYCLOAK-SMTP.md](docs/KEYCLOAK-SMTP.md) | Configuración SMTP para emails de verificación |
+| [DOCKER-KEYCLOAK.md](docs/DOCKER-KEYCLOAK.md) | Despliegue de Keycloak y servicios con Docker |
+| [AUTH-FLOW.md](docs/AUTH-FLOW.md) | Flujo de autenticación OIDC/OAuth2 |
+| [HarmoniWatts_BPM.md](docs/HarmoniWatts_BPM.md) | Procesos de negocio (BPMN 2.0) |
 | [HarmoniWatts_ReleasePlan.md](docs/HarmoniWatts_ReleasePlan.md) | Plan de releases y entregas |
 
-Para arrancar el entorno (Keycloak, harmoni-register, etc.), ver también el `docker-compose.yml` en la raíz y las instrucciones en `docs/DOCKER-KEYCLOAK.md` y `harmoni-register/README.md`.
+### 🏗️ Confluencia (Documentación Interactiva)
+
+**Toda la documentación técnica sincronizada también en Confluence:**  
+🔗 **[HarmoniWatts - Documentación Técnica Completa](https://giia.atlassian.net/wiki/spaces/HarmoniWatts)**
+
+- ✅ 11 páginas jerárquicas
+- ✅ Especificación de cada microservicio
+- ✅ Diagramas de secuencia rendibles
+- ✅ Diccionario de datos completo
+- ✅ Guía de setup paso a paso
+
+---
+
+## 🚀 Inicio Rápido
+
+### Requisitos Previos
+
+```bash
+# Versiones recomendadas
+- Docker & Docker Compose v20+
+- Python 3.11+ (Consumption Service)
+- Node.js 18+ (Insights Service, harmoni-register)
+- Java 17+ (APIs Spring Boot)
+- PostgreSQL 14+
+- MongoDB 6+
+```
+
+### Iniciar Ambiente Local
+
+```bash
+# Clonar repositorio
+git clone https://github.com/MayorChris/HarmoniWatts.git
+cd HarmoniWatts
+
+# Opción 1: Docker Compose (Recomendado)
+docker-compose -f docker/docker-compose.yml up -d
+
+# Opción 2: Servicios individuales
+# Frontend
+cd frontend && npm install && ng serve
+
+# Consumption Service
+cd backend/consumption-service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt && uvicorn app.main:app --reload
+
+# Insights Service
+cd backend/insights-service
+npm install && npm run dev
+```
+
+### Acceso a Servicios
+
+| Servicio | URL | Credenciales |
+|----------|-----|--------------|
+| **Frontend** | http://localhost:4200 | Registro o Google SSO |
+| **Keycloak** | http://localhost:8080 | admin / (ver .env) |
+| **Consumption API** | http://localhost:8000/docs | JWT Bearer token |
+| **Insights API** | http://localhost:3000 | JWT Bearer token |
+| **Vivienda API** | http://localhost:8001/swagger-ui.html | JWT Bearer token |
+| **Electrodomésticos API** | http://localhost:8002/swagger-ui.html | JWT Bearer token |
+
+---
+
+## 📊 Microservicios
+
+### ✅ Implementados
+
+**Consumption Service (Python/FastAPI)**
+- Ingesta de datos de consumo en tiempo real desde medidores IoT
+- Almacenamiento en MongoDB con índices optimizados
+- Procesamiento asincrónico con Celery + Redis
+- Endpoints: `/api/v1/consumption/*`, `/health`, `/ready`
+
+**Insights Service (Node.js/Express)**
+- Dashboards interactivos: resumen, gráficos, recomendaciones
+- Agregación de datos de Consumption Service
+- Integración con Prediction Service
+- Endpoints: `/api/v1/dashboard/*`
+
+**Vivienda API (Java/Spring Boot)**
+- CRUD de viviendas, usuarios y perfiles
+- Autenticación integrada con Keycloak
+- Persistencia en PostgreSQL
+- Endpoints: `/api/v1/households/*`, `/api/v1/users/*`
+
+**Electrodomésticos API (Java/Spring Boot)**
+- Registro y clasificación de dispositivos
+- Predicción de consumo por aparato
+- Recomendaciones de reemplazo
+- Endpoints: `/api/v1/appliances/*`, `/api/v1/appliances/top-consumers`
+
+### ⏳ Planeados
+
+**Prediction Service (Python/FastAPI + ML)**
+- Modelo de Machine Learning para predicción de consumo mensual
+- APIs REST para consultas desde otros servicios
+- Especificación: `docs/architecture/DATA_DICTIONARY.md`
+
+**Tariff Service (Java/Spring Boot)**
+- Gestión de tarifas dinámicas por franja horaria
+- Integración con proveedores de energía
+- Actualmente mockado; especificación lista
+
+---
+
+## 📝 Convenciones de Desarrollo
+
+### Commits
+
+```bash
+git commit -m "feat(auth): agregar 2FA con TOTP"
+git commit -m "fix(dashboard): corregir cálculo de consumo pico"
+git commit -m "docs: actualizar README de setup"
+```
+
+### Ramas
+
+```
+main              → producción (stable)
+qa                → testing
+feature/*         → nuevas características
+fix/*             → correcciones
+docs/*            → documentación
+```
+
+### Código
+
+- **Backend Java:** Arquitectura hexagonal, inyección de dependencias
+- **Backend Python:** FastAPI con Pydantic, logging estructurado
+- **Frontend:** Angular best practices, components reutilizables
+- **Bases de datos:** Índices documentados, políticas de retención claras
+
+---
+
+## 🔐 Seguridad
+
+- **Autenticación:** Keycloak con OIDC/OAuth2
+- **Autorización:** RLS en bases de datos, roles en Keycloak
+- **Cifrado:** TLS en tránsito (HTTPS), secrets en variables de entorno
+- **Tokens:** JWT con expiraciones, refresh tokens seguros
+- **Validación:** Pydantic (backend), Angular validators (frontend)
+
+---
+
+## 📞 Contacto y Contribuciones
+
+- **Estudiantes:** Christian Camilo Rosero Rodríguez / Carlos David Rojas Lozano
+- **Profesor:** Javier Mauricio Reyes Vera PhD.
+- **Instituciónón:** Pontificia Universidad Javeriana
+
+---
+
+## 📜 Licencia
+
+Este proyecto se distribuye bajo la licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
+
+---
+
+**Última actualización:** 18 de Septiembre de 2026  
+**Versión:** 1.0.0  
+**Estado:** Prototipo Académico en Desarrollo Activo
 
