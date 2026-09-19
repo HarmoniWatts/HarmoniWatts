@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend (Angular)
+    participant InsightsAPI as 🟢 Insights API
+    participant ConAPI as 🔵 Consumption API
+    participant PredictionAPI as 🟡 Prediction API
+    participant TariffAPI as 🟣 Tariff API
+
+    User->>Frontend: Abre dashboard
+    Frontend->>InsightsAPI: GET /api/v1/dashboard/summary
+    InsightsAPI->>ConAPI: GET /api/v1/consumption/current
+    ConAPI-->>InsightsAPI: {consumption: 5.2kW}
+    InsightsAPI->>PredictionAPI: POST /predict<br/>{household_id}
+    PredictionAPI-->>InsightsAPI: {prediction: 250kWh/mes}
+    InsightsAPI->>TariffAPI: GET /tariffs
+    TariffAPI-->>InsightsAPI: {cost_per_kwh: 0.142}
+    InsightsAPI->>InsightsAPI: Aggregate & calculate
+    InsightsAPI-->>Frontend: {summary, charts,<br/>recommendations}
+    Frontend->>Frontend: Render charts
+    Frontend-->>User: ✓ Dashboard actualizado

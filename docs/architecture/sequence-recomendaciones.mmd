@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant InsightsAPI as 🟢 Insights API
+    participant ConAPI as 🔵 Consumption API
+    participant AppAPI as 🟠 Appliances API
+    participant PredictionAPI as 🟡 Prediction API
+
+    InsightsAPI->>ConAPI: GET /consumption/pattern
+    ConAPI-->>InsightsAPI: {high_consumption_hours: [18-21]}
+    InsightsAPI->>AppAPI: GET /appliances/top-consumers<br/>{household_id}
+    AppAPI-->>InsightsAPI: [{AC: 150kWh}, {Refrigerador: 120kWh}]
+    InsightsAPI->>PredictionAPI: POST /recommendations<br/>{consumption_pattern, appliances}
+    PredictionAPI-->>InsightsAPI: [{text: "Usar AC 2h menos",<br/>potential_savings: 10kWh}]
