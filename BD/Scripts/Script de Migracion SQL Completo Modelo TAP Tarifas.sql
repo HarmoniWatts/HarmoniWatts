@@ -1193,11 +1193,3 @@ COMMENT ON VIEW v_recomendaciones_pendientes IS 'Recomendaciones pendientes por 
 
 COMMIT;
 
--- Prueba de la función:
--- SELECT fn_configuracion_aplicable('ENERTOTAL', 'CALI', 'N2', DATE '2025-03-01');   -- debe dar el id de CH00
-	
-	
-
-
-----------------------------------------------------------------#############################
-----------------------------------------------------------------#############################
