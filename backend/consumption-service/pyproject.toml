@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+# Errores reales (sintaxis, nombres indefinidos, imports sin usar). Ampliar de forma gradual.
+select = ["E9", "F"]

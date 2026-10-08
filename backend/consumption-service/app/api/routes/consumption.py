@@ -1,8 +1,8 @@
 # app/api/routes/consumption.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from typing import Optional, Union
-from datetime import date, datetime, timezone
+from typing import Optional
+from datetime import date, datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.database import get_database
 from app.repositories.consumption_repository import ConsumptionRepository

@@ -146,7 +146,7 @@ BREAKING CHANGE: campo estimatedCost pasa a entero COP
 
 | Destino | Aprobación |
 |---------|------------|
-| **`qa`** | Aprobadores de PR + CI en verde cuando exista. |
+| **`qa`** | Aprobadores de PR + check **`CI OK`** en verde (ver [CI.md](CI.md)). |
 | **`main`** | Merge controlado tras QA estable (`qa` → `main`). |
 | **`release`** | Promoción `main` → `release` o merge urgente de **`hotfix/*`**. |
 
