@@ -32,7 +32,7 @@ class PostgreSQLManager:
         
         # Construir URL de conexión
         database_url = (
-            f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+            f"postgresql+psycopg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
             f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
         )
         
@@ -43,9 +43,7 @@ class PostgreSQLManager:
             pool_size=10,              # Conexiones persistentes
             max_overflow=20,           # Conexiones adicionales bajo demanda
             pool_pre_ping=True,        # Verificar conexión antes de usar
-            pool_recycle=3600,         # Reciclar conexiones cada 1 hora
-            echo=settings.SQL_ECHO,    # Log de SQL (solo en desarrollo)
-            future=True                # SQLAlchemy 2.0 style
+            pool_recycle=3600         # Reciclar conexiones cada 1 hora
         )
         
         # Configurar eventos para logging

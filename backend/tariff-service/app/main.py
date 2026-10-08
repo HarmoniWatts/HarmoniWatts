@@ -119,18 +119,18 @@ async def readiness_check():
 # =====================================================
 
 # Rutas de tarifas activas (PostgreSQL)
-app.include_router(
-    active.router,
-    prefix="/api/v1",
-    tags=["Tarifas Activas"]
-)
+# app.include_router(
+#     active.router,
+#     prefix="/api/v1",
+#     tags=["Tarifas Activas"]
+# )
 
 # Rutas de tarifas históricas (MongoDB)
-app.include_router(
-    historical.router,
-    prefix="/api/v1",
-    tags=["Tarifas Históricas"]
-)
+# app.include_router(
+#     historical.router,
+#     prefix="/api/v1",
+#     tags=["Tarifas Históricas"]
+# )
 
 # Rutas de extracción de PDFs
 app.include_router(

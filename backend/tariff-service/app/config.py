@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = ""
+    POSTGRES_PASSWORD: str = "Javascript#12"
     POSTGRES_DATABASE: str = "harmoniwatts"
     
     # MongoDB
