@@ -1,12 +1,11 @@
 # app/services/consumption_service.py
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import Optional, List, Dict, Any, Union
 from app.repositories.consumption_repository import ConsumptionRepository
 from app.models.consumption import (
     CurrentConsumptionResponse, 
-    DailyTotalResponse,
-    TimeSeriesResponse
+    DailyTotalResponse
 )
 from app.config import settings
 import structlog
@@ -77,9 +76,10 @@ class ConsumptionService:
         
         # Calcular variación vs día anterior
         yesterday_total = await self.repository.get_previous_day_total(household_id, target_date, tz)
-        yesterday_variation = None
+        # TODO: se calcula pero DailyTotalResponse no lo expone; decidir si se agrega al contrato o se elimina.
+        yesterday_variation = None  # noqa: F841
         if yesterday_total and yesterday_total > 0:
-            yesterday_variation = (
+            yesterday_variation = (  # noqa: F841
                 (daily_stats["total_consumption_kwh"] - yesterday_total) / yesterday_total * 100
             )
         
