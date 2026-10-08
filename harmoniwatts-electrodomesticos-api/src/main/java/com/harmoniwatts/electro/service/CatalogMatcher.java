@@ -82,7 +82,7 @@ public class CatalogMatcher {
     }
 
     MarcaCatalogoItem otro =
-        marcas.stream().filter(m -> normalize(m.nombre()).equals("otro")).findFirst().orElse(null);
+        marcas.stream().filter(m -> normalize(m.nombre()).equals("OTRO")).findFirst().orElse(null);
     if (otro != null) {
       return new MarcaMatch(otro.id(), raw.trim(), true);
     }
