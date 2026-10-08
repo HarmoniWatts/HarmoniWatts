@@ -25,6 +25,9 @@ jobs:
   changes:
     name: Detectar cambios
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lista los archivos del PR por la API
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       insights: ${{ steps.filter.outputs.insights }}
