@@ -2,6 +2,8 @@
 
 Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 
+Historia de usuario: **HAR-106** — Pipeline de CI con GitHub Actions.
+
 ## Cuándo corre
 
 - En cada **Pull Request** hacia `qa`, `main` o `release` (antes de poder mergear).
@@ -54,3 +56,16 @@ cd harmoniwatts-vivienda-api && mvn verify
 4. Bloquear *force push* y borrado de la rama.
 
 Con esto ningún PR se puede mergear si las pruebas o la revisión automática fallan.
+
+## Historial
+
+| Fecha | Historia | Cambio |
+|-------|----------|--------|
+| 2026-10-07 | HAR-106 | Pipeline inicial: detección de cambios por servicio, lint, pruebas unitarias base (37), build de apps e imágenes Docker, gitleaks, job `CI OK`, Dependabot y plantilla de PR. |
+
+### Pendientes derivados de HAR-106
+
+- Umbral mínimo de cobertura de código por servicio.
+- Lint completo: ESLint (frontend y Node) y Checkstyle (Java).
+- Reducir `dashboard.component.css` para volver al budget de 16 kB (hoy se subió temporalmente a 24 kB).
+- Decidir si `yesterday_variation` de `consumption_service.py` se expone en la API o se elimina.
