@@ -13,18 +13,25 @@ class Environment(str, Enum):
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "consumption-service"
+    APP_NAME: str = "tariff-service"
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
     DEBUG: bool = True
     HOST: str = "0.0.0.0"
-    PORT: int = 8001
+    PORT: int = 8006
+    
+    # PostgreSQL
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DATABASE: str = "harmoniwatts"
     
     # MongoDB
     MONGODB_USER: Optional[str] = None
     MONGODB_PASSWORD: Optional[str] = None
     MONGODB_HOST: str = "localhost"
     MONGODB_PORT: int = 27017
-    MONGODB_DATABASE: str = "harmoniwatts_consumption"
+    MONGODB_DATABASE: str = "harmoniwatts_tariff"
     
     @property
     def MONGODB_URL(self) -> str:
@@ -41,10 +48,10 @@ class Settings(BaseSettings):
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
     
-    # External API
-    EXTERNAL_API_BASE_URL: str = "https://api.smartmeter.com.co"
-    EXTERNAL_API_KEY: Optional[str] = None
-    EXTERNAL_API_TIMEOUT: int = 30
+    # External API de la comercializadora
+    COMERCIALIZADORA_API_URL: str = "https://www.enertotalesp.com/api"
+    COMERCIALIZADORA_API_KEY: Optional[str] = None
+    COMERCIALIZADORA_API_TIMEOUT: int = 30
     
     # Auth
     INTERNAL_API_KEY: str = "dev-internal-key-123"
@@ -56,7 +63,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     
     # Colecciones (para adaptarse a tus datos existentes)
-    CONSUMPTION_COLLECTION: str = "consumos_enriquecidos"
+    tariff_COLLECTION: str = "consumos_enriquecidos"
     USE_ALT_COLLECTION: bool = False
     HOUSEHOLD_ID_TYPE: str = "int"
     
