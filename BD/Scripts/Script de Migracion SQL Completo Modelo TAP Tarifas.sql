@@ -281,6 +281,10 @@ INSERT INTO nivel_tension (cod_nivel, nombre, descripcion) VALUES
 ('N3',   'Nivel 3',   'Tensión nominal mayor o igual a 30 kV y menor a 62 kV'),
 ('N4',   'Nivel 4',   'Tensión nominal mayor o igual a 62 kV');
 
+-- INGRESAR 2 NIVELES NUEVOS
+INSERT INTO nivel_tension (cod_nivel, nombre, descripcion) VALUES
+('N1_2_1_3', 'Nivel 1.2-1.3', 'Conexión Nivel 1 con propiedad de activos del cliente'),
+('N1_2_1_3_50', 'Nivel 1.2*-1.3* - 50%', 'Conexión Nivel 1 con propiedad compartida de activos (50%)');
 
 
 -- =====================================================================
