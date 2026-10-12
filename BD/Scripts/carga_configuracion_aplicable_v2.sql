@@ -24,6 +24,19 @@ INSERT INTO nivel_tension (cod_nivel, nombre, descripcion) VALUES
 ('N1_2_1_3_50', 'Nivel 1.2*-1.3* - 50%',   'Conexión Nivel 1 con activos compartidos del cliente en Nivel 2 (1.2*) o Nivel 3 (1.3*) (50%)')
 ON CONFLICT (cod_nivel) DO NOTHING;
 
+-- 1. TRUNCATE a configuracion_aplicable
+TRUNCATE TABLE configuracion_aplicable RESTART IDENTITY CASCADE;
+
+COMMIT;
+
+-- =====================================================
+-- Reseteo explícito de la secuencia (por si acaso)
+-- =====================================================
+-- Aunque TRUNCATE ... RESTART IDENTITY ya resetea,
+-- ejecutamos esto por seguridad.
+ALTER SEQUENCE configuracion_aplicable_id_configuracion_aplicable_seq RESTART WITH 1;
+
+
 -- 2. Asignación mercado + nivel -> configuración
 DO $$
 DECLARE
