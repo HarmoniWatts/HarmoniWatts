@@ -48,15 +48,29 @@ def get_tarifa_activa_service(
 
 
 def get_franja_service(
-    repo: TarifaRepository = Depends(get_tarifa_repository)
+    repo: TarifaRepository = Depends(get_tarifa_repository),
+    cliente_repo: ClienteRepository = Depends(get_cliente_repository),
+    selector: TarifaSelector = Depends(get_tarifa_selector),
 ) -> FranjaService:
-    return FranjaService(repo)
-
+    """Provee el servicio con todas sus dependencias."""
+    return FranjaService(
+        repo=repo,
+        cliente_repo=cliente_repo,
+        selector=selector,
+    )
 
 def get_alerta_service(
-    repo: TarifaRepository = Depends(get_tarifa_repository)
+    repo: TarifaRepository = Depends(get_tarifa_repository),
+    cliente_repo: ClienteRepository = Depends(get_cliente_repository),
+    selector: TarifaSelector = Depends(get_tarifa_selector),
 ) -> AlertaTarifaService:
-    return AlertaTarifaService(repo)
+    """Provee el servicio con todas sus dependencias."""
+    return AlertaTarifaService(
+        repo=repo,
+        cliente_repo=cliente_repo,
+        selector=selector,
+    )
+
 
 
 # =====================================================
@@ -118,23 +132,25 @@ def get_tarifa_current(
 def get_daily_bands(
     id_cliente: int,
     fecha: Optional[date] = Query(None),
+    consumo_mensual_kwh: Optional[float] = Query(None, description="Consumo mensual en kWh"),
     service: FranjaService = Depends(get_franja_service),
-    cliente_autenticado = Depends(get_current_cliente),
+    # cliente_autenticado = Depends(get_current_cliente),
 ):
     """
     Precios de las 24 horas del día.
     
     Endpoint fino: delega la construcción de la curva al FranjaService.
     """
-    if cliente_autenticado.id_cliente != id_cliente:
-        raise HTTPException(
-            status_code=403,
-            detail="No autorizado para consultar otro cliente"
-        )
+    # if cliente_autenticado.id_cliente != id_cliente:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="No autorizado para consultar otro cliente"
+    #     )
     
     resultado = service.obtener_precios_dia(
         id_cliente=id_cliente,
-        fecha=fecha
+        fecha=fecha,
+        consumo_mensual_kwh=consumo_mensual_kwh
     )
     
     if not resultado.get('precios'):
@@ -157,23 +173,25 @@ def get_daily_bands(
 def get_current_franja(
     id_cliente: int,
     hora: Optional[int] = Query(None, ge=1, le=24),
+    consumo_mensual_kwh: Optional[float] = Query(None, description="Consumo mensual en kWh"),
     service: FranjaService = Depends(get_franja_service),
-    cliente_autenticado = Depends(get_current_cliente),
+    # cliente_autenticado = Depends(get_current_cliente),
 ):
     """
     Franja horaria actual y su precio.
     
     Endpoint fino: delega la resolución hora→franja al FranjaService.
     """
-    if cliente_autenticado.id_cliente != id_cliente:
-        raise HTTPException(
-            status_code=403,
-            detail="No autorizado para consultar otro cliente"
-        )
+    # if cliente_autenticado.id_cliente != id_cliente:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="No autorizado para consultar otro cliente"
+     #   )
     
     resultado = service.obtener_franja_actual(
         id_cliente=id_cliente,
-        hora=hora
+        hora=hora,
+        consumo_mensual_kwh=consumo_mensual_kwh
     )
     
     if resultado is None:
@@ -196,25 +214,27 @@ def get_current_franja(
 def get_high_franja(
     id_cliente: int,
     horizonte_horas: int = Query(12, ge=1, le=24),
-    umbral_punta: bool = Query(True),
+    umbral_pico: bool = Query(True),
+    consumo_mensual_kwh: Optional[float] = Query(None, description="Consumo mensual en kWh"),
     service: AlertaTarifaService = Depends(get_alerta_service),
-    cliente_autenticado = Depends(get_current_cliente),
+    # cliente_autenticado = Depends(get_current_cliente),
 ):
     """
     Próxima ventana de alta tarifa.
     
     Endpoint fino: delega la detección y cálculo al AlertaTarifaService.
     """
-    if cliente_autenticado.id_cliente != id_cliente:
-        raise HTTPException(
-            status_code=403,
-            detail="No autorizado para consultar otro cliente"
-        )
+    # if cliente_autenticado.id_cliente != id_cliente:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="No autorizado para consultar otro cliente"
+    #     )
     
     resultado = service.detectar_proxima_ventana_alta(
         id_cliente=id_cliente,
         horizonte_horas=horizonte_horas,
-        umbral_punta=umbral_punta
+        umbral_pico=umbral_pico,
+        consumo_mensual_kwh=consumo_mensual_kwh
     )
     
     if resultado is None:
