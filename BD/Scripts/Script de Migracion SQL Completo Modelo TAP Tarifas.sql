@@ -947,7 +947,7 @@ CREATE TABLE tarifa_valor (
     id_periodo_tarifario     BIGINT NOT NULL REFERENCES periodo_tarifario(id_periodo_tarifario),
     id_configuracion_horaria SMALLINT,
     id_franja_horaria        SMALLINT,
-    valor                    NUMERIC(18,6) NOT NULL CHECK (valor >= 0),
+    valor                    NUMERIC(12,4) NOT NULL CHECK (valor >= 0),
     unidad                   VARCHAR(30) NOT NULL DEFAULT 'COP/kWh',
     CONSTRAINT fk_tv_periodo_config
         FOREIGN KEY (id_periodo_tarifario, id_configuracion_horaria)

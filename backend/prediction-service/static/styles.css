@@ -1,0 +1,27 @@
+table {
+    width: 35%;
+    margin: auto;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 6px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-size: 20px;
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+p {
+    margin: 0;
+}

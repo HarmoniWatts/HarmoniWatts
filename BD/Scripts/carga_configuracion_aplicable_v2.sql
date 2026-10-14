@@ -224,6 +224,11 @@ END $$;
 
 COMMIT;
 
+--Adcional se quita una una restriccion en clientes
+
+ALTER TABLE cliente DROP CONSTRAINT ck_cliente_estrato_residencial;
+
+
 -- Prueba de la función:
 -- SELECT fn_configuracion_aplicable('ENERTOTAL', 'CALI', 'N2', DATE '2025-03-01');   -- debe dar el id de CH00
 -- SELECT fn_configuracion_aplicable('ENERTOTAL', 'TOLIMA', 'N1_2_1_3', DATE '2025-03-01');   -- debe dar el id de CH09

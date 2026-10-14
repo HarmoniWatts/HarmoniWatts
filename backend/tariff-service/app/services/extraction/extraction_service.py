@@ -16,9 +16,7 @@ class ExtractionService:
     
     def __init__(self, db: Session, pdf_downloader: PDFDownloader):
         self.db = db
-        self.downloader = pdf_downloader(
-            base_url=settings.COMERCIALIZADORA_API_URL
-        )
+        self.downloader = pdf_downloader
         self.parser = PDFParser()
         self.validator = DataValidator()
         self.transformer = TAPTransformer()
@@ -26,7 +24,7 @@ class ExtractionService:
     
     async def extraer_manual(
         self,
-        comercializadora_id: int,
+        comercializadora_cod: str,
         fecha_inicio: date,
         fecha_fin: date
     ) -> dict:
@@ -35,59 +33,63 @@ class ExtractionService:
         
         # 1. Descargar PDFs
         pdfs = await self.downloader.descargar_por_rango(
-            fecha_inicio, fecha_fin, comercializadora_id
+            fecha_inicio, fecha_fin, comercializadora_cod
         )
         
         if not pdfs:
             return {"estado": "sin_datos", "mensaje": "No se encontraron PDFs"}
         
         # 2. Procesar cada PDF
-        resultado = await self._procesar_pdfs(pdfs, comercializadora_id)
-        
+        resultado = await self._procesar_pdfs(pdfs, comercializadora_cod)
+        logger.info(f"Resultado de la extracción manual: {resultado}")
         return resultado
     
     async def extraer_automatica(
         self,
-        comercializadora_id: int
+        comercializadora_cod: str
     ) -> dict:
         """Modo automático: extrae la última tarifa disponible"""
-        logger.info(f"Extracción automática: comercializadora {comercializadora_id}")
+        logger.info(f"Extracción automática: comercializadora {comercializadora_cod}")
         
         # 1. Descargar último PDF
-        pdf = await self.downloader.descargar_ultimo(comercializadora_id)
+        pdf = await self.downloader.descargar_ultimo(comercializadora_cod)
         
         # 2. Procesar
-        resultado = await self._procesar_pdfs([pdf], comercializadora_id)
+        resultado = await self._procesar_pdfs([pdf], comercializadora_cod)
         
         return resultado
     
     async def _procesar_pdfs(
         self, 
         pdfs: List, 
-        comercializadora_id: int
+        comercializadora_cod: str
     ) -> dict:
         """Procesa una lista de PDFs"""
         total_extraidas = 0
         total_insertadas = 0
         todos_errores = []
         
-        for pdf_path in pdfs:
+        for pdf in pdfs:
+            pdf_path = pdf["path"]
+            fecha_doc = pdf["fecha"]
+            titulo = pdf["titulo"]
             try:
                 # 1. Parsear PDF
-                tarifas_raw = self.parser.parsear(pdf_path)
+                tarifas_raw = self.parser.parsear(pdf)
                 total_extraidas += len(tarifas_raw)
                 
                 # 2. Validar y transformar
                 for tarifa_raw in tarifas_raw:
-                    metadata = self.parser._extraer_metadata_archivo(pdf_path)
+                    # print(f"Tarifa extraída: {tarifa_raw}")
+                    # metadata = self.parser._extraer_metadata_archivo(pdf_path)
                     
-                    if not metadata.get('anio') or not metadata.get('mes'):
+                    if not fecha_doc.year or not fecha_doc.month:
                         todos_errores.append(f"Sin metadata: {pdf_path.name}")
                         continue
                     
                     # Validar
                     es_valido, errores = self.validator.validar(
-                        tarifa_raw, metadata['anio'], metadata['mes']
+                        tarifa_raw, fecha_doc.year, fecha_doc.month
                     )
                     
                     if not es_valido:
@@ -96,11 +98,14 @@ class ExtractionService:
                     
                     # Transformar a TAP
                     tarifa_tap = self.transformer.transformar(
-                        tarifa_raw, comercializadora_id
+                        tarifa_raw, comercializadora_cod
                     )
                     
+                    #print(f"Tarifa transformada a TAP: {tarifa_tap}")
+                    
                     # 3. Insertar en PostgreSQL (si no existe)
-                    insertada = self.tarifa_repo.upsert(tarifa_tap)
+                    force_new_version = False  # Cambiar a True si se quiere forzar nueva versión
+                    insertada = self.tarifa_repo.upsert_tarifa_completa(tarifa_tap, force_new_version=force_new_version)
                     if insertada:
                         total_insertadas += 1
                 

@@ -119,11 +119,11 @@ async def readiness_check():
 # =====================================================
 
 # Rutas de tarifas activas (PostgreSQL)
-# app.include_router(
-#     active.router,
-#     prefix="/api/v1",
-#     tags=["Tarifas Activas"]
-# )
+app.include_router(
+    active.router,
+    prefix="/api/v1",
+    tags=["Tarifas Activas"]
+)
 
 # Rutas de tarifas históricas (MongoDB)
 # app.include_router(
@@ -155,8 +155,7 @@ async def root():
                 "current": "/api/v1/tariff/active/current/{id_cliente}",
                 "daily_bands": "/api/v1/tariff/active/daily-bands/{id_cliente}",
                 "current_franja": "/api/v1/tariff/active/current-franja/{id_cliente}",
-                "assign": "/api/v1/tariff/active/assign",
-                "sync": "/api/v1/tariff/active/sync"
+                "high_franja": "/api/v1/tariff/active/high-franja/{id_cliente}"
             },
             "historical_tariffs": {
                 "by_period": "/api/v1/tariff/historical/{anio}/{mes}",
@@ -166,8 +165,6 @@ async def root():
             },
             "extraction": {
                 "manual": "/api/v1/tariff/extraction/manual",
-                "automatic": "/api/v1/tariff/extraction/automatica",
-                "schedule": "/api/v1/tariff/extraction/programar",
                 "status": "/api/v1/tariff/extraction/estado/{task_id}"
             },
             "documentation": "/docs"

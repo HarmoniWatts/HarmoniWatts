@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Predicción de Consumo de Energía Inteligente</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th colspan="2">Variables de Entrada - Predicción de Demanda</th>
+        </tr>
+        
+        <tr>
+            <th colspan="2" style="background-color: #6c757d; font-size: 0.9em; padding: 4px;">Información Temporal</th>
+        </tr>
+        <tr>
+            <td style='width: 250px'>Mes del Año (1-12):</td>
+            <td style='width: 180px'>
+                <input type="number" value="6" min="1" max="12" step="1" id="month">
+            </td>
+        </tr>
+        <tr>
+            <td>Día de la Semana (0=Lunes, 6=Domingo):</td>
+            <td>
+                <input type="number" value="2" min="0" max="6" step="1" id="day_of_week">
+            </td>
+        </tr>
+        <tr>
+            <td>Hora del Día (0-23):</td>
+            <td>
+                <input type="number" value="14" min="0" max="23" step="1" id="hour">
+            </td>
+        </tr>
+        <tr>
+            <td>Tipo de Día:</td>
+            <td>
+                <select style="width: 100%;" id="tipo_dia">
+                    <option value="Laboral" selected>Laboral</option>
+                    <option value="Fin de semana">Fin de semana</option>
+                    <option value="Festivo">Festivo</option>
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <th colspan="2" style="background-color: #6c757d; font-size: 0.9em; padding: 4px;">Variables Técnicas y Geográficas</th>
+        </tr>
+        <tr>
+            <td>Estrato Socioeconómico (1-6):</td>
+            <td>
+                <input type="number" value="3" min="1" max="6" step="1" id="estrato">
+            </td>
+        </tr>
+        <tr>
+            <td>Nivel de Tensión:</td>
+            <td>
+                <select style="width: 100%;" id="nivel_tension">
+                    <option value="Nivel 1.1" selected>Nivel 1.1</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Ciudad / Municipio:</td>
+            <td>
+                <select style="width: 100%;" id="ciudad">
+                    <option value="GIRARDOT" selected>GIRARDOT</option>
+                    <option value="CALI">CALI</option>
+                    <option value="MONTERÍA">MONTERÍA</option>
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <th colspan="2" style="background-color: #6c757d; font-size: 0.9em; padding: 4px;">Información Comercial / Negocio</th>
+        </tr>
+        <tr>
+            <td>Tipo de Tarifa:</td>
+            <td>
+                <select style="width: 100%;" id="tipo_tarifa">
+                    <option value="A" selected>A</option>
+                    <option value="B">B</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Tarifa Aplicada ($/kWh):</td>
+            <td><input type="text" value="785.42" id="tarifa_aplicada"></td>
+        </tr>
+
+        <tr>
+            <th colspan="2" style="background-color: #6c757d; font-size: 0.9em; padding: 4px;">Condiciones Climáticas</th>
+        </tr>
+        <tr>
+            <td>Precipitación / Lluvia (mm):</td>
+            <td><input type="text" value="0.0" id="precipitacion"></td>
+        </tr>
+        <tr>
+            <td>Temperatura Ambiental (°C):</td>
+            <td><input type="text" value="32.5" id="temperatura"></td>
+        </tr>
+        <tr>
+            <td>Humedad Relativa (%):</td>
+            <td><input type="text" value="65.0" id="humedad_relativa"></td>
+        </tr>
+
+        <tr>
+            <th colspan="2" style="background-color: #495057; font-size: 0.95em; padding: 6px;">Configuración de Consulta</th>
+        </tr>
+        <tr>
+            <td>Fase / Nivel de Enfoque:</td>
+            <td>
+                <select style="width: 100%;" id="fase_endpoint">
+                    <option value="/api/v1/predict/global" selected>Fase 1: Global Macro</option>
+                    <option value="/api/v1/predict/segment">Fase 2: Segmento (Estrato 3 - Tarifa A)</option>
+                    <option value="/api/v1/predict/meter/MN263C548245">Fase 3: Micro (Medidor MN263C548245)</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; color: #007bff;">Consumo Estimado (kWh):</td>
+            <td><input type="text" value="" id="resultado_kwh" readonly style="font-weight: bold; border: 2px solid #007bff; text-align: center; color: #007bff;"></td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <button onclick="predecirConsumo()" style="width: 100%; height: 40px; font-weight: bold; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Calcular Demanda Estimada</button>
+            </td>
+        </tr>
+    </table>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function predecirConsumo() {
+            // Capturar datos del formulario y convertirlos a los tipos numéricos/texto requeridos
+            var month            = parseInt(document.getElementById('month').value);
+            var day_of_week      = parseInt(document.getElementById('day_of_week').value);
+            var hour             = parseInt(document.getElementById('hour').value);
+            var tipo_dia         = document.getElementById('tipo_dia').value;
+            
+            var estrato          = parseInt(document.getElementById('estrato').value);
+            var nivel_tension    = document.getElementById('nivel_tension').value;
+            var ciudad           = document.getElementById('ciudad').value;
+            
+            var tipo_tarifa      = document.getElementById('tipo_tarifa').value;
+            var tarifa_aplicada  = parseFloat(document.getElementById('tarifa_aplicada').value);
+            
+            var precipitacion    = parseFloat(document.getElementById('precipitacion').value);
+            var temperatura      = parseFloat(document.getElementById('temperatura').value);
+            var humedad_relativa = parseFloat(document.getElementById('humedad_relativa').value);
+            
+            // Determinar la ruta dinámica según la fase seleccionada por el usuario
+            var endpointSeleccionado = document.getElementById('fase_endpoint').value;
+
+            // Limpiar campo de respuesta antes de la ejecución
+            $('#resultado_kwh').val('Calculando...');
+
+            $.ajax({
+                url: endpointSeleccionado,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    month: month,
+                    day_of_week: day_of_week,
+                    hour: hour,
+                    Tipo_dia: tipo_dia,
+                    Estrato: estrato,
+                    "Nivel de Tension": nivel_tension,
+                    Ciudad: ciudad,
+                    Tipo_Tarifa: tipo_tarifa,
+                    Tarifa_aplicada: tarifa_aplicada,
+                    Precipitacion: precipitacion,
+                    Temperatura: temperatura,
+                    Humedad_Relativa: humedad_relativa
+                }),
+                success: function(response) {
+                    // Si el backend responde con JSON estructurado de regresión
+                    if (response && response.modelos_evaluados) {
+                        // Extraemos la predicción del Random Forest Regressor de la respuesta
+                        var rf_data = response.modelos_evaluados["Random Forest Regressor"];
+                        if (rf_data && rf_data.prediccion_kwh !== undefined) {
+                            $('#resultado_kwh').val(rf_data.prediccion_kwh.toFixed(4) + " kWh");
+                        } else {
+                            $('#resultado_kwh').val(JSON.stringify(response));
+                        }
+                    } else if (typeof response === "object") {
+                        $('#resultado_kwh').val(JSON.stringify(response));
+                    } else {
+                        // En caso de que devuelva solo texto numérico plano
+                        $('#resultado_kwh').val(parseFloat(response).toFixed(4) + " kWh");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    var errorMsg = "Error en Consulta";
+                    if (xhr.responseJSON && xhr.responseJSON.mensaje) {
+                        errorMsg = xhr.responseJSON.mensaje;
+                    }
+                    alert("Error " + xhr.status + ": " + errorMsg);
+                    $('#resultado_kwh').val('Error');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

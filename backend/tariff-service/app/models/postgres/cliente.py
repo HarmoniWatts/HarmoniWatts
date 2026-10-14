@@ -71,7 +71,7 @@ class Cliente(Base):
     estrato = Column(
         SmallInteger,
         nullable=True,
-        comment='Estrato socioeconómico 1-6 (solo para clientes residenciales tipo R)'
+        comment='Estrato socioeconómico 1-6 (solo para cliente residenciales tipo R)'
     )
     
     cod_nivel = Column(
@@ -86,21 +86,18 @@ class Cliente(Base):
     # =====================================================
     id_zona = Column(
         SmallInteger,
-        nullable=False,
-        comment='FK a zona_geografica (municipio)'
+        ForeignKey('zona_geografica.id_zona'),    # ← FK simple para trigger CS
+        nullable=False
     )
-    
     cod_mercado = Column(
         String(30),
-        nullable=False,
-        comment='FK a mercado_red (mercado de comercialización)'
+        ForeignKey('mercado_red.cod_mercado'),    # ← FK simple para relación
+        nullable=False
     )
-    
     cod_comercializadora = Column(
         String(20),
         ForeignKey('comercializadora.cod_comercializadora'),
-        nullable=False,
-        comment='Comercializadora que presta el servicio'
+        nullable=False
     )
     
     # =====================================================
@@ -179,51 +176,51 @@ class Cliente(Base):
     # Clasificación
     tipo_cliente = relationship(
         "TipoCliente",
-        backref="clientes"
+        back_populates="clientes"
     )
     
     nivel_tension = relationship(
         "NivelTension",
-        backref="clientes"
+        back_populates="clientes"
     )
     
     # Ubicación
     zona_geografica = relationship(
         "ZonaGeografica",
         foreign_keys=[id_zona],
-        backref="clientes"
+        backref="cliente"
     )
     
     mercado_red = relationship(
         "MercadoRed",
         foreign_keys=[cod_mercado],
-        backref="clientes"
+        backref="cliente"
     )
     
     # Comercializadora
     comercializadora = relationship(
         "Comercializadora",
-        backref="clientes"
+        back_populates="clientes"
     )
     
     # Relaciones 1:N con otras tablas
-    viviendas = relationship(
-        "Vivienda",
-        back_populates="cliente",
-        cascade="all, delete-orphan"
-    )
+    # viviendas = relationship(
+    #     "Vivienda",
+    #     back_populates="cliente",
+    #     cascade="all, delete-orphan"
+    # )
     
-    conexiones_externas = relationship(
-        "ConexionExterna",
-        back_populates="cliente",
-        cascade="all, delete-orphan"
-    )
+    # conexiones_externas = relationship(
+    #     "ConexionExterna",
+    #     back_populates="cliente",
+    #     cascade="all, delete-orphan"
+    # )
     
-    tarifas_usuario = relationship(
-        "TarifaUsuario",
-        back_populates="cliente",
-        cascade="all, delete-orphan"
-    )
+    # tarifas_usuario = relationship(
+    #     "TarifaUsuario",
+    #     back_populates="cliente",
+    #     cascade="all, delete-orphan"
+    # )
     
     def __repr__(self) -> str:
         return (
