@@ -13,7 +13,7 @@ class FrecuenciaAutomatica(str, Enum):
 
 class ExtraccionManualRequest(BaseModel):
     """Request para extracción manual de tarifas"""
-    comercializadora_id: int = Field(..., description="ID de la comercializadora")
+    comercializadora_cod: str = Field(..., description="ID de la comercializadora")
     fecha_inicio: date = Field(..., description="Fecha de inicio del rango")
     fecha_fin: date = Field(..., description="Fecha de fin del rango")
     urls_pdf: Optional[List[str]] = Field(None, description="URLs específicas de PDFs (opcional)")
@@ -27,7 +27,7 @@ class ExtraccionManualRequest(BaseModel):
 
 class ExtraccionAutomaticaRequest(BaseModel):
     """Request para configurar extracción automática"""
-    comercializadora_id: int
+    comercializadora_cod: str
     frecuencia: FrecuenciaAutomatica
     activa: bool = True
 

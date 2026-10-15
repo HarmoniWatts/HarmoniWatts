@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     COMERCIALIZADORA_API_URL: str = "https://www.enertotalesp.com/api"
     COMERCIALIZADORA_API_KEY: Optional[str] = None
     COMERCIALIZADORA_API_TIMEOUT: int = 30
+    PDF_DOWNLOAD_LIMIT : int = 100
     
     # Auth
     INTERNAL_API_KEY: str = "dev-internal-key-123"

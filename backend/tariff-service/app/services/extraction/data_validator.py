@@ -27,10 +27,15 @@ class DataValidator:
         valores_validos = [v for v in franjas.values() if v is not None]
         
         if len(valores_validos) == 0:
-            errores.append("No hay valores de franja válidos")
+            errores.append(
+                f"No hay valores de franja válidos en la tarifa "
+                f"{tarifa.get('mercado', 'desconocido')}-{tarifa.get('nivel_tension', 'desconocido')}"
+                f" para {anio}-{mes}"
+            )
         
         # 3. Validar que los valores sean positivos
         for codigo, valor in franjas.items():
+            # print(f"Validando franja {codigo}: valor={valor}")
             if valor is not None and valor < 0:
                 errores.append(f"Franja {codigo} tiene valor negativo: {valor}")
         

@@ -119,7 +119,7 @@ class AlertaTarifaService:
             horas_horizonte=horas_horizonte,
         )
         
-        logger.debug(f"precios_horizonte: {precios_horizonte}")
+        #logger.debug(f"precios_horizonte: {precios_horizonte}")
         
         if not precios_horizonte:
             return self._respuesta_sin_franja(
@@ -306,7 +306,7 @@ class AlertaTarifaService:
         
         Compara el precio máximo de la ventana con el precio mínimo del día.
         """
-        print(f"precios_dia {precios_dia}")
+        # print(f"precios_dia {precios_dia}")
         precios = [
             p['precio'] for p in precios_dia
             if p.get('precio') is not None
