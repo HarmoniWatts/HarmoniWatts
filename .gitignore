@@ -1,9 +1,13 @@
-# Variables de entorno con secretos (nunca versionar)
+# =========================
+# Variables de entorno
+# =========================
 .env
 .env.local
 .env.*.local
 
+# =========================
 # Dependencias y builds
+# =========================
 node_modules/
 dist/
 target/
@@ -11,14 +15,78 @@ build/
 *.jar
 *.war
 
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+venv/
+.venv/
+env/
+
+# =========================
+# Modelos Machine Learning
+# =========================
+*.pkl
+*.joblib
+*.h5
+*.keras
+*.onnx
+*.pt
+*.pth
+
+# =========================
+# Datasets y archivos masivos
+# =========================
+*.csv
+*.parquet
+*.feather
+
+# Si quieres permitir CSV pequeños en otras carpetas,
+# usa reglas más específicas como:
+# backend/prediction-service/data/*.csv
+
+# =========================
+# Logs y temporales
+# =========================
+*.log
+tmp/
+temp/
+
+# =========================
 # IDEs y OS
+# =========================
 .idea/
 .vscode/
 *.swp
 .DS_Store
 Thumbs.db
 
-# Logs y temporales
-*.log
-tmp/
-temp/
+# =========================
+# Archivos de extracción
+# =========================
+*.pdf
+downloads/
+output/
+cache/
+
+# =========================
+# Mongo / Data dumps
+# =========================
+*.bson
+*.archive
+dump/
+
+# =========================
+# Documentación temporal
+# =========================
+*.borrador
+*-borrador.*
+
