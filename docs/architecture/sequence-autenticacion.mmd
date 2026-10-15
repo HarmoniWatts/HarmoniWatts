@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend
+    participant Keycloak as 🔐 Keycloak
+    participant ConAPI as 🔵 Consumption API
+    participant InsightsAPI as 🟢 Insights API
+
+    User->>Frontend: Ingresa credenciales
+    Frontend->>Keycloak: POST /auth<br/>{username, password}
+    Keycloak-->>Frontend: {access_token, refresh_token}
+    Frontend->>Frontend: Almacena token
+    Frontend->>ConAPI: GET /api/v1/consumption<br/>Authorization: Bearer {token}
+    ConAPI->>Keycloak: Valida token
+    Keycloak-->>ConAPI: ✓ Valid
+    ConAPI-->>Frontend: {consumption_data}
+    Frontend-->>User: ✓ Autenticado

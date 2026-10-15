@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant Frontend as 🌐 Frontend
+    participant InsightsAPI as 🟢 Insights API
+    participant TariffAPI as 🟣 Tariff API
+    participant ProviderAPI as 🏭 Energy Provider API
+
+    Frontend->>InsightsAPI: GET /tariffs/hourly
+    InsightsAPI->>TariffAPI: GET /api/v1/tariffs/current
+    TariffAPI->>ProviderAPI: GET /tariffs?date=hoy
+    ProviderAPI-->>TariffAPI: {tariffs_by_hour}
+    TariffAPI->>TariffAPI: Cachear (1h TTL)
+    TariffAPI-->>InsightsAPI: {18h: $0.120, 19h: $0.145...}
+    InsightsAPI-->>Frontend: Mostrar peak hours

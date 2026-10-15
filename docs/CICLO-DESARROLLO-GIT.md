@@ -28,9 +28,9 @@ No se crean features/fix/issues desde `main` ni desde `release` (salvo hotfix).
 
 ## 2. Mapa de ramas (branching)
 
-![Mapa de ramas Git — HarmoniWatts](harmoniwatts-git-branching-diagram.png)
+![Mapa de ramas Git — HarmoniWatts](imagenes/diagramas/harmoniwatts-git-branching-diagram.png)
 
-*Archivo en esta carpeta:* [`harmoniwatts-git-branching-diagram.png`](harmoniwatts-git-branching-diagram.png)
+*Archivo en esta carpeta:* [`harmoniwatts-git-branching-diagram.png`](imagenes/diagramas/harmoniwatts-git-branching-diagram.png)
 
 **Lectura rápida**
 
@@ -146,7 +146,7 @@ BREAKING CHANGE: campo estimatedCost pasa a entero COP
 
 | Destino | Aprobación |
 |---------|------------|
-| **`qa`** | Aprobadores de PR + CI en verde cuando exista. |
+| **`qa`** | Aprobadores de PR + check **`CI OK`** en verde (ver [CI.md](CI.md)). |
 | **`main`** | Merge controlado tras QA estable (`qa` → `main`). |
 | **`release`** | Promoción `main` → `release` o merge urgente de **`hotfix/*`**. |
 

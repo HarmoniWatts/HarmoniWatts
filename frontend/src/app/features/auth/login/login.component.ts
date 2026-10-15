@@ -1,29 +1,20 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import Keycloak from 'keycloak-js';
+import { applyKeycloakResourceOwnerPasswordTokens } from '../../../core/auth/keycloak-direct-grant.util';
 import { environment } from '../../../../environments/environment';
 import { LogoComponent } from '../../../shared/components/logo';
+import { ThemeToggleComponent } from '../../../shared/components/theme-toggle';
 
 const { url, realm, clientId } = environment.keycloak;
 const TOKEN_URL = `${url}/realms/${realm}/protocol/openid-connect/token`;
 
-function parseJwtPayload(token: string): Record<string, unknown> {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return {};
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(base64)) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink, LogoComponent],
+  imports: [FormsModule, RouterLink, LogoComponent, ThemeToggleComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
@@ -36,6 +27,7 @@ export class LoginComponent {
   private readonly keycloak = inject(Keycloak);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   login(): void {
     this.errorMessage = '';
@@ -60,16 +52,15 @@ export class LoginComponent {
       )
       .subscribe({
         next: (res) => {
-          const k = this.keycloak as unknown as Record<string, unknown>;
-          k['token'] = res.access_token;
-          k['refreshToken'] = res.refresh_token;
-          k['idToken'] = res.id_token ?? '';
-          k['authenticated'] = true;
-          k['tokenParsed'] = parseJwtPayload(res.access_token);
-          if (res.id_token) k['idTokenParsed'] = parseJwtPayload(res.id_token);
-          const parsed = k['tokenParsed'] as { sub?: string };
-          if (parsed?.sub) k['subject'] = parsed.sub;
-          this.router.navigate(['/dashboard']);
+          applyKeycloakResourceOwnerPasswordTokens(
+            this.keycloak,
+            res.access_token,
+            res.refresh_token,
+            res.id_token,
+          );
+          this.loading = false;
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
+          void this.router.navigateByUrl(returnUrl);
         },
         error: (err: { error?: { error_description?: string }; message?: string; status?: number }) => {
           this.loading = false;

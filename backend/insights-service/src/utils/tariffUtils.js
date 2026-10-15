@@ -20,7 +20,7 @@ class TariffUtils {
   static calculateEstimatedCost(consumptionKwh, tariffBands, actualSeries) {
     let totalCost = 0;
     for (let hour = 0; hour < 24; hour++) {
-      const tariff = this.getTariffByHour(hour, tariffBands);
+      const tariff = TariffUtils.getTariffByHour(hour, tariffBands);
       const consumption = actualSeries[hour] || 0;
       totalCost += consumption * tariff.price;
     }
@@ -30,7 +30,7 @@ class TariffUtils {
   static calculateSavings(consumptionKwh, tariffBands, baselineTariff = 520) {
     let savings = 0;
     for (let hour = 0; hour < 24; hour++) {
-      const tariff = this.getTariffByHour(hour, tariffBands);
+      const tariff = TariffUtils.getTariffByHour(hour, tariffBands);
       const consumption = consumptionKwh[hour] || 0;
       const baselineCost = consumption * baselineTariff;
       const actualCost = consumption * tariff.price;

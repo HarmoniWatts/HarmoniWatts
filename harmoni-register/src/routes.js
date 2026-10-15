@@ -1,7 +1,15 @@
 /**
- * Rutas del microservicio de registro.
+ * Rutas del microservicio de registro y cuenta Keycloak.
  */
-import { getAdminToken, createUser, findUserByEmail, sendResetPasswordEmail } from './keycloak.js';
+import {
+  getAdminToken,
+  createUser,
+  findUserByEmail,
+  sendResetPasswordEmail,
+  updateProfileByAdmin,
+  verifyResourceOwnerPassword,
+  adminResetUserPassword,
+} from './keycloak.js';
 
 function validatePayload(body) {
   const errors = [];
@@ -63,4 +71,72 @@ export async function handleForgotPassword(req, res) {
 
 export function handleHealth(req, res) {
   res.status(200).json({ status: 'ok', service: 'harmoni-register' });
+}
+
+/** PUT /api/auth/profile — Bearer JWT; body: { firstName, lastName, email? } */
+export async function handleUpdateProfile(req, res) {
+  const sub = req.keycloakJwt.sub;
+  const body = req.body || {};
+  const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
+  const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';
+  const emailRaw = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!firstName || !lastName) {
+    res.status(400).json({ message: 'Nombre y apellido son obligatorios.' });
+    return;
+  }
+  if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+    res.status(400).json({ message: 'Email no válido.' });
+    return;
+  }
+  try {
+    const adminToken = await getAdminToken();
+    await updateProfileByAdmin(adminToken, sub, {
+      firstName,
+      lastName,
+      email: emailRaw || undefined,
+    });
+    res.status(204).end();
+  } catch (err) {
+    console.error('[harmoni-register] update profile:', err);
+    res.status(502).json({ message: err.message || 'No se pudo actualizar el perfil.' });
+  }
+}
+
+/** PUT /api/auth/password — Bearer JWT; body: { currentPassword, newPassword } */
+export async function handleChangePassword(req, res) {
+  const sub = req.keycloakJwt.sub;
+  const payload = req.keycloakJwt;
+  const body = req.body || {};
+  const currentPassword = body.currentPassword;
+  const newPassword = body.newPassword;
+  if (!currentPassword || typeof currentPassword !== 'string') {
+    res.status(400).json({ message: 'Indica la contraseña actual.' });
+    return;
+  }
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+    res.status(400).json({ message: 'La nueva contraseña debe tener al menos 8 caracteres.' });
+    return;
+  }
+  const loginHint = payload.preferred_username || payload.email;
+  if (!loginHint) {
+    res.status(400).json({ message: 'El token no incluye preferred_username ni email.' });
+    return;
+  }
+  try {
+    try {
+      await verifyResourceOwnerPassword(String(loginHint), currentPassword);
+    } catch (e) {
+      if (e.code === 'PASSWORD_INVALID' || e.message === 'PASSWORD_INVALID') {
+        res.status(401).json({ message: 'La contraseña actual no es correcta.' });
+        return;
+      }
+      throw e;
+    }
+    const adminToken = await getAdminToken();
+    await adminResetUserPassword(adminToken, sub, newPassword);
+    res.status(204).end();
+  } catch (err) {
+    console.error('[harmoni-register] change password:', err);
+    res.status(502).json({ message: err.message || 'No se pudo cambiar la contraseña.' });
+  }
 }

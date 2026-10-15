@@ -1,0 +1,36 @@
+<div class="pe-page">
+  <header class="pe-head">
+    <a routerLink="/perfil/editar" class="pe-back">← Volver a editar perfil</a>
+    <h1 class="pe-title">Cambiar contraseña</h1>
+    <p class="pe-sub">Verificamos tu contraseña actual y actualizamos la nueva en Keycloak.</p>
+  </header>
+
+  @if (error()) {
+    <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
+  }
+  @if (success()) {
+    <div class="dash-banner dash-banner-ok" role="status">Contraseña actualizada. En el próximo inicio de sesión usa la nueva clave.</div>
+  }
+
+  <section class="dash-card pe-card">
+    <div class="pe-form-grid">
+      <label class="pe-field pe-field-span">
+        <span>Contraseña actual</span>
+        <input class="pe-input" type="password" [(ngModel)]="currentPassword" autocomplete="current-password" />
+      </label>
+      <label class="pe-field pe-field-span">
+        <span>Nueva contraseña</span>
+        <input class="pe-input" type="password" [(ngModel)]="newPassword" autocomplete="new-password" />
+      </label>
+      <label class="pe-field pe-field-span">
+        <span>Confirmar nueva contraseña</span>
+        <input class="pe-input" type="password" [(ngModel)]="confirmPassword" autocomplete="new-password" />
+      </label>
+    </div>
+    <div class="pe-actions">
+      <button type="button" class="dash-btn-apply" (click)="guardar()" [disabled]="loading()">
+        {{ loading() ? 'Guardando…' : 'Cambiar contraseña' }}
+      </button>
+    </div>
+  </section>
+</div>

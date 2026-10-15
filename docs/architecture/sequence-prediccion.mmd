@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant User as 👤 Usuario
+    participant Frontend as 🌐 Frontend
+    participant AppAPI as 🟠 Appliances API
+    participant PredictionAPI as 🟡 Prediction API
+    participant ConAPI as 🔵 Consumption API
+    participant PostgreSQL as 🗄️ PostgreSQL
+
+    User->>Frontend: Registra AC (5000W)
+    Frontend->>AppAPI: POST /api/v1/appliances<br/>{type: "AC", power: 5000}
+    AppAPI->>AppAPI: Clasifica dispositivo
+    AppAPI->>ConAPI: GET /api/v1/consumption/historical<br/>{last_30_days}
+    ConAPI-->>AppAPI: {consumption_history}
+    AppAPI->>PredictionAPI: POST /predict/monthly<br/>{appliance_data,<br/>historical_consumption}
+    PredictionAPI->>PredictionAPI: Ejecuta ML Model
+    PredictionAPI-->>AppAPI: {prediction: 150kWh/mes,<br/>confidence: 0.92}
+    AppAPI->>PostgreSQL: INSERT appliances
+    PostgreSQL-->>AppAPI: ✓ Stored
+    AppAPI-->>Frontend: {appliance_id, prediction,<br/>cost_projection: $21.30}
+    Frontend-->>User: ✓ AC registrado

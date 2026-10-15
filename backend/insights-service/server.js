@@ -12,6 +12,9 @@ const server = app.listen(PORT, () => {
   console.log(`API endpoints:`);
   console.log(`   GET  /api/v1/dashboard/summary`);
   console.log(`   GET  /api/v1/dashboard/consumption-chart`);
+  console.log(`   GET  /api/v1/dashboard/recommendations`);
+  console.log(`   GET  /api/v1/dashboard/appliances/top`);
+  console.log(`   POST /api/v1/recommendations/:id/apply | dismiss`);
   console.log(`   Health check: GET /health`);
   console.log('═══════════════════════════════════════════════════');
 });

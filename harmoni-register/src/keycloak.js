@@ -3,7 +3,7 @@
  */
 import { config } from './config.js';
 
-const { url: baseUrl, realm, adminUsername, adminPassword } = config.keycloak;
+const { url: baseUrl, realm, adminUsername, adminPassword, frontendClientId } = config.keycloak;
 
 export async function getAdminToken() {
   const res = await fetch(`${baseUrl}/realms/master/protocol/openid-connect/token`, {
@@ -135,5 +135,92 @@ export async function sendResetPasswordEmail(accessToken, userId) {
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(errText || `execute-actions-email failed: ${res.status}`);
+  }
+}
+
+/**
+ * Verifica contraseña actual (resource owner password) con el cliente público del SPA.
+ */
+export async function verifyResourceOwnerPassword(username, password) {
+  const body = new URLSearchParams({
+    grant_type: 'password',
+    client_id: frontendClientId,
+    username,
+    password,
+  });
+  const res = await fetch(`${baseUrl}/realms/${realm}/protocol/openid-connect/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (res.status === 401) {
+    const err = new Error('PASSWORD_INVALID');
+    err.code = 'PASSWORD_INVALID';
+    throw err;
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`verify_password_failed: ${res.status} ${t}`);
+  }
+}
+
+export async function getUserRepresentation(accessToken, userId) {
+  const res = await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (res.status === 404) {
+    throw new Error('Usuario no encontrado en Keycloak.');
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`get_user_failed: ${res.status} ${t}`);
+  }
+  return res.json();
+}
+
+export async function putUserRepresentation(accessToken, userId, userJson) {
+  const res = await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(userJson),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`put_user_failed: ${res.status} ${t}`);
+  }
+}
+
+/**
+ * Actualiza nombre, apellidos y opcionalmente email (Admin API).
+ */
+export async function updateProfileByAdmin(accessToken, userId, { firstName, lastName, email }) {
+  const user = await getUserRepresentation(accessToken, userId);
+  user.firstName = String(firstName).trim();
+  user.lastName = String(lastName).trim();
+  if (email != null && String(email).trim() !== '') {
+    const em = String(email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      throw new Error('Email no válido.');
+    }
+    user.email = em;
+  }
+  await putUserRepresentation(accessToken, userId, user);
+}
+
+export async function adminResetUserPassword(accessToken, userId, newPassword) {
+  const res = await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}/reset-password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ type: 'password', value: newPassword, temporary: false }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`reset_password_failed: ${res.status} ${t}`);
   }
 }

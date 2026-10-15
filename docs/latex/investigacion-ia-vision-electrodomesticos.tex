@@ -1,0 +1,373 @@
+% Compilar en Overleaf con pdfLaTeX o XeLaTeX
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{ragged2e}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,fit}
+
+\geometry{margin=2.5cm}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black}
+
+% Estilo uniforme para tablas con bordes
+\definecolor{tabhead}{gray}{0.88}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash\hspace{0pt}}p{#1}}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash\hspace{0pt}}X}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\tabcolsep}{4pt}
+
+\title{\textbf{Investigación: IA para análisis de imágenes de electrodomésticos}\\
+\large Proyecto integrador HarmoniWatts --- Cuadro comparativo}
+\author{Equipo HarmoniWatts}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este documento compara soluciones de inteligencia artificial (local y en nube) para analizar fotografías de electrodomésticos y completar automáticamente un formulario con \emph{marca}, \emph{tipo} y \emph{potencia promedio (W)}. Se incluye Vertex AI Search como fuente de enriquecimiento, estrategias de optimización de tokens, un flujo de ampliación progresiva del catálogo tras confirmación del usuario, y una arquitectura híbrida recomendada para despliegue académico en la nube.
+\end{abstract}
+
+\section{Contexto del proyecto}
+
+HarmoniWatts gestiona electrodomésticos con los campos: \texttt{idTipoPredefinido}, \texttt{idMarcaPredefinida}, \texttt{marcaOtro}, \texttt{nombre}, \texttt{potenciaW}, \texttt{usoSemanal} y \texttt{horarioHabitual}. El objetivo de la IA es reducir la carga manual del usuario al registrar un aparato a partir de una foto (etiqueta de potencia, frontal del equipo o manual).
+
+\section{Flujo propuesto (Imagen $\rightarrow$ JSON $\rightarrow$ Formulario)}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=0.9cm and 1.1cm,
+  box/.style={draw, rounded corners, align=center, minimum width=2.6cm, minimum height=0.85cm, font=\small},
+  arrow/.style={-{Stealth[length=2mm]}, thick}
+]
+  \node[box, fill=blue!8] (img) {Imagen\\(Angular)};
+  \node[box, fill=green!10, right=of img] (pre) {Preproceso\\(recorte, resize)};
+  \node[box, fill=orange!12, right=of pre] (vlm) {Modelo\\Visión + LLM};
+  \node[box, fill=yellow!15, below=of vlm] (json) {JSON estructurado\\(marca, tipo, W)};
+  \node[box, fill=purple!10, left=of json] (cat) {Comparar con\\catálogo BD};
+  \node[box, fill=red!8, left=of cat] (search) {Vertex AI\\Search (opc.)};
+  \node[box, fill=gray!12, below=of cat] (form) {Formulario\\prellenado};
+  \node[box, fill=cyan!10, below=of form] (fb) {Confirmación\\del usuario};
+  \node[box, fill=lime!15, below=of fb] (enrich) {Enriquecer\\catálogo (opc.)};
+
+  \draw[arrow] (img) -- (pre);
+  \draw[arrow] (pre) -- (vlm);
+  \draw[arrow] (vlm) -- (json);
+  \draw[arrow] (json) -- (cat);
+  \draw[arrow] (cat) -- (search);
+  \draw[arrow] (search) -- (form);
+  \draw[arrow] (cat) -- (form);
+  \draw[arrow] (form) -- (fb);
+  \draw[arrow] (fb) -- (enrich);
+\end{tikzpicture}
+\caption{Pipeline recomendado: visión genera JSON; se valida contra catálogo PostgreSQL; Vertex AI Search enriquece si falta información; el usuario confirma; opcionalmente se amplía el catálogo sin sobrescribir registros existentes.}
+\end{figure}
+
+\subsection{Esquema JSON objetivo}
+
+\begin{verbatim}
+{
+  "marca_detectada": "Samsung",
+  "modelo_detectado": "RT38K5932SL",
+  "tipo_sugerido": "REFRIGERADOR",
+  "potencia_w_estimada": 150,
+  "confianza": 0.82,
+  "fuente_potencia": "etiqueta_ocr | catalogo | busqueda_web"
+}
+\end{verbatim}
+
+\section{Vertex AI Search: para qué sirve en HarmoniWatts}
+
+Vertex AI Search es el servicio de Google Cloud que reemplaza a la API Custom Search JSON (cerrada a nuevos clientes). \textbf{No analiza imágenes}; su rol en el proyecto es complementario al modelo de visión:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Buscar fichas técnicas} cuando la foto no muestra claramente la potencia, el modelo exacto o la marca.
+  \item \textbf{Consultar dominios acotados}: manuales de fabricantes, catálogos de retailers energéticos o documentación indexada por el equipo.
+  \item \textbf{Enriquecer el JSON} con datos estructurados (marca, modelo, potencia nominal, tipo de aparato) antes de prellenar el formulario.
+  \item \textbf{Reducir tokens del LLM de visión}: en lugar de pedir al modelo que ``adivine'' la potencia, se lanza una búsqueda con la marca y modelo detectados y se usa el resultado como sugerencia.
+\end{itemize}
+
+\textbf{Ejemplo de flujo:}
+\begin{enumerate}[leftmargin=*]
+  \item La IA de visión detecta \emph{Samsung RT38K5932SL} pero no lee la potencia en la etiqueta.
+  \item El backend consulta Vertex AI Search con \texttt{Samsung RT38K5932SL potencia watts}.
+  \item Se obtiene la ficha técnica y se propone \texttt{potenciaW = 150} en el formulario.
+  \item El usuario confirma o corrige antes de guardar.
+\end{enumerate}
+
+En la arquitectura académica, Vertex AI Search actúa como \textbf{adaptador de enriquecimiento externo}: el backend Java envía solo texto de búsqueda (marca, modelo, tipo), nunca la imagen del usuario.
+
+\section{Cuadro comparativo de modelos de IA}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.25}
+\caption{Comparativa de modelos --- características y adecuación}
+\label{tab:comparativa-a}
+\begin{tabularx}{\textwidth}{|L{0.19\textwidth}|L{0.10\textwidth}|Y|Y|Y|}
+\hline
+\rowcolor{tabhead}
+\textbf{Modelo} &
+\textbf{Modo} &
+\makecell{\textbf{Código}\\\textbf{abierto}} &
+\makecell{\textbf{Visión}\\\textbf{/ OCR}} &
+\makecell{\textbf{Adecuación}\\\textbf{HarmoniWatts}} \\ \hline
+
+\textbf{GPT-4o mini} (OpenAI) &
+Nube &
+No &
+OCR de etiquetas; identifica marca y modelo &
+\textbf{Alta}: prototipo rápido con JSON mode \\ \hline
+
+\textbf{Gemini 2.0 Flash} &
+Nube &
+No &
+Buena relación costo/rendimiento en visión &
+\textbf{Muy alta} en despliegue Google Cloud \\ \hline
+
+\textbf{Mistral / Pixtral} &
+\makecell{Nube o\\local} &
+Parcial &
+Lectura de etiquetas y documentos &
+\textbf{Alta}: recomendación del profesor \\ \hline
+
+\textbf{Llama 3.2 Vision 11B} &
+Local &
+Sí &
+VQA y OCR básico &
+\textbf{Alta} para demo offline \\ \hline
+
+\textbf{Llama 3.2 Vision 90B} &
+Local &
+Sí &
+Documentos complejos; más lento &
+\textbf{Media}: excesivo para formulario básico \\ \hline
+
+\textbf{Gemma 3} &
+Local &
+Sí &
+Visión competente (4B--27B) &
+\textbf{Media-Alta}: alternativa ligera \\ \hline
+
+\textbf{G. Custom Search API} &
+Nube &
+No &
+No ve imagen; enriquece JSON &
+\textbf{Complementaria} (deprecated 2027) \\ \hline
+
+\textbf{Vertex AI Search} &
+Nube &
+No &
+Búsqueda semántica en catálogos &
+\textbf{Alta}: reemplazo de Custom Search \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.25}
+\caption{Comparativa de modelos --- costos, escalado y seguridad}
+\label{tab:comparativa-b}
+\begin{tabularx}{\textwidth}{|L{0.21\textwidth}|Y|Y|Y|}
+\hline
+\rowcolor{tabhead}
+\textbf{Modelo} &
+\makecell{\textbf{Costo}\\\textbf{aprox.}} &
+\makecell{\textbf{Escalado}\\\textbf{horizontal}} &
+\makecell{\textbf{Seguridad /}\\\textbf{privacidad}} \\ \hline
+
+\textbf{GPT-4o mini} &
+\makecell{$\sim$\$0{,}15 / 1M tokens\\entrada; $\sim$\$0{,}60 salida} &
+API gestionada con autoescalado &
+Datos salen del entorno; usar retención cero \\ \hline
+
+\textbf{Gemini 2.0 Flash} &
+\makecell{Capa gratuita generosa;\\$\sim$\$0{,}10--0{,}40 / 1M tokens} &
+Integración nativa con GCP &
+Región UE; Vertex AI con VPC \\ \hline
+
+\textbf{Mistral / Pixtral} &
+\makecell{Pixtral: $\sim$\$0{,}10 / 1M;\\Small 4: $\sim$\$0{,}15 / \$0{,}60} &
+\makecell{API escalable;\\self-host con K8s (HPA)} &
+\makecell{Datacenter UE;\\self-host mantiene datos locales} \\ \hline
+
+\textbf{Llama 3.2 Vision 11B} &
+\makecell{Gratis en hardware propio;\\requiere 8 GB VRAM} &
+\makecell{Réplicas Ollama\\+ balanceador} &
+\textbf{Máxima privacidad} (sin internet) \\ \hline
+
+\textbf{Llama 3.2 Vision 90B} &
+\makecell{$\sim$64 GB VRAM;\\GPU costosa en nube} &
+Escalable pero pocas réplicas &
+Privacidad total \\ \hline
+
+\textbf{Gemma 3} &
+Gratis en hardware propio &
+Réplicas Ollama &
+Datos no salen del servidor \\ \hline
+
+\textbf{G. Custom Search API} &
+\makecell{100 queries/día gratis;\\\$5 / 1000 queries} &
+Alta; servicio stateless &
+Solo envía texto de búsqueda \\ \hline
+
+\textbf{Vertex AI Search} &
+Pay-as-you-go &
+Alta en GCP &
+IAM, VPC y auditoría \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Tabla resumida de decisión (puntuación 1--5)}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.2}
+\caption{Tabla resumida de decisión (puntuación 1--5). *Custom Search no ve la imagen; puntúa enriquecimiento web. **Mistral self-host offline. El total excluye la fila con N/A.}
+\begin{tabularx}{\textwidth}{|L{0.24\textwidth}|>{\centering\arraybackslash\hspace{0pt}}X|>{\centering\arraybackslash\hspace{0pt}}X|>{\centering\arraybackslash\hspace{0pt}}X|>{\centering\arraybackslash\hspace{0pt}}X|>{\centering\arraybackslash\hspace{0pt}}X|}
+\hline
+\rowcolor{tabhead}
+\textbf{Criterio} &
+\makecell{\textbf{GPT-4o}\\\textbf{mini}} &
+\makecell{\textbf{Gemini}\\\textbf{Flash}} &
+\makecell{\textbf{Mistral}\\\textbf{Pixtral}} &
+\makecell{\textbf{Llama 3.2}\\\textbf{Vision 11B}} &
+\makecell{\textbf{G. Custom}\\\textbf{Search}} \\ \hline
+Precisión marca/potencia     & 4 & 4 & 4 & 3 & 2* \\ \hline
+Costo académico              & 4 & 5 & 4 & 5 & 3 \\ \hline
+Código abierto               & 1 & 1 & 4 & 5 & 1 \\ \hline
+Funciona offline             & 1 & 1 & 3** & 5 & 1 \\ \hline
+Escalado horizontal          & 5 & 5 & 4 & 3 & 5 \\ \hline
+Seguridad / soberanía datos  & 2 & 3 & 4 & 5 & 3 \\ \hline
+Facilidad integración Java   & 5 & 4 & 4 & 4 & 5 \\ \hline
+Salida JSON estructurada     & 5 & 5 & 4 & 3 & N/A \\ \hline
+\rowcolor{tabhead}
+\textbf{Total (máx.\ 35)}    & \textbf{27} & \textbf{28} & \textbf{31} & \textbf{33} & \textbf{20} \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Optimización de tokens (recomendaciones del profesor)}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Prompt corto y schema fijo}: pedir únicamente JSON con campos del DTO \texttt{ElectrodomesticoCreateRequest}; prohibir texto libre.
+  \item \textbf{Redimensionar imagen} a 512--768 px en el lado largo antes de enviarla (reduce tokens visuales hasta 60\%).
+  \item \textbf{Recorte inteligente}: detectar región de etiqueta (potencia) con OpenCV antes del LLM.
+  \item \textbf{Catálogo en caché}: enviar solo IDs/códigos de marcas y tipos válidos en el prompt, no todo el JSON de catálogo.
+  \item \textbf{Two-step pipeline}: (1) OCR/extracción con modelo pequeño; (2) solo si confianza $< 0{,}7$, llamar modelo grande o búsqueda web.
+  \item \textbf{Comparación imagen vs JSON}: el backend Java compara salida IA con \texttt{MarcaPredefinida} y \texttt{ElectrodomesticoTipoPredefinido}; fuzzy match (Levenshtein) para marcas.
+  \item \textbf{Streaming desactivado} en respuestas JSON únicas (menor complejidad, misma latencia).
+\end{enumerate}
+
+\section{Arquitectura recomendada para prueba académica en nube}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{Stack alineado con HarmoniWatts (Java 21, Angular 21+, PostgreSQL).}
+\begin{tabularx}{\textwidth}{|L{0.26\textwidth}|Y|}
+\hline
+\rowcolor{tabhead}
+\textbf{Capa} & \textbf{Tecnología sugerida} \\ \hline
+Frontend (Angular 21+) & Captura/subida de imagen; preview; formulario prellenado editable \\ \hline
+API Gateway / Backend (Java 21) & \texttt{ElectrodomesticoVisionService}: orquesta visión, catálogo y búsqueda \\ \hline
+Visión primaria (nube) & \textbf{Mistral Pixtral} o \textbf{Gemini Flash} con salida JSON \\ \hline
+Visión fallback (local) & \textbf{Ollama + Llama 3.2 Vision 11B} en contenedor con GPU \\ \hline
+Enriquecimiento & \textbf{Vertex AI Search}: búsqueda semántica de fichas técnicas por marca/modelo cuando la visión no alcanza \\ \hline
+Persistencia & PostgreSQL: electrodomésticos del usuario, catálogo de referencia y registro de altas en catálogo \\ \hline
+Escalado & Kubernetes HPA: réplicas del servicio de inferencia; cola (RabbitMQ) para picos \\ \hline
+Seguridad & Keycloak (ya en proyecto), TLS, imágenes efímeras, logs sin PII, secrets en vault \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Validación y confirmación del usuario}
+
+\begin{itemize}[leftmargin=*]
+  \item El formulario siempre queda editable: la IA propone valores y el usuario confirma o corrige.
+  \item Si la confianza de la IA es baja, mostrar advertencia y sugerir valores del catálogo interno (\texttt{MarcaPredefinida}, \texttt{ElectrodomesticoTipoPredefinido}).
+  \item Opcional: registrar correcciones del usuario en PostgreSQL para auditoría y mejora futura de prompts.
+  \item Métricas de evaluación: tasa de aceptación sin edición, precisión de marca y error en potencia (W).
+\end{itemize}
+
+\section{Enriquecimiento progresivo del catálogo}
+
+No es necesario precargar en la base de datos todos los electrodomésticos del mercado. El catálogo (\texttt{MarcaPredefinida}, \texttt{ElectrodomesticoTipoPredefinido} y, en el futuro, modelos de referencia) puede \textbf{crecer de forma orgánica} a medida que los usuarios registran aparatos con ayuda de la IA.
+
+\subsection{Flujo tras la confirmación del usuario}
+
+\begin{enumerate}[leftmargin=*]
+  \item El usuario revisa el formulario prellenado y confirma el registro del electrodoméstico en su vivienda.
+  \item El sistema evalúa si la marca, el tipo o el modelo detectado \textbf{no existen} en el catálogo de referencia.
+  \item Si faltan, y el usuario lo autoriza (o mediante regla automática configurable), se crea una \textbf{entrada nueva} en el catálogo con los datos confirmados.
+  \item La próxima vez que otro usuario fotografíe un aparato similar, la IA podrá resolverlo contra ese registro ya existente, reduciendo llamadas externas y tokens.
+\end{enumerate}
+
+\subsection{Reglas para evitar sobrescritura}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{Política de enriquecimiento del catálogo sin pérdida de datos.}
+\begin{tabularx}{\textwidth}{|L{0.22\textwidth}|Y|}
+\hline
+\rowcolor{tabhead}
+\textbf{Regla} & \textbf{Comportamiento} \\ \hline
+Solo inserción & Si la marca o el modelo no existen, se \textbf{insertan}; nunca se modifican registros existentes de forma silenciosa. \\ \hline
+Sin sobrescritura & Si ya existe una entrada con el mismo identificador (marca + modelo normalizado), \textbf{no se actualiza} la potencia ni el tipo almacenados. \\ \hline
+Conflicto de datos & Si la IA propone una potencia distinta a la del catálogo, prevalece el \textbf{valor del catálogo} y se muestra al usuario la discrepancia. \\ \hline
+Actualización explícita & Cualquier cambio sobre un registro existente requiere acción de \textbf{administrador} o confirmación explícita del usuario con diff visible. \\ \hline
+Trazabilidad & Cada alta en catálogo guarda origen (\texttt{IA\_VISION}, \texttt{VERTEX\_SEARCH}, \texttt{USUARIO}), fecha y confianza. \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Beneficio para el proyecto}
+
+\begin{itemize}[leftmargin=*]
+  \item Catálogo inicial mínimo (solo tipos y marcas frecuentes), escalable sin mantenimiento manual masivo.
+  \item La IA aporta valor acumulativo: cada registro confirmado mejora las sugerencias futuras.
+  \item Vertex AI Search cubre el ``hueco'' cuando aún no hay entrada en catálogo; la confirmación del usuario convierte esa búsqueda en conocimiento persistente.
+  \item Se respeta la integridad de datos: el catálogo crece, pero no se corrompe por inferencias erróneas de la IA.
+\end{itemize}
+
+\section{Recomendación final}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Prototipo académico en nube}: Mistral Pixtral o Gemini Flash + backend Java con contrato JSON estricto.
+  \item \textbf{Modo offline / privacidad}: Ollama + Llama 3.2 Vision 11B en la misma VPC o máquina de laboratorio.
+  \item \textbf{Enriquecimiento externo}: Vertex AI Search para fichas técnicas cuando la visión no alcance; no depender de Custom Search.
+  \item \textbf{Catálogo vivo}: tras confirmación del usuario, insertar marcas/modelos nuevos sin sobrescribir registros existentes.
+  \item \textbf{Siempre} dejar el formulario editable; la IA propone, el usuario confirma (human-in-the-loop).
+\end{enumerate}
+
+\section{Referencias}
+
+\begin{itemize}[leftmargin=*]
+  \item Mistral AI --- Pricing y modelos Pixtral: \url{https://mistral.ai/pricing/}
+  \item Meta Llama 3.2 Vision en Ollama: \url{https://ollama.com/library/llama3.2-vision}
+  \item Google Custom Search JSON API: \url{https://developers.google.com/custom-search/v1/overview}
+  \item Google Vertex AI Search: \url{https://cloud.google.com/generative-ai-app-builder/docs/enterprise-search-introduction}
+  \item OpenAI GPT-4o mini: \url{https://platform.openai.com/docs/models/gpt-4o-mini}
+  \item Google Gemini API: \url{https://ai.google.dev/pricing}
+\end{itemize}
+
+\end{document}

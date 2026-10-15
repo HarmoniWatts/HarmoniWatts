@@ -25,9 +25,11 @@ class ConsumptionService {
   }
 
   // GET /api/v1/consumption/daily-total/{household_id}
-  async getDailyTotal(householdId, date) {
+  async getDailyTotal(householdId, date, timezone) {
     try {
-      const params = date ? { date } : {};
+      const params = {};
+      if (date) params.date = date;
+      if (timezone) params.timezone = timezone;
       const response = await this.client.get(`/api/v1/consumption/daily-total/${householdId}`, { params });
       return response.data;
     } catch (error) {
@@ -37,11 +39,11 @@ class ConsumptionService {
   }
 
   // GET /api/v1/consumption/series/hourly/{household_id}
-  async getHourlySeries(householdId, date) {
-    console.log(`Fetching hourly series for household ${householdId} and date ${date}`);
-    console.log(`Consumption service URL: ${this.baseUrl}`);
+  async getHourlySeries(householdId, date, timezone) {
     try {
-      const params = date ? { date } : {};
+      const params = {};
+      if (date) params.date = date;
+      if (timezone) params.timezone = timezone;
       const response = await this.client.get(`/api/v1/consumption/series/hourly/${householdId}`, { params });
       // Transformar al formato esperado
       return {
@@ -55,10 +57,12 @@ class ConsumptionService {
   }
 
   // GET /api/v1/consumption/series/daily/{household_id}
-  async getDailySeries(householdId, year, month) {
+  async getDailySeries(householdId, year, month, timezone) {
     try {
+      const params = { year, month };
+      if (timezone) params.timezone = timezone;
       const response = await this.client.get(`/api/v1/consumption/series/daily/${householdId}`, {
-        params: { year, month }
+        params,
       });
       
       return {
@@ -72,10 +76,12 @@ class ConsumptionService {
   }
 
   // GET /api/v1/consumption/series/monthly/{household_id}
-  async getMonthlySeries(householdId, year) {
+  async getMonthlySeries(householdId, year, timezone) {
     try {
+      const params = { year };
+      if (timezone) params.timezone = timezone;
       const response = await this.client.get(`/api/v1/consumption/series/monthly/${householdId}`, {
-        params: { year }
+        params,
       });
       
       return {
@@ -89,10 +95,12 @@ class ConsumptionService {
   }
 
   // GET /api/v1/consumption/series/yearly/{household_id}
-  async getYearlySeries(householdId, startYear, endYear) {
+  async getYearlySeries(householdId, startYear, endYear, timezone) {
     try {
+      const params = { start_year: startYear, end_year: endYear };
+      if (timezone) params.timezone = timezone;
       const response = await this.client.get(`/api/v1/consumption/series/yearly/${householdId}`, {
-        params: { start_year: startYear, end_year: endYear }
+        params,
       });
       
       return {
@@ -106,8 +114,8 @@ class ConsumptionService {
   }
 
   // Método de compatibilidad para mantener la interfaz existente
-  async getDailySeriesCompatible(householdId, date) {
-    return await this.getHourlySeries(householdId, date);
+  async getDailySeriesCompatible(householdId, date, timezone) {
+    return await this.getHourlySeries(householdId, date, timezone);
   }
 }
 
