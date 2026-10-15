@@ -126,11 +126,11 @@ app.include_router(
 )
 
 # Rutas de tarifas históricas (MongoDB)
-# app.include_router(
-#     historical.router,
-#     prefix="/api/v1",
-#     tags=["Tarifas Históricas"]
-# )
+app.include_router(
+    historical.router,
+    prefix="/api/v1",
+    tags=["Tarifas Históricas"]
+)
 
 # Rutas de extracción de PDFs
 app.include_router(
