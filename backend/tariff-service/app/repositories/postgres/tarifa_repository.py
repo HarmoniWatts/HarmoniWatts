@@ -906,105 +906,65 @@ class TarifaRepository:
     def get_precios_dia(
         self,
         id_cliente: int,
-        fecha: date
+        fecha: date,
+        cod_tipo_tarifa: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Obtiene los precios de las 24 horas del día para un cliente.
-        Optimizado: 1 sola query para franja por hora + 1 para valores.
+        Reutiliza los valores por hora de la vista v_tarifa_hora que ya trae
+        `get_tarifa_vigente_completa`; si la tarifa es monomia (sin franjas),
+        todas las horas toman el valor de la monomia.
         """
-        # Obtener tarifa vigente completa (1 query por tabla)
-        tarifa_data = self.get_tarifa_vigente_completa(id_cliente, fecha)
-        
+        tarifa_data = self.get_tarifa_vigente_completa(
+            id_cliente, fecha, cod_tipo_tarifa=cod_tipo_tarifa
+        )
+
         if not tarifa_data:
             logger.warning(f"Sin tarifa vigente para cliente Id:{id_cliente}")
             return []
-        
-        cliente = self.db.query(Cliente).filter(
-            Cliente.id_cliente == id_cliente
-        ).first()
-        
-        # Obtener configuración aplicable (1 query)
-        config_aplicable = (
-            self.db.query(ConfiguracionAplicable)
-            .filter(
-                ConfiguracionAplicable.cod_comercializadora == cliente.cod_comercializadora,
-                ConfiguracionAplicable.cod_mercado == cliente.cod_mercado,
-                ConfiguracionAplicable.cod_nivel == cliente.cod_nivel,
-                ConfiguracionAplicable.vigente_desde <= fecha,
-                or_(
-                    ConfiguracionAplicable.vigente_hasta.is_(None),
-                    ConfiguracionAplicable.vigente_hasta >= fecha
-                )
-            )
-            .first()
-        )
-        
-        if not config_aplicable:
-            logger.warning(f"Sin configuración aplicable para cliente {id_cliente}")
+
+        valores_por_hora = {v['hora']: v for v in tarifa_data['valores']}
+        monomia = tarifa_data.get('monomia')
+
+        if not valores_por_hora and not monomia:
+            logger.warning(f"Sin valores por hora para cliente {id_cliente}")
             return []
-        
-        # Obtener todas las horas con sus franjas (1 query)
-        config_horas = (
-            self.db.query(ConfiguracionHora)
-            .filter(
-                ConfiguracionHora.id_configuracion_horaria == config_aplicable.id_configuracion_horaria
-            )
-            .all()
-        )
-        
-        # Indexar valores por id_franja_horaria (1 query ya hecha)
-        valores_por_franja = {
-            v.id_franja_horaria: v for v in tarifa_data['valores']
-        }
-        
-        # Indexar franjas por id
-        franjas = (
-            self.db.query(FranjaHoraria)
-            .filter(FranjaHoraria.cod_comercializadora == cliente.cod_comercializadora)
-            .all()
-        )
-        franjas_por_id = {f.id_franja_horaria: f for f in franjas}
-        
-        # Construir resultado para 24 horas
+
+        # Construir resultado para 24 horas (hora 1 = 00:00-01:00)
         precios = []
         for hora in range(1, 25):
-            config_hora = next(
-                (ch for ch in config_horas if ch.hora == hora),
-                None
-            )
-            
-            if not config_hora:
+            valor = valores_por_hora.get(hora)
+            if valor:
+                precios.append({
+                    'hora': hora,
+                    'codigo_franja': valor['codigo_franja'],
+                    'tipo_hora': valor['tipo_hora'],
+                    'precio': valor['valor'],
+                    'unidad': valor['unidad'],
+                })
+            else:
                 precios.append({
                     'hora': hora,
                     'codigo_franja': None,
-                    'precio': None,
-                    'unidad': None,
+                    'tipo_hora': None,
+                    'precio': monomia['valor'] if monomia else None,
+                    'unidad': monomia['unidad'] if monomia else None,
                 })
-                continue
-            
-            valor = valores_por_franja.get(config_hora.id_franja_horaria)
-            franja = franjas_por_id.get(config_hora.id_franja_horaria)
-            
-            precios.append({
-                'hora': hora,
-                'codigo_franja': franja.codigo if franja else None,
-                'precio': float(valor.valor) if valor else None,
-                'unidad': valor.unidad if valor else None,
-            })
-        
+
         return precios
     
     def get_precio_por_hora(
         self,
         id_cliente: int,
         fecha: date,
-        hora: int
+        hora: int,
+        cod_tipo_tarifa: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Obtiene el precio para una hora específica.
         Reutiliza `get_precios_dia` y filtra.
         """
-        precios = self.get_precios_dia(id_cliente, fecha)
+        precios = self.get_precios_dia(id_cliente, fecha, cod_tipo_tarifa=cod_tipo_tarifa)
         return next((p for p in precios if p['hora'] == hora), None)
     
     

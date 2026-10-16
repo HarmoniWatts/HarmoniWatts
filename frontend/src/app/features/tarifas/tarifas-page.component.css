@@ -1,0 +1,360 @@
+@import '../dashboard/dashboard.component.css';
+
+.tf-page {
+  /* Ancho completo del área de contenido (dash-main-inner ya limita y centra a 1680px) */
+  width: 100%;
+}
+
+.tf-head {
+  margin-bottom: 1rem;
+}
+
+.tf-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.tf-sub {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.tf-banner-info {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-text);
+}
+
+.tf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tf-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-input);
+  background: var(--color-surface-2);
+  padding: 0.2rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+}
+
+.tf-nota {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-warning-text);
+}
+
+.tf-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  /* Cada tarjeta con su altura natural (evita el hueco bajo las franjas) */
+  align-items: start;
+}
+
+/* Tablet: tarifa actual y gráfico apilados, pero la ficha en dos columnas */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .tf-datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+  .tf-componentes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tf-grid {
+    grid-template-columns: minmax(300px, 1fr) minmax(0, 2fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .tf-grid {
+    grid-template-columns: minmax(360px, 1fr) minmax(0, 2.4fr);
+  }
+}
+
+/* --- Tarifa actual --- */
+.tf-actual-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.tf-badge-row {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tf-badge {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tf-actual-precio {
+  font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.25rem);
+  font-weight: 700;
+  color: var(--color-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-unidad {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.tf-datos {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.tf-datos div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tf-datos dt {
+  color: var(--color-text-muted);
+}
+
+.tf-datos dd {
+  margin: 0;
+  text-align: right;
+}
+
+.tf-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.tf-subtitle {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.tf-componentes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.tf-componentes li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-divider);
+  padding-bottom: 0.25rem;
+}
+
+.tf-componentes small {
+  color: var(--color-text-subtle);
+}
+
+/* --- Colores por tipo de hora (mismos tokens que las franjas del dashboard) --- */
+.tf-tipo-valle {
+  background: var(--color-tariff-valle-bg);
+  color: var(--color-tariff-valle-fg);
+}
+
+.tf-tipo-media {
+  background: var(--color-tariff-llano-bg);
+  color: var(--color-tariff-llano-fg);
+}
+
+.tf-tipo-punta {
+  background: var(--color-tariff-punta-bg);
+  color: var(--color-tariff-punta-fg);
+}
+
+/* --- Gráfico --- */
+.tf-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.tf-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tf-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.tf-chart-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tf-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* En celular se desliza horizontalmente en vez de volverse ilegible */
+  min-width: 560px;
+}
+
+.tf-bar-now {
+  stroke: var(--color-text-strong);
+  stroke-width: 2;
+}
+
+.tf-bandas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.tf-banda {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* --- Calendario --- */
+.tf-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tf-cal-head .dash-section-title {
+  margin-bottom: 0;
+}
+
+.tf-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tf-cal-anio {
+  min-width: 3.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.tf-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 640px) {
+  .tf-cal-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .tf-cal-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1440px) {
+  .tf-cal-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+.tf-mes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  border-radius: 0.75rem;
+  border: 1px dashed var(--color-border-input);
+  background: transparent;
+  color: var(--color-text-subtle);
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  font: inherit;
+  cursor: default;
+}
+
+.tf-mes-publicado {
+  border-style: solid;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.tf-mes-publicado:hover {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-soft);
+}
+
+.tf-mes-hoy .tf-mes-nombre::after {
+  content: ' · actual';
+  font-weight: 400;
+  color: var(--color-accent);
+}
+
+.tf-mes-sel {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-ring);
+}
+
+.tf-mes-nombre {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.tf-mes-precio {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.tf-mes-rango,
+.tf-mes-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.tf-cal-pie {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}

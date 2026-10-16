@@ -38,8 +38,10 @@ class ExtractionService:
         
         if not pdfs:
             return {"estado": "sin_datos", "mensaje": "No se encontraron PDFs"}
-        
-        # 2. Procesar cada PDF
+
+        # 2. Procesar cada PDF, del más antiguo al más reciente: la API los entrega
+        #    por -createdAt y la última publicación procesada queda como PUBLICADA.
+        pdfs = sorted(pdfs, key=lambda p: p["fecha"])
         resultado = await self._procesar_pdfs(pdfs, comercializadora_cod)
         logger.info(f"Resultado de la extracción manual: {resultado}")
         return resultado

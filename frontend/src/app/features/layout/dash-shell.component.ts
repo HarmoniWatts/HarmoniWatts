@@ -1,14 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, filter } from 'rxjs/operators';
 import Keycloak from 'keycloak-js';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle';
 import {
   clearStoredKeycloakTokens,
   persistKeycloakTokens,
 } from '../../core/auth/keycloak-direct-grant.util';
+import { TarifasService } from '../tarifas/tarifas.service';
+import { ViviendaContextService } from '../vivienda/vivienda-context.service';
 
 @Component({
   selector: 'app-dash-shell',
@@ -26,6 +29,20 @@ export class DashShellComponent {
   /** Resalta «Cuenta» cuando estás en el hub o en perfil / vivienda. */
   readonly cuentaSectionActive = signal(false);
 
+  private readonly viviendaCtx = inject(ViviendaContextService);
+  private readonly ciudades = toSignal(
+    inject(TarifasService)
+      .listCiudades()
+      .pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+  /** Municipio de la vivienda seleccionada (dashboard / tarifas). */
+  readonly ciudadActiva = computed(() => {
+    const u = this.viviendaCtx.ubicacion();
+    const c = u && this.ciudades().find((x) => x.id_zona === u.idZona && x.cod_mercado === u.codMercado);
+    return c?.municipio ?? 'Sin ciudad';
+  });
+
   constructor() {
     const updateCuentaActive = (): void => {
       const path = this.router.url.split('?')[0];
@@ -36,6 +53,7 @@ export class DashShellComponent {
       );
     };
     updateCuentaActive();
+    this.viviendaCtx.load().subscribe();
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),

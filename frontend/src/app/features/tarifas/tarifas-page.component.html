@@ -1,0 +1,228 @@
+<div class="tf-page">
+  <header class="tf-head">
+    <h1 class="tf-title">Tarifas</h1>
+    <p class="tf-sub">Precio de la energía según la ciudad y el estrato de tu vivienda.</p>
+  </header>
+
+  <div class="dash-toolbar">
+    <app-vivienda-selector />
+    @if (ctx.ubicacion()) {
+      <label class="dash-date-label">
+        <span>Fecha</span>
+        <input class="dash-date-input" type="date" [value]="fecha()" (change)="onFechaChange($any($event.target).value)" />
+      </label>
+      <button type="button" class="dash-btn-ghost" (click)="recargar()" [disabled]="loadingTarifa()">Actualizar</button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
+  }
+  @if (aviso()) {
+    <div class="dash-banner tf-banner-info" role="status">{{ aviso() }}</div>
+  }
+
+  @if (ctx.ubicacion()) {
+    @if (tarifa(); as t) {
+      <div class="tf-chips">
+        <span class="tf-chip">
+          {{ t.ciudad.municipio }}{{ t.ciudad.departamento ? ', ' + t.ciudad.departamento : '' }}
+          <app-info-tip [termino]="g.ciudad" />
+        </span>
+        <span class="tf-chip">
+          Comercializadora: {{ t.tarifa.cod_comercializadora }}
+          <app-info-tip [termino]="g.comercializadora" />
+        </span>
+        <span class="tf-chip">
+          Operador de red: {{ t.ciudad.operador_red ?? t.ciudad.nombre_mercado }}
+          <app-info-tip [termino]="g.operadorRed" />
+        </span>
+        <span class="tf-chip">Estrato {{ t.seleccion.estrato }} <app-info-tip [termino]="g.estrato" /></span>
+        <span class="tf-chip">
+          Tarifa tipo {{ t.seleccion.cod_tipo_tarifa_aplicado }}
+          <app-info-tip [termino]="g.tipoTarifa" />
+        </span>
+        <span class="tf-chip">Nivel {{ t.seleccion.cod_nivel }} <app-info-tip [termino]="g.nivelTension" /></span>
+        <span class="tf-chip">
+          Subsistencia {{ t.seleccion.cs_kwh_mes }} kWh/mes
+          <app-info-tip [termino]="g.subsistencia" [alignLeft]="true" />
+        </span>
+      </div>
+      @if (t.seleccion.nota) {
+        <p class="tf-nota">{{ t.seleccion.nota }}</p>
+      }
+    }
+
+    <div class="tf-grid">
+      <!-- TARIFA ACTUAL -->
+      <section class="dash-card tf-actual">
+        <h2 class="dash-section-title">Tarifa actual <app-info-tip [termino]="g.tarifaActual" /></h2>
+        @if (tarifa(); as t) {
+          @if (actual(); as a) {
+            <div class="tf-actual-main">
+              <span class="tf-badge-row">
+                <span class="tf-badge" [ngClass]="tipoClase(a.type)">{{ a.label }}</span>
+                <app-info-tip [termino]="g.franjas" />
+              </span>
+              <div class="tf-actual-precio">
+                {{ formatCop(a.energyPriceCopPerKwh) }}
+                <span class="tf-unidad">COP/kWh</span>
+              </div>
+              <div class="dash-muted">
+                @if (horaReferencia() !== null) {
+                  Vigente ahora ({{ hh(horaReferencia()!) }}–{{ hh(horaReferencia()! + 1) }})
+                } @else {
+                  Referencia 12:00 del {{ fecha() }}
+                }
+              </div>
+            </div>
+          }
+          <dl class="tf-datos">
+            <div><dt>Período <app-info-tip [termino]="g.periodo" /></dt><dd>{{ nombreMes(t.periodo.mes) }} {{ t.periodo.anio }} · v{{ t.periodo.numero_version }}</dd></div>
+            <div><dt>Publicada</dt><dd>{{ t.periodo.fecha_publicacion ?? '—' }}</dd></div>
+            <div><dt>Costo unitario (CU) <app-info-tip [termino]="g.costoUnitario" /></dt><dd>{{ formatCop(t.monomia?.valor) }} COP/kWh</dd></div>
+            @if (resumenPrecios(); as r) {
+              <div>
+                <dt>Rango del día <app-info-tip [termino]="g.rangoDia" /></dt>
+                <dd>{{ formatCop(r.min) }} – {{ formatCop(r.max) }} ({{ r.pct | number: '1.1-1' }} %)</dd>
+              </div>
+            }
+            <div><dt>Tarifa</dt><dd class="tf-mono">{{ t.tarifa.codigo_tarifa }}</dd></div>
+          </dl>
+          @if (t.componentes.length) {
+            <h3 class="tf-subtitle">Componentes del costo <app-info-tip [termino]="g.componentes" /></h3>
+            <ul class="tf-componentes">
+              @for (c of t.componentes; track c.cod_componente) {
+                <li>
+                  <span>
+                    {{ componenteNombre(c.cod_componente) }} <small>({{ c.cod_componente }})</small>
+                    <app-info-tip [termino]="terminoComponente(c.cod_componente)" />
+                  </span>
+                  <span class="tabular-nums">{{ formatCop(c.valor) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        } @else if (loadingTarifa()) {
+          <div class="dash-skeleton dash-skeleton-lg"></div>
+          <div class="dash-skeleton dash-skeleton-sm"></div>
+        } @else {
+          <p class="dash-muted">Sin tarifa para la fecha seleccionada.</p>
+        }
+      </section>
+
+      <!-- GRÁFICO 24 H -->
+      <section class="dash-card tf-chart-card">
+        <h2 class="dash-section-title">Precios por franja — 24 h <app-info-tip [termino]="g.graficoPrecios" /></h2>
+        @if (chartVm(); as vm) {
+          <div class="tf-legend">
+            <span><i class="tf-dot tf-tipo-valle"></i>Valle</span>
+            <span><i class="tf-dot tf-tipo-media"></i>Media</span>
+            <span><i class="tf-dot tf-tipo-punta"></i>Punta</span>
+            <app-info-tip [termino]="g.franjas" />
+          </div>
+          <div class="tf-chart-wrap">
+          <svg
+            class="tf-chart"
+            [attr.viewBox]="'0 0 ' + vm.w + ' ' + vm.h"
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label="Precio de la energía por hora del día"
+          >
+            @for (t of vm.yTicks; track t.y) {
+              <line [attr.x1]="vm.left" [attr.x2]="vm.w - 12" [attr.y1]="t.y" [attr.y2]="t.y" class="dash-chart-grid-line" />
+              <text [attr.x]="vm.left - 8" [attr.y]="t.y + 4" text-anchor="end" class="dash-chart-axis-text tabular-nums" font-size="11">
+                {{ t.label }}
+              </text>
+            }
+            @for (b of vm.bars; track $index) {
+              <rect
+                [attr.x]="b.x"
+                [attr.y]="b.y"
+                [attr.width]="b.width"
+                [attr.height]="b.height"
+                [attr.fill]="b.color"
+                rx="3"
+                [attr.opacity]="b.isNow ? 1 : 0.8"
+                [class.tf-bar-now]="b.isNow"
+              >
+                <title>{{ b.title }}</title>
+              </rect>
+            }
+            @if (vm.nowX !== null) {
+              <line [attr.x1]="vm.nowX" [attr.x2]="vm.nowX" [attr.y1]="vm.plotTop" [attr.y2]="vm.plotBottom" class="dash-chart-now-line" stroke-width="1.5" />
+            }
+            @for (l of vm.xLabels; track l.x) {
+              <text [attr.x]="l.x" [attr.y]="vm.h - 12" text-anchor="middle" class="dash-chart-axis-text tabular-nums" font-size="10">
+                {{ l.label }}
+              </text>
+            }
+            <text x="14" [attr.y]="(vm.plotTop + vm.plotBottom) / 2" text-anchor="middle" font-size="11" font-weight="600"
+              class="dash-chart-axis-text" [attr.transform]="'rotate(-90, 14,' + (vm.plotTop + vm.plotBottom) / 2 + ')'">
+              COP/kWh
+            </text>
+          </svg>
+          </div>
+
+          <div class="tf-bandas">
+            @for (b of bandas(); track b.startHour) {
+              <div class="tf-banda" [ngClass]="tipoClase(b.type)">
+                <span class="tabular-nums">{{ hh(b.startHour) }}–{{ hh(b.endHour) }}</span>
+                <span>{{ tipoLabel(b.type) }}</span>
+                <span class="tabular-nums">{{ formatCop(b.energyPriceCopPerKwh) }}</span>
+              </div>
+            }
+          </div>
+        } @else if (loadingTarifa()) {
+          <div class="dash-skeleton dash-skeleton-chart"></div>
+        } @else {
+          <p class="dash-muted">Sin datos de precios.</p>
+        }
+      </section>
+    </div>
+
+    <!-- CALENDARIO -->
+    <section class="dash-card tf-cal-card">
+      <div class="tf-cal-head">
+        <h2 class="dash-section-title">Calendario de tarifas <app-info-tip [termino]="g.calendario" /></h2>
+        <div class="tf-cal-nav">
+          <button type="button" class="dash-btn-ghost" (click)="cambiarAnio(-1)" aria-label="Año anterior">‹</button>
+          <span class="tf-cal-anio tabular-nums">{{ anio() }}</span>
+          <button type="button" class="dash-btn-ghost" (click)="cambiarAnio(1)" aria-label="Año siguiente">›</button>
+        </div>
+      </div>
+      @if (calendario(); as cal) {
+        <div class="tf-cal-grid">
+          @for (m of cal.meses; track m.mes) {
+            <button
+              type="button"
+              class="tf-mes"
+              [class.tf-mes-publicado]="m.publicado"
+              [class.tf-mes-sel]="esMesSeleccionado(m)"
+              [class.tf-mes-hoy]="esMesActual(m)"
+              [disabled]="!m.publicado"
+              (click)="verMes(m)"
+              [attr.title]="m.publicado ? 'Ver la tarifa de ' + nombreMes(m.mes) : 'Sin tarifa publicada'"
+            >
+              <span class="tf-mes-nombre">{{ meses[m.mes - 1] }}</span>
+              @if (m.publicado) {
+                <span class="tf-mes-precio tabular-nums">{{ formatCop(m.precio_promedio, 0) }}</span>
+                <span class="tf-mes-rango tabular-nums">{{ formatCop(m.precio_min, 0) }}–{{ formatCop(m.precio_max, 0) }}</span>
+                <span class="tf-mes-meta">
+                  v{{ m.numero_version }}@if (m.versiones > 1) { · {{ m.versiones }} versiones }
+                </span>
+              } @else {
+                <span class="tf-mes-meta">Sin publicar</span>
+              }
+            </button>
+          }
+        </div>
+        <p class="dash-muted tf-cal-pie">Promedio del día en COP/kWh · tarifa {{ cal.codigo_tarifa }}</p>
+      } @else if (loadingCalendario()) {
+        <div class="dash-skeleton dash-skeleton-chart"></div>
+      } @else {
+        <p class="dash-muted">Sin calendario disponible.</p>
+      }
+    </section>
+  }
+</div>

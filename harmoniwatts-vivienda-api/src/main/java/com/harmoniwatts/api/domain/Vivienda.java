@@ -36,6 +36,18 @@ public class Vivienda {
   @Column(name = "zona_climatica", length = 20)
   private String zonaClimatica;
 
+  /** Municipio (zona_geografica); junto con codMercado debe existir en mercado_zona. */
+  @Column(name = "id_zona")
+  private Short idZona;
+
+  /** Mercado de comercialización: con el estrato define la tarifa de la vivienda. */
+  @Column(name = "cod_mercado", length = 30)
+  private String codMercado;
+
+  /** Número de contrato / cuenta con la comercializadora. */
+  @Column(name = "numero_contrato", length = 30)
+  private String numeroContrato;
+
   @Column(name = "fecha_registro", nullable = false)
   private Instant fechaRegistro = Instant.now();
 
@@ -93,6 +105,30 @@ public class Vivienda {
 
   public void setZonaClimatica(String zonaClimatica) {
     this.zonaClimatica = zonaClimatica;
+  }
+
+  public Short getIdZona() {
+    return idZona;
+  }
+
+  public void setIdZona(Short idZona) {
+    this.idZona = idZona;
+  }
+
+  public String getCodMercado() {
+    return codMercado;
+  }
+
+  public void setCodMercado(String codMercado) {
+    this.codMercado = codMercado;
+  }
+
+  public String getNumeroContrato() {
+    return numeroContrato;
+  }
+
+  public void setNumeroContrato(String numeroContrato) {
+    this.numeroContrato = numeroContrato;
   }
 
   public Instant getFechaRegistro() {

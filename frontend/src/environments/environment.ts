@@ -19,6 +19,8 @@ export const environment = {
   harmoniRegisterBaseUrl: '' as string,
   /** API Spring Boot viviendas. Sin barra final. */
   viviendaApiBaseUrl: '' as string,
+  /** tariff-service (tarifas por ubicación de la vivienda). Vacío = mismo origen. */
+  tariffApiBaseUrl: '' as string,
   /** API Spring Boot electrodomésticos por vivienda. Sin barra final. */
   electrodomesticosApiBaseUrl: '' as string,
   /**

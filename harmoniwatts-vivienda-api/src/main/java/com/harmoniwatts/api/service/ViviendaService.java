@@ -35,6 +35,7 @@ public class ViviendaService {
     v.setHabitantes(req.habitantes());
     v.setEstrato(req.estrato());
     v.setDireccion(req.ubicacion().trim());
+    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado(), req.numeroContrato());
     return ViviendaResponse.from(viviendaRepository.save(v));
   }
 
@@ -53,7 +54,25 @@ public class ViviendaService {
     } else {
       v.setZonaClimatica(null);
     }
+    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado(), req.numeroContrato());
     return ViviendaResponse.from(viviendaRepository.save(v));
+  }
+
+  /**
+   * Ciudad (idZona + codMercado, deben existir juntos en mercado_zona) y número de contrato.
+   * La ciudad es opcional, pero sin ella no se pueden resolver las tarifas de la vivienda.
+   */
+  private static void aplicarUbicacionTarifaria(
+      Vivienda v, Short idZona, String codMercado, String numeroContrato) {
+    String mercado = codMercado != null && !codMercado.isBlank() ? codMercado.trim() : null;
+    if ((idZona == null) != (mercado == null)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "idZona y codMercado deben enviarse juntos");
+    }
+    v.setIdZona(idZona);
+    v.setCodMercado(mercado);
+    v.setNumeroContrato(
+        numeroContrato != null && !numeroContrato.isBlank() ? numeroContrato.trim() : null);
   }
 
   @Transactional

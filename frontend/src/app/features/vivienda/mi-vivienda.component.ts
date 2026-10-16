@@ -1,16 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import Keycloak from 'keycloak-js';
 import type { ViviendaDto } from './vivienda.service';
 import { ViviendaService } from './vivienda.service';
+import { ViviendaContextService } from './vivienda-context.service';
+import { TarifasService } from '../tarifas/tarifas.service';
+import type { CiudadTarifaria } from '../tarifas/tarifas.models';
+import { GLOSARIO } from '../tarifas/tarifas-glosario';
+import { InfoTipComponent } from '../../shared/components/info-tip';
+
+/** Valor del select de ciudad: `idZona|codMercado` ('' = sin ciudad). */
+function ciudadKey(idZona?: number | null, codMercado?: string | null): string {
+  return idZona != null && codMercado ? `${idZona}|${codMercado}` : '';
+}
+
+function parseCiudadKey(key: string): { idZona: number | null; codMercado: string | null } {
+  const [zona, mercado] = key.split('|');
+  return zona && mercado ? { idZona: Number(zona), codMercado: mercado } : { idZona: null, codMercado: null };
+}
 
 @Component({
   selector: 'app-mi-vivienda',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, InfoTipComponent],
   templateUrl: './mi-vivienda.component.html',
   styleUrl: './mi-vivienda.component.css',
 })
@@ -18,6 +34,20 @@ export class MiViviendaComponent implements OnInit {
   private readonly api = inject(ViviendaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly keycloak = inject(Keycloak);
+  private readonly viviendaCtx = inject(ViviendaContextService);
+  /** Textos de los botones informativos. */
+  readonly g = GLOSARIO;
+
+  /** Catálogo de municipios + mercado (tariff-service). */
+  readonly ciudades = toSignal(
+    inject(TarifasService)
+      .listCiudades()
+      .pipe(catchError(() => of([] as CiudadTarifaria[]))),
+    { initialValue: [] as CiudadTarifaria[] },
+  );
+  private readonly ciudadPorKey = computed(
+    () => new Map(this.ciudades().map((c) => [ciudadKey(c.id_zona, c.cod_mercado), c])),
+  );
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -31,6 +61,8 @@ export class MiViviendaComponent implements OnInit {
   habitantesNuevo: number | null = 3;
   estratoNuevo: number | null = 3;
   ubicacionNueva = '';
+  ciudadNueva = '';
+  contratoNuevo = '';
 
   /** Edición */
   editId: number | null = null;
@@ -39,6 +71,8 @@ export class MiViviendaComponent implements OnInit {
   estratoEdit: number | null = 3;
   ubicacionEdit = '';
   zonaEdit = '';
+  ciudadEdit = '';
+  contratoEdit = '';
 
   ngOnInit(): void {
     this.reload();
@@ -73,7 +107,10 @@ export class MiViviendaComponent implements OnInit {
           finalize(() => this.loading.set(false)),
         )
         .subscribe({
-          next: (rows) => this.items.set(rows),
+          next: (rows) => {
+            this.items.set(rows);
+            this.viviendaCtx.setViviendas(rows);
+          },
           error: () =>
             this.error.set('No se pudieron cargar las viviendas. ¿Está levantada la API (puerto 8082)?'),
         });
@@ -89,7 +126,7 @@ export class MiViviendaComponent implements OnInit {
       this.estratoNuevo < 1 ||
       this.estratoNuevo > 6
     ) {
-      this.error.set('Completa tipo, habitantes, estrato (1–6) y ubicación.');
+      this.error.set('Completa tipo, habitantes, estrato (1–6) y dirección.');
       return;
     }
     this.runWithFreshToken(() => {
@@ -101,6 +138,8 @@ export class MiViviendaComponent implements OnInit {
           habitantes: this.habitantesNuevo!,
           estrato: this.estratoNuevo!,
           ubicacion: this.ubicacionNueva.trim(),
+          ...parseCiudadKey(this.ciudadNueva),
+          numeroContrato: this.contratoNuevo.trim() || null,
         })
         .pipe(
           takeUntilDestroyed(this.destroyRef),
@@ -109,6 +148,8 @@ export class MiViviendaComponent implements OnInit {
         .subscribe({
           next: () => {
             this.ubicacionNueva = '';
+            this.ciudadNueva = '';
+            this.contratoNuevo = '';
             this.estratoNuevo = 3;
             this.reload();
           },
@@ -124,6 +165,22 @@ export class MiViviendaComponent implements OnInit {
     this.estratoEdit = v.estrato ?? 3;
     this.ubicacionEdit = v.ubicacion;
     this.zonaEdit = v.zonaClimatica ?? '';
+    this.ciudadEdit = ciudadKey(v.idZona, v.codMercado);
+    this.contratoEdit = v.numeroContrato ?? '';
+  }
+
+  ciudadOptionLabel(c: CiudadTarifaria): string {
+    const depto = c.departamento ? `, ${c.departamento}` : '';
+    return `${c.municipio}${depto} — ${c.operador_red ?? c.nombre_mercado}`;
+  }
+
+  ciudadKeyOf(c: CiudadTarifaria): string {
+    return ciudadKey(c.id_zona, c.cod_mercado);
+  }
+
+  ciudadLabel(v: ViviendaDto): string | null {
+    const c = this.ciudadPorKey().get(ciudadKey(v.idZona, v.codMercado));
+    return c ? this.ciudadOptionLabel(c) : null;
   }
 
   cancelEdit(): void {
@@ -151,6 +208,8 @@ export class MiViviendaComponent implements OnInit {
           estrato: this.estratoEdit!,
           ubicacion: this.ubicacionEdit.trim(),
           zonaClimatica: this.zonaEdit.trim() || null,
+          ...parseCiudadKey(this.ciudadEdit),
+          numeroContrato: this.contratoEdit.trim() || null,
         })
         .pipe(
           takeUntilDestroyed(this.destroyRef),

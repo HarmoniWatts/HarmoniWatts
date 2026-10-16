@@ -14,6 +14,11 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
+        path: 'tarifas',
+        loadComponent: () =>
+          import('./features/tarifas/tarifas-page.component').then((m) => m.TarifasPageComponent),
+      },
+      {
         path: 'cuenta',
         loadComponent: () =>
           import('./features/cuenta/cuenta-hub.component').then((m) => m.CuentaHubComponent),

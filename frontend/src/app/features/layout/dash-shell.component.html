@@ -32,7 +32,7 @@
             <path d="M12 21s7-4.5 7-10a7 7 0 1 0-14 0c0 5.5 7 10 7 10z" />
             <circle cx="12" cy="11" r="2.5" />
           </svg>
-          <span>Bogotá</span>
+          <span>{{ ciudadActiva() }}</span>
         </div>
       </div>
     </div>
@@ -51,12 +51,17 @@
         </svg>
         <span class="dash-nav-label">Dashboard</span>
       </a>
-      <span class="dash-nav-item" title="Tarifas (próximamente)" tabindex="-1" aria-disabled="true">
+      <a
+        routerLink="/tarifas"
+        routerLinkActive="dash-nav-item-active"
+        class="dash-nav-item"
+        title="Tarifas"
+      >
         <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
         </svg>
         <span class="dash-nav-label">Tarifas</span>
-      </span>
+      </a>
       <span class="dash-nav-item" title="Recomendaciones (próximamente)" tabindex="-1" aria-disabled="true">
         <svg class="dash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 18h6" />

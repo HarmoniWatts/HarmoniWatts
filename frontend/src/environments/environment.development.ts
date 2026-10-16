@@ -19,6 +19,8 @@ export const environment = {
   dashboardInsightsBaseUrl: 'http://localhost:7001',
   /** harmoniwatts-vivienda-api (Spring Boot — solo CRUD viviendas). */
   viviendaApiBaseUrl: 'http://localhost:8082',
+  /** harmoniwatts-tariff-service (FastAPI — tarifas por ubicación de la vivienda). */
+  tariffApiBaseUrl: 'http://localhost:8006',
   /** harmoniwatts-electrodomesticos-api (Spring Boot). */
   electrodomesticosApiBaseUrl: 'http://localhost:8083',
   /** ID de vivienda en los datos mock de Mongo (`BD/datos/harmoniwatts.consumos_enriquecidos.json`). */

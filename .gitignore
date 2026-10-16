@@ -34,3 +34,12 @@ docker/snapshots/postgres/*.dump
 docker/snapshots/mongo/harmoniwatts/
 docker/snapshots/MANIFEST.txt
 harmoniwatts-snapshots-*.zip
+
+# prediction-service: modelos entrenados y datasets (se montan como volumen)
+backend/prediction-service/model/*
+backend/prediction-service/data/*
+!backend/prediction-service/model/.gitkeep
+!backend/prediction-service/data/.gitkeep
+
+# Respaldos locales de BD
+docker/backups/
