@@ -6,7 +6,8 @@ from app.core.database import PostgreSQLManager, lifespan as db_lifespan
 from app.api.routes import (
     active,
     historical,
-    extraction
+    extraction,
+    ubicacion
 )
 import structlog
 
@@ -123,6 +124,13 @@ app.include_router(
     active.router,
     prefix="/api/v1",
     tags=["Tarifas Activas"]
+)
+
+# Rutas de tarifas por ubicación de la vivienda (frontend)
+app.include_router(
+    ubicacion.router,
+    prefix="/api/v1",
+    tags=["Tarifas por ubicación"]
 )
 
 # Rutas de tarifas históricas (MongoDB)

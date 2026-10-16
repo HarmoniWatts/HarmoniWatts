@@ -273,6 +273,64 @@ Detecta la próxima ventana horaria de alta tarifa dentro del horizonte (franja 
 
 ---
 
+### 3.5. Tarifas por ubicación de la vivienda — *Implementado*
+
+Variante de los endpoints anteriores que **no requiere un registro en `cliente`**: la tarifa se resuelve con la ciudad (municipio + mercado) y el estrato configurados en *Mi vivienda* (`vivienda.id_zona`, `vivienda.cod_mercado`, `vivienda.estrato`). Es lo que consume el frontend (módulo **Tarifas** y adaptador del dashboard). Solo recibe ciudad, mercado y estrato; ningún dato personal.
+
+**Reglas de selección**
+
+- La vivienda es residencial (`R`). El consumo de subsistencia sale de la altura del municipio: 130 kWh/mes (≥ 1000 m.s.n.m.) o 173 kWh/mes.
+- El tipo de tarifa (A/B/C/D) lo decide `TarifaSelector` (CREG 119/2007) con `consumo_mensual_kwh` si se envía.
+- Si la comercializadora no publicó ese tipo para el mercado, se usa la tipo **A**; si no hay nivel `N1_1`, se usa el siguiente nivel residencial (`N1_2_1_3`, `N1_2`, `N1_2_50`). En ambos casos `seleccion.nota` lo explica.
+
+#### `GET /api/v1/tariff/ubicacion/ciudades`
+
+Catálogo de municipios con su mercado de comercialización (filas de `mercado_zona`).
+
+```json
+[
+  { "id_zona": 2, "cod_mercado": "CALI", "municipio": "Santiago de Cali", "departamento": "Valle del Cauca",
+    "altura": 1018, "nombre_mercado": "Mercado EMCALI Cali", "operador_red": "EMCALI" }
+]
+```
+
+#### `GET /api/v1/tariff/ubicacion/tarifa`
+
+| Parámetro | Obligatorio | Descripción |
+|-----------|:-----------:|-------------|
+| `id_zona` | Sí | Municipio. |
+| `cod_mercado` | Sí | Mercado; la pareja debe existir en `ciudades` (si no, `404`). |
+| `estrato` | Sí | 1–6. |
+| `fecha` | No | `YYYY-MM-DD`. Default: hoy (`America/Bogota`). |
+| `consumo_mensual_kwh` | No | Consumo del mes en kWh. |
+
+**Respuesta `200 OK`** (`TarifaUbicacionResponse`): `fecha`, `ciudad`, `seleccion`, `tarifa`, `periodo`, `monomia`, `precios` (24 elementos como en 3.2, con `tipo_hora`) y `componentes` (como en 3.1).
+
+```json
+{
+  "fecha": "2026-09-15",
+  "ciudad": { "id_zona": 7, "cod_mercado": "BOGOTA", "municipio": "Bogotá D.C.", "...": "..." },
+  "seleccion": {
+    "estrato": 3, "cs_kwh_mes": 130,
+    "cod_tipo_tarifa_solicitado": "B", "cod_tipo_tarifa_aplicado": "A", "cod_nivel": "N1_1",
+    "nota": "No hay tarifa tipo B publicada para el mercado Mercado Enel Bogotá; se muestra la tipo A."
+  },
+  "tarifa": { "codigo_tarifa": "BOGOTA_N1_1_A_ENERTOTAL", "...": "..." },
+  "periodo": { "anio": 2026, "mes": 9, "numero_version": 1, "estado": "PUBLICADA", "...": "..." },
+  "monomia": { "valor": 654.04, "unidad": "COP/kWh", "tipo": "CU" },
+  "precios": [ { "hora": 1, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 860.23, "unidad": "COP/kWh" } ],
+  "componentes": [ { "cod_componente": "Gm", "valor": 435.41 } ]
+}
+```
+
+**Errores:** `404` ubicación no válida o sin período publicado para la fecha; `422` parámetros inválidos.
+
+#### `GET /api/v1/tariff/ubicacion/calendario`
+
+Mismos parámetros de ubicación más `anio` (obligatorio). Devuelve los 12 meses con `publicado`, `numero_version`, `versiones`, `fecha_publicacion`, `precio_min`, `precio_max`, `precio_promedio` (del día, COP/kWh) y `monomia`.
+
+---
+
 ## 4. Endpoints — Extracción desde Comercializadora
 
 Prefijo de ruta: `/api/v1/tariff/extraction`. La extracción es **asíncrona**: el `POST` registra la tarea y responde de inmediato; el cliente consulta el progreso por polling.
@@ -487,6 +545,9 @@ Asigna manualmente una tarifa a un cliente.
 | `GET` | `/api/v1/tariff/active/daily-bands/{id_cliente}` | Precios de 24 horas | Implementado |
 | `GET` | `/api/v1/tariff/active/current-franja/{id_cliente}` | Franja actual y precio | Implementado |
 | `GET` | `/api/v1/tariff/active/high-franja/{id_cliente}` | Próxima ventana de alta tarifa | Implementado |
+| `GET` | `/api/v1/tariff/ubicacion/ciudades` | Catálogo de municipios + mercado | Implementado |
+| `GET` | `/api/v1/tariff/ubicacion/tarifa` | Tarifa vigente por ciudad y estrato (24 h) | Implementado |
+| `GET` | `/api/v1/tariff/ubicacion/calendario` | Tarifas publicadas mes a mes | Implementado |
 | `POST` | `/api/v1/tariff/extraction/manual` | Extracción manual por rango | Implementado |
 | `GET` | `/api/v1/tariff/extraction/estado/{id}` | Estado de una extracción | Implementado |
 | `POST` | `/api/v1/tariff/admin/assign` | Asignar tarifa a cliente | Planeado |

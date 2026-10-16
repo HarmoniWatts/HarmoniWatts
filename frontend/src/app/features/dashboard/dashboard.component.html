@@ -3,6 +3,7 @@
       }
 
       <div class="dash-toolbar">
+        <app-vivienda-selector />
         <label class="dash-date-label">
           <span>Fecha</span>
           <input
@@ -14,6 +15,9 @@
         </label>
         <button type="button" class="dash-btn-ghost" (click)="reload()" [disabled]="loading()">Actualizar</button>
       </div>
+      @if (tariffNote()) {
+        <p class="dash-muted dash-tariff-note">{{ tariffNote() }}</p>
+      }
 
       <div class="dash-kpi-grid">
         <article class="dash-card dash-kpi">
@@ -56,7 +60,7 @@
 
         <article class="dash-card dash-kpi">
           <div class="dash-kpi-head">
-            <div class="dash-kpi-title">Costo Estimado</div>
+            <div class="dash-kpi-title">Costo Estimado <app-info-tip [termino]="g.costoEstimado" /></div>
             <div class="dash-kpi-ic dash-kpi-ic-amber">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="1" x2="12" y2="23" />
@@ -64,12 +68,16 @@
               </svg>
             </div>
           </div>
-          @if (summary) {
+          @if (summary && tariffAvailable()) {
             <div class="dash-kpi-value dash-text-amber">{{ formatCop(summary.estimatedCostTodayCop) }}</div>
             <div class="dash-kpi-sub">
-              Tarifa actual: {{ summary.currentTariffSlot.label }} ·
+              {{ isToday() ? 'Tarifa actual' : 'Tarifa a las ' + referenceHour + ':00' }}: {{ summary.currentTariffSlot.label }} ·
               {{ summary.currentTariffSlot.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh
+              <app-info-tip [termino]="g.tarifaActual" />
             </div>
+          } @else if (summary) {
+            <div class="dash-kpi-value dash-kpi-value-muted">—</div>
+            <div class="dash-kpi-sub">Sin tarifa publicada para esta fecha</div>
           } @else {
             <div class="dash-skeleton dash-skeleton-lg"></div>
             <div class="dash-skeleton dash-skeleton-sm"></div>
@@ -109,7 +117,10 @@
               </svg>
             </div>
           </div>
-          @if (summary) {
+          @if (summary && !tariffAvailable()) {
+            <div class="dash-kpi-value dash-kpi-value-muted">—</div>
+            <div class="dash-kpi-sub">Sin tarifa publicada</div>
+          } @else if (summary) {
             <div class="dash-kpi-value dash-text-red-lg">
               {{ summary.nextHighTariffWindow.displayHint ?? summary.nextHighTariffWindow.label }}
             </div>
@@ -126,7 +137,7 @@
       <div class="dash-content-grid">
         <div class="dash-col-left">
           <section class="dash-card dash-chart-card">
-            <h2 class="dash-section-title">Consumo vs. Predicción — Hoy</h2>
+            <h2 class="dash-section-title">Consumo vs. Predicción — {{ isToday() ? 'Hoy' : fechaCorta(selectedDate()) }}</h2>
             @if (chartVm) {
               <div class="dash-chart-legend-row">
                 <div class="dash-chart-legend-spacer" [style.width.px]="chartVm.chartPad.left"></div>
@@ -167,6 +178,24 @@
                     </clipPath>
                   </defs>
                   <g clip-path="url(#dashChartPlotClip)">
+                    @if (!tariffAvailable()) {
+                      <rect
+                        [attr.x]="chartVm.chartPad.left"
+                        [attr.y]="chartVm.chartPad.top"
+                        [attr.width]="chartVm.plotW"
+                        [attr.height]="chartVm.plotH"
+                        class="dash-chart-no-tariff"
+                      />
+                      <text
+                        [attr.x]="chartVm.chartPad.left + chartVm.plotW / 2"
+                        [attr.y]="chartVm.chartPad.top + 22"
+                        text-anchor="middle"
+                        class="dash-chart-no-tariff-text"
+                        font-size="13"
+                      >
+                        Sin tarifa publicada para esta fecha
+                      </text>
+                    }
                     @for (r of chartVm.tariffRects; track $index) {
                       <rect
                         [attr.x]="r.x"
@@ -226,15 +255,17 @@
                       {{ hl.hour.toString().padStart(2, '0') }}:00
                     </text>
                   }
-                  <line
-                    [attr.x1]="chartVm.currentHourX"
-                    [attr.y1]="chartVm.chartPad.top"
-                    [attr.x2]="chartVm.currentHourX"
-                    [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
-                    class="dash-chart-now-line"
-                    stroke-width="1.5"
-                    opacity="0.85"
-                  />
+                  @if (chartVm.currentHourX !== null) {
+                    <line
+                      [attr.x1]="chartVm.currentHourX"
+                      [attr.y1]="chartVm.chartPad.top"
+                      [attr.x2]="chartVm.currentHourX"
+                      [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
+                      class="dash-chart-now-line"
+                      stroke-width="1.5"
+                      opacity="0.85"
+                    />
+                  }
                   <g clip-path="url(#dashChartPlotClip)">
                     @if (chartVm.realAreaPath) {
                       <path [attr.d]="chartVm.realAreaPath" fill="url(#dashConsumoRealAreaGrad)" stroke="none" />
@@ -339,7 +370,7 @@
 
         <div class="dash-col-right">
           <section class="dash-card">
-            <h2 class="dash-section-title">Franjas Horarias Activas</h2>
+            <h2 class="dash-section-title">Franjas Horarias Activas <app-info-tip [termino]="g.franjas" [alignLeft]="true" /></h2>
             @if (chart?.tariffBands?.length) {
               <div class="dash-franja-list">
                 @for (row of franjaRows(chart!); track row.band.startHour + '-' + row.band.endHour) {
@@ -370,7 +401,7 @@
                 }
               </div>
             } @else {
-              <p class="dash-muted">Sin datos de franjas.</p>
+              <p class="dash-muted">{{ tariffNote() ?? 'Sin datos de franjas.' }}</p>
             }
           </section>
 

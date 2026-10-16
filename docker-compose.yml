@@ -332,6 +332,58 @@ services:
       - harmoniwatts-backend
 
   # ---------------------------------------------------------------------------
+  # Tariff service (FastAPI → PostgreSQL `harmoniwatts`, modelo TAP de tarifas)
+  # Requiere los scripts de BD/Scripts aplicados (ver docs/TARIFF-API.md)
+  # ---------------------------------------------------------------------------
+  harmoniwatts-tariff-service:
+    build:
+      context: ./backend/tariff-service
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-tariff-service
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      # "hoy" y la hora actual (franjas) se calculan en hora Colombia
+      TZ: America/Bogota
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: harmoniwatts
+    ports:
+      - "${HW_TARIFF_SERVICE_PORT:-8006}:8006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - keycloak-network
+      - harmoniwatts-backend
+
+  # ---------------------------------------------------------------------------
+  # Prediction service (Flask + Random Forest)
+  # Los modelos entrenados (.pkl) y los CSV de entrenamiento se montan desde el host
+  # ---------------------------------------------------------------------------
+  harmoniwatts-prediction-service:
+    build:
+      context: ./backend/prediction-service
+      dockerfile: Dockerfile
+    container_name: harmoniwatts-prediction-service
+    restart: unless-stopped
+    volumes:
+      - ./backend/prediction-service/model:/app/model
+      - ./backend/prediction-service/data:/app/data:ro
+    ports:
+      - "${HW_PREDICTION_SERVICE_PORT:-8000}:8000"
+    networks:
+      - harmoniwatts-backend
+
+  # ---------------------------------------------------------------------------
   # Frontend Angular (ng serve / npm start) — http://localhost:4200
   # El navegador llama a las APIs vía localhost; las URLs están en environment.development.ts
   # ---------------------------------------------------------------------------

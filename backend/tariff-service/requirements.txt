@@ -4,34 +4,23 @@ uvicorn[standard]==0.27.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# Base de datos
+# Base de datos (PostgreSQL vía psycopg 3)
 sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
-pymongo==4.6.0
-beanie==1.25.0
-alembic==1.13.0
-
-# Celery
-celery==5.3.6
-redis==5.0.1
-celery-beat==2.5.0
+psycopg[binary]==3.1.18
 
 # Extracción PDF
 pdfplumber==0.10.3
-tabula-py==2.9.0
-PyPDF2==3.0.1
-camelot-py[cv]==0.11.0
 pandas==2.1.4
 
 # HTTP Client
 httpx==0.26.0
-requests==2.31.0
 
 # Validación
 email-validator==2.1.0
 
+# Logging
+loguru==0.7.2
+structlog==24.1.0
+
 # Utilidades
 python-dotenv==1.0.0
-loguru==0.7.2
-tenacity==8.2.3
-psycopg[binary]==3.1.18

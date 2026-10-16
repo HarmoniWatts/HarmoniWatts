@@ -233,7 +233,7 @@ def get_high_franja(
     resultado = service.detectar_proxima_ventana_alta(
         id_cliente=id_cliente,
         horizonte_horas=horizonte_horas,
-        umbral_pico=umbral_pico,
+        umbral_punta=umbral_pico,
         consumo_mensual_kwh=consumo_mensual_kwh
     )
     
@@ -243,4 +243,4 @@ def get_high_franja(
             detail=f"No se pudo analizar tarifas para el cliente {id_cliente}"
         )
     
-    return resultado
+    return resultado

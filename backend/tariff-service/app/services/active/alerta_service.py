@@ -5,6 +5,9 @@ from typing import Optional, Dict, Any, List
 from loguru import logger
 
 from app.repositories.postgres.tarifa_repository import TarifaRepository
+from app.repositories.postgres.cliente_repository import ClienteRepository
+from app.services.business.tarifa_selector import TarifaSelector
+from app.services.active.franja_service import FranjaService
 
 
 class AlertaTarifaService:
@@ -24,8 +27,15 @@ class AlertaTarifaService:
     # Códigos de franja típicos de PUNTA
     FRANJAS_PUNTA = {'F3', 'F4'}
     
-    def __init__(self, repo: TarifaRepository):
+    def __init__(
+        self,
+        repo: TarifaRepository,
+        cliente_repo: Optional[ClienteRepository] = None,
+        selector: Optional[TarifaSelector] = None
+    ):
         self.repo = repo
+        # Reutiliza la selección de tipo de tarifa de FranjaService
+        self.franja_service = FranjaService(repo, cliente_repo, selector)
     
     # =====================================================
     # DETECCIÓN DE VENTANA ALTA
@@ -35,7 +45,8 @@ class AlertaTarifaService:
         self,
         id_cliente: int,
         horizonte_horas: int = 12,
-        umbral_punta: bool = True
+        umbral_punta: bool = True,
+        consumo_mensual_kwh: Optional[float] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Detecta la próxima ventana de alta tarifa.
@@ -56,7 +67,8 @@ class AlertaTarifaService:
         # 2. Obtener precios del día
         precios_dia = self.repo.get_precios_dia(
             id_cliente=id_cliente,
-            fecha=date.today()
+            fecha=date.today(),
+            cod_tipo_tarifa=self.franja_service._tipo_tarifa(id_cliente, consumo_mensual_kwh)
         )
         
         if not precios_dia:

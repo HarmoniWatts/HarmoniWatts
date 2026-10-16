@@ -11,6 +11,11 @@ export interface ViviendaDto {
   estrato: number;
   ubicacion: string;
   zonaClimatica?: string | null;
+  /** Municipio (catálogo de tariff-service); va junto con `codMercado`. */
+  idZona?: number | null;
+  /** Mercado de comercialización: con el estrato define la tarifa. */
+  codMercado?: string | null;
+  numeroContrato?: string | null;
   fechaRegistro?: string | null;
 }
 
@@ -19,6 +24,9 @@ export interface ViviendaCreatePayload {
   habitantes: number;
   estrato: number;
   ubicacion: string;
+  idZona?: number | null;
+  codMercado?: string | null;
+  numeroContrato?: string | null;
 }
 
 export interface ViviendaUpdatePayload extends ViviendaCreatePayload {

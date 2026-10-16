@@ -111,3 +111,8 @@
   flex-direction: column;
   gap: 0.75rem;
 }
+
+.mv-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+}

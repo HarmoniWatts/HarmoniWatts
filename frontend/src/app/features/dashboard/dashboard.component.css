@@ -983,3 +983,23 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+.dash-tariff-note {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.8rem;
+}
+
+/* Sin tarifa publicada: área del gráfico opaca, sin franjas de color */
+.dash-chart-no-tariff {
+  fill: var(--color-text-subtle);
+  opacity: 0.14;
+}
+
+.dash-chart-no-tariff-text {
+  fill: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.dash-kpi-value-muted {
+  color: var(--color-text-subtle);
+}
