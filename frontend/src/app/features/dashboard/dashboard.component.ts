@@ -1,10 +1,22 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { DashboardService } from './dashboard.service';
+import {
+  estimateDailyCostCop,
+  toCurrentTariffSlot,
+  toNextHighTariffWindow,
+  toTariffBands,
+} from '../tarifas/tariff-dashboard.adapter';
+import type { TarifaUbicacionResponse } from '../tarifas/tarifas.models';
+import { TarifasService } from '../tarifas/tarifas.service';
+import { ViviendaContextService } from '../vivienda/vivienda-context.service';
+import { ViviendaSelectorComponent } from '../vivienda/vivienda-selector.component';
+import { InfoTipComponent } from '../../shared/components/info-tip';
+import { GLOSARIO } from '../tarifas/tarifas-glosario';
 import { smoothPathLine } from './dashboard-chart.util';
 import type {
   DashboardAppliancesTopResponse,
@@ -30,8 +42,9 @@ export interface ChartViewModel {
   actual: number[];
   predicted: number[] | null;
   predictionUnavailable: boolean;
-  currentHour: number;
-  currentHourX: number;
+  /** Hora actual y su posición; null si la fecha consultada no es hoy (sin cursor "ahora"). */
+  currentHour: number | null;
+  currentHourX: number | null;
   hourLabels: { hour: number; x: number; isCurrent: boolean }[];
   tariffRects: { x: number; width: number; color: string }[];
   yTicks: { value: number; y: number; label: string }[];
@@ -45,16 +58,25 @@ export interface ChartViewModel {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ViviendaSelectorComponent, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
   private readonly dashboardApi = inject(DashboardService);
+  private readonly tarifasApi = inject(TarifasService);
+  private readonly viviendaCtx = inject(ViviendaContextService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Textos de los botones informativos. */
+  readonly g = GLOSARIO;
 
   readonly loading = signal(true);
   readonly selectedDate = signal(this.todayYmd());
+  /** Solo el día actual tiene "ahora": cursor, hora resaltada y franja vigente. */
+  readonly isToday = computed(() => this.selectedDate() === this.todayYmd());
+  /** Hora de referencia para la tarifa de un día que no es hoy. */
+  readonly referenceHour = 12;
 
   summary: DashboardSummaryResponse | null = null;
   chart: DashboardConsumptionChartResponse | null = null;
@@ -62,6 +84,26 @@ export class DashboardComponent implements OnInit {
   appliances: DashboardAppliancesTopResponse | null = null;
 
   chartVm: ChartViewModel | null = null;
+
+  /** Respuestas de insights-service sin adaptar; las tarifas reales se aplican encima. */
+  private insightsSummary: DashboardSummaryResponse | null = null;
+  private insightsChart: DashboardConsumptionChartResponse | null = null;
+  private tarifa: TarifaUbicacionResponse | null = null;
+  /** Descripción de la tarifa aplicada o motivo por el que no hay tarifa. */
+  readonly tariffNote = signal<string | null>(null);
+  /**
+   * Hay tarifa publicada para la vivienda y la fecha. Si no, no se muestran franjas,
+   * precios ni costo (los valores de ejemplo de insights-service no se usan).
+   */
+  readonly tariffAvailable = signal(false);
+
+  constructor() {
+    // Cambiar de vivienda solo recarga las tarifas
+    effect(() => {
+      this.viviendaCtx.ubicacion();
+      untracked(() => this.loadTarifa());
+    });
+  }
 
   readonly loadError = signal<string | null>(null);
   readonly sectionError = signal<{ summary?: boolean; chart?: boolean; reco?: boolean; appliances?: boolean }>({});
@@ -101,14 +143,27 @@ export class DashboardComponent implements OnInit {
   tariffBandUiColor(type: TariffType): { bg: string; fg: string } {
     const t = String(type).toUpperCase();
     if (t === 'VALLE') {
-      return { bg: '#22c55e', fg: 'var(--dash-franja-fg-dark)' };
+      return {
+        bg: 'var(--color-tariff-valle-bg)',
+        fg: 'var(--color-tariff-valle-fg)',
+      };
     }
     if (t === 'PUNTA') {
-      return { bg: '#b91c1c', fg: '#ffffff' };
+      return {
+        bg: 'var(--color-tariff-punta-bg)',
+        fg: 'var(--color-tariff-punta-fg)',
+      };
     }
-    return { bg: '#eab308', fg: 'var(--dash-franja-fg-dark)' };
+    return {
+      bg: 'var(--color-tariff-llano-bg)',
+      fg: 'var(--color-tariff-llano-fg)',
+    };
   }
 
+  /**
+   * Color para los rectángulos de fondo en el chart (sobre fondo más oscuro).
+   * Mantenemos tonos algo más bajos que las píldoras para no saturar.
+   */
   tariffChartColor(type: TariffType): string {
     const t = String(type).toUpperCase();
     if (t === 'VALLE') {
@@ -168,7 +223,7 @@ export class DashboardComponent implements OnInit {
 
   franjaRows(chart: DashboardConsumptionChartResponse): { band: TariffBand; rowIdx: number; activeIdx: number }[] {
     const bands = this.sortedBands(chart.tariffBands);
-    const activeIdx = this.activeBandIndex(bands, chart.currentHourLocal);
+    const activeIdx = this.isToday() ? this.activeBandIndex(bands, chart.currentHourLocal) : -1;
     return bands.map((band, rowIdx) => ({ band, rowIdx, activeIdx }));
   }
 
@@ -227,7 +282,88 @@ export class DashboardComponent implements OnInit {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
+  /** Tarifa de la vivienda activa para la fecha seleccionada (tariff-service). */
+  private loadTarifa(): void {
+    const ubicacion = this.viviendaCtx.ubicacion();
+    if (!ubicacion) {
+      this.tarifa = null;
+      this.tariffNote.set(
+        this.viviendaCtx.selected()
+          ? 'Sin tarifas: la vivienda no tiene ciudad configurada en Mi vivienda.'
+          : 'Sin tarifas: registra una vivienda con su ciudad y estrato.',
+      );
+      this.applyTarifa();
+      return;
+    }
+    this.tarifasApi
+      .getTarifa(ubicacion, this.selectedDate())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of(null)),
+      )
+      .subscribe((t) => {
+        this.tarifa = t;
+        this.tariffNote.set(
+          t
+            ? `Tarifas de ${t.ciudad.municipio} · estrato ${t.seleccion.estrato} · tipo ${t.seleccion.cod_tipo_tarifa_aplicado}`
+            : `Sin tarifas: la comercializadora aún no ha publicado la tarifa de ${this.mesDeFecha(this.selectedDate())}.`,
+        );
+        this.applyTarifa();
+      });
+  }
+
+  /**
+   * Aplica el adaptador de tarifas sobre el resumen y el gráfico de insights.
+   * Las franjas y precios salen solo de tariff-service; sin tarifa quedan vacíos.
+   */
+  private applyTarifa(): void {
+    const t = this.tarifa;
+    const chart = this.insightsChart;
+    const summary = this.insightsSummary;
+    this.tariffAvailable.set(t != null);
+
+    this.chart = chart ? { ...chart, tariffBands: t ? toTariffBands(t.precios) : [] } : chart;
+    this.chartVm = this.chart ? this.buildChartView(this.chart) : null;
+
+    if (!summary || !t) {
+      this.summary = summary;
+      return;
+    }
+    // Otro día: tarifa de referencia a mediodía y primera punta del día (no "ahora")
+    const today = this.isToday();
+    const clockHour = today ? new Date().getHours() : this.referenceHour;
+    this.summary = {
+      ...summary,
+      currentTariffSlot: toCurrentTariffSlot(t.precios, clockHour) ?? summary.currentTariffSlot,
+      nextHighTariffWindow: toNextHighTariffWindow(t.precios, this.selectedDate(), today ? clockHour : 0) ?? {
+        type: 'PUNTA',
+        label: 'Sin punta',
+        startsAt: '',
+        endsAt: '',
+        displayHint: today ? 'Sin punta pendiente hoy' : 'Sin franja punta',
+      },
+      estimatedCostTodayCop: chart
+        ? estimateDailyCostCop(t.precios, chart.actualKwh ?? [], chart.hours)
+        : summary.estimatedCostTodayCop,
+    };
+  }
+
+  /** "15 sept 2026" para el título del gráfico. */
+  fechaCorta(ymd: string): string {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+      new Date(y, m - 1, d),
+    );
+  }
+
+  private mesDeFecha(ymd: string): string {
+    const [y, m] = ymd.split('-').map(Number);
+    const mes = new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(new Date(y, m - 1, 1));
+    return `${mes} ${y}`;
+  }
+
   private loadAll(): void {
+    this.loadTarifa();
     this.loading.set(true);
     this.loadError.set(null);
     this.sectionError.set({});
@@ -269,11 +405,11 @@ export class DashboardComponent implements OnInit {
       )
       .subscribe({
         next: ({ summary, chart, recommendations, appliances }) => {
-          this.summary = summary;
-          this.chart = chart;
+          this.insightsSummary = summary;
+          this.insightsChart = chart;
           this.recommendations = recommendations;
           this.appliances = appliances;
-          this.chartVm = chart ? this.buildChartView(chart) : null;
+          this.applyTarifa();
           const allFailed = !summary && !chart && !recommendations && !appliances;
           if (allFailed) {
             this.loadError.set('No se pudo cargar el dashboard. Revisa la API o la URL base.');
@@ -307,6 +443,7 @@ export class DashboardComponent implements OnInit {
     const baselineY = CHART_HEIGHT - CHART_PAD.bottom;
 
     const n = Math.max(actual.length, predicted?.length ?? 0, hours.length, 1);
+    const nowHour = this.isToday() ? Math.min(23, Math.max(0, chart.currentHourLocal)) : null;
     const realPoints: { x: number; y: number; isCurrent: boolean }[] = [];
     for (let idx = 0; idx < n; idx++) {
       const hodRaw = hours[idx];
@@ -315,7 +452,7 @@ export class DashboardComponent implements OnInit {
       realPoints.push({
         x: xForClockHour(hod),
         y: yForKwh(v),
-        isCurrent: hod === chart.currentHourLocal,
+        isCurrent: hod === nowHour,
       });
     }
 
@@ -350,12 +487,11 @@ export class DashboardComponent implements OnInit {
       yTicks.push({ value, y, label });
     }
 
-    const ch = Math.min(23, Math.max(0, chart.currentHourLocal));
-    const currentHourX = xForClockHour(ch);
+    const currentHourX = nowHour !== null ? xForClockHour(nowHour) : null;
     const hourLabels = Array.from({ length: 24 }, (_, hour) => ({
       hour,
       x: xForClockHour(hour),
-      isCurrent: hour === ch,
+      isCurrent: hour === nowHour,
     }));
 
     return {
@@ -369,7 +505,7 @@ export class DashboardComponent implements OnInit {
       actual,
       predicted,
       predictionUnavailable,
-      currentHour: chart.currentHourLocal,
+      currentHour: nowHour,
       currentHourX,
       hourLabels,
       tariffRects,

@@ -33,7 +33,7 @@ export interface ElectrodomesticoDto {
   marcaNombre: string | null;
   marcaOtro: string | null;
   nombre: string;
-  potenciaW: number;
+  consumoKwhDia: number;
   usoSemanal: number;
   horarioHabitual: string | null;
   esDesplazable: boolean;
@@ -45,7 +45,7 @@ export interface ElectrodomesticoCreatePayload {
   idMarcaPredefinida?: number | null;
   marcaOtro?: string | null;
   nombre?: string | null;
-  potenciaW: number;
+  consumoKwhDia: number;
   usoSemanal: number;
   horarioHabitual?: string | null;
   esDesplazable?: boolean | null;
@@ -53,6 +53,22 @@ export interface ElectrodomesticoCreatePayload {
 
 export interface ElectrodomesticoUpdatePayload extends ElectrodomesticoCreatePayload {
   activo?: boolean | null;
+}
+
+export interface VisionAnalysisResponse {
+  marcaDetectada: string | null;
+  modeloDetectado: string | null;
+  tipoSugerido: string | null;
+  consumoKwhDiaEstimado: number | null;
+  confianza: number | null;
+  fuenteConsumo: string | null;
+  idTipoPredefinido: number | null;
+  tipoNombre: string | null;
+  idMarcaPredefinida: number | null;
+  marcaOtro: string | null;
+  nombreSugerido: string | null;
+  bajaConfianza: boolean | null;
+  advertencia: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -94,6 +110,15 @@ export class ElectrodomesticosService {
   delete(viviendaId: number, electroId: number): Observable<void> {
     return this.http.delete<void>(
       `${this.root()}/api/v1/viviendas/${viviendaId}/electrodomesticos/${electroId}`,
+    );
+  }
+
+  analizarImagen(file: File): Observable<VisionAnalysisResponse> {
+    const form = new FormData();
+    form.append('imagen', file, file.name);
+    return this.http.post<VisionAnalysisResponse>(
+      `${this.root()}/api/v1/electrodomesticos/vision/analizar`,
+      form,
     );
   }
 }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Resultados del Modelo de Regresión</title>
+</head>
+<body>    
+    <table>
+        <tr>
+            <th colspan="2">Resultados de Entrenamiento: {{ model }}</th>
+        </tr>
+        <tr>
+            <td style="width: 250px;">Dimensiones del Dataset:</td>
+            <td><input type="text" value="{{ dimen }}" readonly></td>
+        </tr>
+        <tr>
+            <td>Número de registros (Filas):</td>
+            <td><input type="text" value="{{ regs }}" readonly></td>
+        </tr>
+        <tr>
+            <td>Número de columnas (Features):</td>
+            <td><input type="text" value="{{ cols }}" readonly></td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; color: #28a745;">Coeficiente de Determinación (R² Score):</td>
+            <td><input type="text" value="{{ r2 }}" readonly style="font-weight: bold; color: #28a745; border: 1px solid #28a745;"></td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold; color: #dc3545;">Error Cuadrático Medio (MSE):</td>
+            <td><input type="text" value="{{ mse }}" readonly style="font-weight: bold; color: #dc3545; border: 1px solid #dc3545;"></td>
+        </tr>
+    </table>
+</body>
+</html>

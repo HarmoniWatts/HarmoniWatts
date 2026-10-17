@@ -24,18 +24,32 @@
         <input class="mv-input" type="number" min="1" max="99" [(ngModel)]="habitantesNuevo" />
       </label>
       <label class="mv-field">
-        <span>Estrato</span>
+        <span>Estrato <app-info-tip [termino]="g.estrato" /></span>
         <select class="mv-input" [(ngModel)]="estratoNuevo">
           @for (e of estratos; track e) {
             <option [ngValue]="e">Estrato {{ e }}</option>
           }
         </select>
       </label>
+      <label class="mv-field">
+        <span>Ciudad <app-info-tip [termino]="g.ciudad" /></span>
+        <select class="mv-input" [(ngModel)]="ciudadNueva">
+          <option value="">Selecciona la ciudad…</option>
+          @for (c of ciudades(); track ciudadKeyOf(c)) {
+            <option [value]="ciudadKeyOf(c)">{{ ciudadOptionLabel(c) }}</option>
+          }
+        </select>
+      </label>
+      <label class="mv-field">
+        <span>Número de contrato <app-info-tip [termino]="g.numeroContrato" [alignLeft]="true" /></span>
+        <input class="mv-input" type="text" maxlength="30" [(ngModel)]="contratoNuevo" placeholder="Aparece en tu factura" />
+      </label>
       <label class="mv-field mv-field-span">
-        <span>Ubicación</span>
+        <span>Dirección</span>
         <input class="mv-input" type="text" [(ngModel)]="ubicacionNueva" placeholder="Dirección o referencia" />
       </label>
     </div>
+    <p class="dash-muted mv-hint">La ciudad y el estrato determinan las tarifas que verás en el dashboard y en Tarifas.</p>
     <div class="mv-actions">
       <button type="button" class="dash-btn-ghost" (click)="registrar()" [disabled]="loading()">Guardar vivienda</button>
     </div>
@@ -70,15 +84,28 @@
                     <input class="mv-input" type="number" min="1" max="99" [(ngModel)]="habitantesEdit" />
                   </label>
                   <label class="mv-field">
-                    <span>Estrato</span>
+                    <span>Estrato <app-info-tip [termino]="g.estrato" /></span>
                     <select class="mv-input" [(ngModel)]="estratoEdit">
                       @for (e of estratos; track e) {
                         <option [ngValue]="e">Estrato {{ e }}</option>
                       }
                     </select>
                   </label>
+                  <label class="mv-field">
+                    <span>Ciudad <app-info-tip [termino]="g.ciudad" /></span>
+                    <select class="mv-input" [(ngModel)]="ciudadEdit">
+                      <option value="">Sin ciudad</option>
+                      @for (c of ciudades(); track ciudadKeyOf(c)) {
+                        <option [value]="ciudadKeyOf(c)">{{ ciudadOptionLabel(c) }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="mv-field">
+                    <span>Número de contrato <app-info-tip [termino]="g.numeroContrato" [alignLeft]="true" /></span>
+                    <input class="mv-input" type="text" maxlength="30" [(ngModel)]="contratoEdit" />
+                  </label>
                   <label class="mv-field mv-field-span">
-                    <span>Ubicación</span>
+                    <span>Dirección</span>
                     <input class="mv-input" type="text" [(ngModel)]="ubicacionEdit" />
                   </label>
                   <label class="mv-field mv-field-span">
@@ -97,7 +124,12 @@
                   <div class="mv-line">
                     <strong>{{ v.tipo }}</strong> · {{ v.habitantes }} hab. · Estrato {{ v.estrato }}
                   </div>
-                  <div class="mv-line dash-muted">{{ v.ubicacion }}</div>
+                  <div class="mv-line dash-muted">
+                    {{ v.ubicacion }} · {{ ciudadLabel(v) ?? 'Sin ciudad (necesaria para ver tarifas)' }}
+                  </div>
+                  @if (v.numeroContrato) {
+                    <div class="mv-line dash-muted">Contrato: {{ v.numeroContrato }}</div>
+                  }
                   @if (v.zonaClimatica) {
                     <div class="mv-line dash-muted">Zona: {{ v.zonaClimatica }}</div>
                   }

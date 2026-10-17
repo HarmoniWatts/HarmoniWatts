@@ -41,8 +41,8 @@ public class Electrodomestico {
   @Column(nullable = false, length = 50)
   private String tipo;
 
-  @Column(name = "potencia_w", nullable = false)
-  private Integer potenciaW;
+  @Column(name = "consumo_kwh_dia", nullable = false, precision = 10, scale = 4)
+  private java.math.BigDecimal consumoKwhDia;
 
   @Column(name = "es_desplazable", nullable = false)
   private Boolean desplazable = Boolean.FALSE;
@@ -112,12 +112,17 @@ public class Electrodomestico {
     this.tipo = tipo;
   }
 
-  public Integer getPotenciaW() {
-    return potenciaW;
+  public Double getConsumoKwhDia() {
+    return consumoKwhDia == null ? null : consumoKwhDia.doubleValue();
   }
 
-  public void setPotenciaW(Integer potenciaW) {
-    this.potenciaW = potenciaW;
+  public void setConsumoKwhDia(Double consumoKwhDia) {
+    this.consumoKwhDia =
+        consumoKwhDia == null ? null : java.math.BigDecimal.valueOf(consumoKwhDia);
+  }
+
+  public void setConsumoKwhDia(java.math.BigDecimal consumoKwhDia) {
+    this.consumoKwhDia = consumoKwhDia;
   }
 
   public Boolean getDesplazable() {

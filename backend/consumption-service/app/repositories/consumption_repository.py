@@ -3,7 +3,6 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, date, timedelta
 from typing import Optional, Dict, Any, List, Union
-from app.models.consumption import ConsumoEnriquecido, ConsumoTimeSeries
 from app.config import settings
 from app.core.local_calendar import utc_range_for_local_calendar_day, local_hour_from_utc_timestamp
 import structlog

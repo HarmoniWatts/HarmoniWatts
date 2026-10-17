@@ -1,25 +1,38 @@
-/* Estilos globales HarmoniWatts */
+@import './styles/tokens.css';
+
+/* Estilos globales HarmoniWatts.
+   Se apoyan en los tokens definidos en `src/styles/tokens.css`.
+   Para añadir nuevos colores, hazlo allí (no aquí) para que ambos temas
+   queden cubiertos. */
+
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --error: #dc2626;
-  --border: #e5e7eb;
-  --bg: #f9fafb;
+  /* Aliases retro-compatibles para componentes antiguos. */
+  --primary: var(--color-accent);
+  --primary-hover: var(--color-accent-strong);
+  --error: var(--color-danger);
+  --border: var(--color-border);
+  --bg: var(--color-bg-page);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  background: var(--color-bg-solid);
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: #111827;
+  background: var(--color-bg-solid);
+  color: var(--color-app-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 a {
-  color: var(--primary);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
@@ -41,19 +54,21 @@ a:hover {
 .form-group input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-input);
   border-radius: 0.375rem;
   font-size: 1rem;
+  background: var(--color-surface-input);
+  color: var(--color-text);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-ring);
 }
 
 .error-message {
-  color: var(--error);
+  color: var(--color-danger);
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
@@ -72,12 +87,12 @@ a:hover {
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
+  background: var(--color-accent-strong);
 }
 
 .btn-primary:disabled {
@@ -86,18 +101,19 @@ a:hover {
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {
-  background: #d1d5db;
+  background: var(--color-accent-soft);
 }
 
 .card {
-  background: white;
+  background: var(--color-surface-panel);
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-card);
   padding: 1.5rem;
   max-width: 24rem;
   margin: 0 auto;
@@ -106,12 +122,12 @@ a:hover {
 .divider {
   margin: 1rem 0;
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .divider-text {
   text-align: center;
   margin: 1rem 0;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-text-subtle);
 }

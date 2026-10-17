@@ -5,7 +5,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "test:ci": "ng test --watch=false"
   },
   "private": true,
   "dependencies": {
@@ -26,10 +28,13 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^21.2.0",
+    "@angular/build": "^21.2.2",
     "@angular/cli": "^21.2.0",
     "@angular/compiler-cli": "^21.0.0",
     "@types/node": "^22.0.0",
-    "typescript": "~5.9.0"
+    "jsdom": "^27.4.0",
+    "typescript": "~5.9.0",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "undici": ">=7.24.0"

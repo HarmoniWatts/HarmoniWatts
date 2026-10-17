@@ -101,7 +101,7 @@ CREATE TABLE Electrodomestico (
     marca_otro VARCHAR(100),
     nombre VARCHAR(100) NOT NULL,
     tipo VARCHAR(50) NOT NULL,
-    potencia_w INTEGER NOT NULL,
+    consumo_kwh_dia NUMERIC(10,4) NOT NULL,
     es_desplazable BOOLEAN DEFAULT FALSE,
     uso_semanal INTEGER,
     horario_habitual TIME,
@@ -114,6 +114,7 @@ COMMENT ON COLUMN Electrodomestico.id_tipo_predefinido IS 'FK al catálogo; codi
 COMMENT ON COLUMN Electrodomestico.id_marca_predefinida IS 'FK marca; si es «Otro», usar marca_otro';
 COMMENT ON COLUMN Electrodomestico.marca_otro IS 'Texto libre si la marca elegida es «Otro»';
 COMMENT ON COLUMN Electrodomestico.tipo IS 'Redundante: mismo codigo del tipo predefinido (consultas legadas)';
+COMMENT ON COLUMN Electrodomestico.consumo_kwh_dia IS 'Consumo energético promedio diario en kWh (para dashboard)';
 COMMENT ON COLUMN Electrodomestico.es_desplazable IS 'Indica si el electrodoméstico puede moverse a otra hora';
 COMMENT ON COLUMN Electrodomestico.uso_semanal IS 'Veces por semana que se usa (estimado)';
 COMMENT ON COLUMN Electrodomestico.horario_habitual IS 'Horario preferente o típico de uso (TIME, opcional)';

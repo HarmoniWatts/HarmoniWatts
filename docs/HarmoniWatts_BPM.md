@@ -1,7 +1,7 @@
 # Proceso HarmoniWatts — BPM
 **Notacion:** BPMN 2.0 · Sprint 0 · HU-03
 
-Para la vista técnica (contenedores, despliegue y secuencias de auth/registro), ver **[ARQUITECTURA-HarmoniWatts.md](ARQUITECTURA-HarmoniWatts.md)**.
+Para la vista técnica (contenedores, componentes y secuencias), ver **[ARQUITECTURA-MAESTRA.md](ARQUITECTURA-MAESTRA.md)**; para autenticación, **[AUTH-FLOW.md](AUTH-FLOW.md)**.
 
 > El diagrama con swimlanes horizontales y colores esta en el archivo **`HarmoniWatts_BPM.drawio`**  
 > Abrilo en [draw.io](https://app.diagrams.net) → Archivo → Abrir desde → Este dispositivo

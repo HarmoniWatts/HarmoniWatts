@@ -3,6 +3,7 @@
       }
 
       <div class="dash-toolbar">
+        <app-vivienda-selector />
         <label class="dash-date-label">
           <span>Fecha</span>
           <input
@@ -14,6 +15,9 @@
         </label>
         <button type="button" class="dash-btn-ghost" (click)="reload()" [disabled]="loading()">Actualizar</button>
       </div>
+      @if (tariffNote()) {
+        <p class="dash-muted dash-tariff-note">{{ tariffNote() }}</p>
+      }
 
       <div class="dash-kpi-grid">
         <article class="dash-card dash-kpi">
@@ -56,7 +60,7 @@
 
         <article class="dash-card dash-kpi">
           <div class="dash-kpi-head">
-            <div class="dash-kpi-title">Costo Estimado</div>
+            <div class="dash-kpi-title">Costo Estimado <app-info-tip [termino]="g.costoEstimado" /></div>
             <div class="dash-kpi-ic dash-kpi-ic-amber">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="1" x2="12" y2="23" />
@@ -64,12 +68,16 @@
               </svg>
             </div>
           </div>
-          @if (summary) {
+          @if (summary && tariffAvailable()) {
             <div class="dash-kpi-value dash-text-amber">{{ formatCop(summary.estimatedCostTodayCop) }}</div>
             <div class="dash-kpi-sub">
-              Tarifa actual: {{ summary.currentTariffSlot.label }} ·
+              {{ isToday() ? 'Tarifa actual' : 'Tarifa a las ' + referenceHour + ':00' }}: {{ summary.currentTariffSlot.label }} ·
               {{ summary.currentTariffSlot.energyPriceCopPerKwh | number: '1.0-0' }} COP/kWh
+              <app-info-tip [termino]="g.tarifaActual" />
             </div>
+          } @else if (summary) {
+            <div class="dash-kpi-value dash-kpi-value-muted">—</div>
+            <div class="dash-kpi-sub">Sin tarifa publicada para esta fecha</div>
           } @else {
             <div class="dash-skeleton dash-skeleton-lg"></div>
             <div class="dash-skeleton dash-skeleton-sm"></div>
@@ -109,7 +117,10 @@
               </svg>
             </div>
           </div>
-          @if (summary) {
+          @if (summary && !tariffAvailable()) {
+            <div class="dash-kpi-value dash-kpi-value-muted">—</div>
+            <div class="dash-kpi-sub">Sin tarifa publicada</div>
+          } @else if (summary) {
             <div class="dash-kpi-value dash-text-red-lg">
               {{ summary.nextHighTariffWindow.displayHint ?? summary.nextHighTariffWindow.label }}
             </div>
@@ -126,7 +137,7 @@
       <div class="dash-content-grid">
         <div class="dash-col-left">
           <section class="dash-card dash-chart-card">
-            <h2 class="dash-section-title">Consumo vs. Predicción — Hoy</h2>
+            <h2 class="dash-section-title">Consumo vs. Predicción — {{ isToday() ? 'Hoy' : fechaCorta(selectedDate()) }}</h2>
             @if (chartVm) {
               <div class="dash-chart-legend-row">
                 <div class="dash-chart-legend-spacer" [style.width.px]="chartVm.chartPad.left"></div>
@@ -167,6 +178,24 @@
                     </clipPath>
                   </defs>
                   <g clip-path="url(#dashChartPlotClip)">
+                    @if (!tariffAvailable()) {
+                      <rect
+                        [attr.x]="chartVm.chartPad.left"
+                        [attr.y]="chartVm.chartPad.top"
+                        [attr.width]="chartVm.plotW"
+                        [attr.height]="chartVm.plotH"
+                        class="dash-chart-no-tariff"
+                      />
+                      <text
+                        [attr.x]="chartVm.chartPad.left + chartVm.plotW / 2"
+                        [attr.y]="chartVm.chartPad.top + 22"
+                        text-anchor="middle"
+                        class="dash-chart-no-tariff-text"
+                        font-size="13"
+                      >
+                        Sin tarifa publicada para esta fecha
+                      </text>
+                    }
                     @for (r of chartVm.tariffRects; track $index) {
                       <rect
                         [attr.x]="r.x"
@@ -184,7 +213,7 @@
                       [attr.y1]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
                       [attr.x2]="chartVm.chartInnerWidth - chartVm.chartPad.right"
                       [attr.y2]="chartVm.chartPad.top + (i / 5) * chartVm.plotH"
-                      stroke="#1e293b"
+                      class="dash-chart-grid-line"
                       stroke-opacity="0.85"
                       stroke-width="1"
                     />
@@ -195,7 +224,7 @@
                     text-anchor="middle"
                     dominant-baseline="middle"
                     [attr.transform]="'rotate(-90, 14,' + (chartVm.chartPad.top + chartVm.plotH / 2) + ')'"
-                    fill="#64748b"
+                    class="dash-chart-axis-text"
                     font-size="11"
                     font-weight="600"
                   >
@@ -206,9 +235,8 @@
                       [attr.x]="chartVm.chartPad.left - 6"
                       [attr.y]="t.y + 4"
                       text-anchor="end"
-                      fill="#64748b"
+                      class="dash-chart-axis-text tabular-nums"
                       font-size="11"
-                      class="tabular-nums"
                     >
                       {{ t.label }}
                     </text>
@@ -218,23 +246,26 @@
                       [attr.x]="hl.x"
                       [attr.y]="chartVm.chartHeight - 8"
                       text-anchor="middle"
-                      [attr.fill]="hl.isCurrent ? '#22d3ee' : '#64748b'"
+                      [class.dash-chart-axis-text]="!hl.isCurrent"
+                      [class.dash-chart-axis-current]="hl.isCurrent"
+                      class="tabular-nums"
                       [attr.font-size]="hl.isCurrent ? 11 : 9"
                       [attr.font-weight]="hl.isCurrent ? 700 : 400"
-                      class="tabular-nums"
                     >
                       {{ hl.hour.toString().padStart(2, '0') }}:00
                     </text>
                   }
-                  <line
-                    [attr.x1]="chartVm.currentHourX"
-                    [attr.y1]="chartVm.chartPad.top"
-                    [attr.x2]="chartVm.currentHourX"
-                    [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
-                    stroke="#e2e8f0"
-                    stroke-width="1.5"
-                    opacity="0.85"
-                  />
+                  @if (chartVm.currentHourX !== null) {
+                    <line
+                      [attr.x1]="chartVm.currentHourX"
+                      [attr.y1]="chartVm.chartPad.top"
+                      [attr.x2]="chartVm.currentHourX"
+                      [attr.y2]="chartVm.chartHeight - chartVm.chartPad.bottom"
+                      class="dash-chart-now-line"
+                      stroke-width="1.5"
+                      opacity="0.85"
+                    />
+                  }
                   <g clip-path="url(#dashChartPlotClip)">
                     @if (chartVm.realAreaPath) {
                       <path [attr.d]="chartVm.realAreaPath" fill="url(#dashConsumoRealAreaGrad)" stroke="none" />
@@ -243,23 +274,21 @@
                       <path
                         [attr.d]="chartVm.predLinePath"
                         fill="none"
-                        stroke="#67e8f9"
+                        class="dash-pred-line"
                         stroke-width="2"
                         stroke-dasharray="7 6"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         opacity="0.9"
-                        class="dash-pred-line"
                       />
                     }
                     <path
                       [attr.d]="chartVm.realLinePath"
                       fill="none"
-                      stroke="#22d3ee"
+                      class="dash-real-line"
                       stroke-width="2.75"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="dash-real-line"
                     />
                   </g>
                   @for (p of chartVm.realPoints; track $index) {
@@ -267,8 +296,8 @@
                       [attr.cx]="p.x"
                       [attr.cy]="p.y"
                       [attr.r]="p.isCurrent ? 5.5 : 2.25"
-                      fill="#22d3ee"
-                      [attr.stroke]="p.isCurrent ? '#0a0e14' : 'none'"
+                      class="dash-chart-dot"
+                      [class.dash-chart-dot--current]="p.isCurrent"
                       [attr.stroke-width]="p.isCurrent ? 2 : 0"
                       [attr.opacity]="p.isCurrent ? 1 : 0.45"
                       [class.dash-dot-glow]="p.isCurrent"
@@ -341,7 +370,7 @@
 
         <div class="dash-col-right">
           <section class="dash-card">
-            <h2 class="dash-section-title">Franjas Horarias Activas</h2>
+            <h2 class="dash-section-title">Franjas Horarias Activas <app-info-tip [termino]="g.franjas" [alignLeft]="true" /></h2>
             @if (chart?.tariffBands?.length) {
               <div class="dash-franja-list">
                 @for (row of franjaRows(chart!); track row.band.startHour + '-' + row.band.endHour) {
@@ -372,7 +401,7 @@
                 }
               </div>
             } @else {
-              <p class="dash-muted">Sin datos de franjas.</p>
+              <p class="dash-muted">{{ tariffNote() ?? 'Sin datos de franjas.' }}</p>
             }
           </section>
 

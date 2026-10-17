@@ -1,0 +1,50 @@
+**Alumnos:**
+ _Christian Camilo Rosero - Codigo: 2503026
+ _Carlos David Rojas Lozano - Codigo: 2503497
+**Asignatura:** _Aprendizaje de Maquina Aplicado
+
+Ejecutar el servidor de Flask
+* Ubicarse en la carpeta del proyecto y ejecutar la instrucción -> py .\server.py
+
+Aquí tienes la guía de uso de la API completamente modificada y adaptada a la nueva estructura de **Regresión de Consumo de Energía** y sus tres fases de entrenamiento basadas en Random Forest:
+
+---
+
+### Acceder a los servicios proporcionados por la API
+
+* **Abrir un navegador**
+* Probar respuesta del servidor: `http://127.0.0.1:8000/users/Christian/`
+
+---
+
+### Interfaz Gráfica (Predicciones)
+
+* **Probar el formulario de predicción de demanda (kWh):**
+`http://127.0.0.1:8000/`
+
+---
+
+### Pipelines de Entrenamiento (Fases de Regresión)
+
+#### **Fase 1: Enfoque Global Macro**
+
+* Entrenar y guardar la línea base general del modelo:
+`http://127.0.0.1:8000/train/global`
+
+#### **Fase 2: Enfoque de Segmentación (Clúster)**
+
+* Entrenar y guardar el modelo optimizado para el nicho **Estrato 3 - Tarifa A**:
+`http://127.0.0.1:8000/train/segment`
+
+#### **Fase 3: Micro-Analítica Individual (Smart Grid)**
+
+* Entrenar y guardar la firma eléctrica personalizada para el caso de estudio individual (**Medidor MN263C548245**):
+`http://127.0.0.1:8000/train/meter/MN263C548245`
+
+py --version
+py -m pip --version
+py -m pip list
+py -m pip install pandas
+py -m pip show pandas
+py -m pip show flask
+py -m pip install flask
