@@ -200,7 +200,7 @@ jobs:
         if: needs.changes.outputs[matrix.filter] == 'true'
       - name: Construir imagen (sin publicar)
         if: needs.changes.outputs[matrix.filter] == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           push: false
