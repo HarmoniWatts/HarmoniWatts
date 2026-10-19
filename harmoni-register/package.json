@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "express": "^4.21.0",
-    "jose": "^5.10.0"
+    "jose": "^6.2.12"
   },
   "engines": {
     "node": ">=18"
