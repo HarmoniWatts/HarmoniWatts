@@ -196,7 +196,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: needs.changes.outputs[matrix.filter] == 'true'
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         if: needs.changes.outputs[matrix.filter] == 'true'
       - name: Construir imagen (sin publicar)
         if: needs.changes.outputs[matrix.filter] == 'true'
