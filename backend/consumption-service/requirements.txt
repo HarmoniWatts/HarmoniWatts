@@ -11,5 +11,5 @@ httpx==0.25.1
 python-jose[cryptography]==3.3.0
 pytz==2023.3
 pendulum==3.0.0
-tenacity==8.2.3
+tenacity==9.2.1
 structlog==24.1.0
