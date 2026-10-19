@@ -37,7 +37,7 @@ jobs:
       electrodomesticos: ${{ steps.filter.outputs.electrodomesticos }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           # Un cambio en los workflows vuelve a validar todos los servicios.
