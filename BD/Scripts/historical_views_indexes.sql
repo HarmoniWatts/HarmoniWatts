@@ -74,6 +74,42 @@ CREATE INDEX IF NOT EXISTS idx_periodo_publicado_anio_mes
 
 CREATE INDEX IF NOT EXISTS idx_tarifa_combinacion
     ON tarifa (cod_comercializadora, cod_mercado, cod_nivel, cod_tipo_tarifa);
+	
+	
+CREATE OR REPLACE VIEW v_tarifa_hora AS
+SELECT
+    tv.id_tarifa_valor,        -- PK natural
+    t.id_tarifa,
+    t.codigo_tarifa,
+    t.cod_comercializadora,
+    t.cod_mercado,
+    t.cod_nivel,
+    t.cod_tipo_tarifa,
+    p.id_periodo_tarifario,
+    p.anio,
+    p.mes,
+    p.fecha_inicio,
+    p.fecha_fin,
+    p.numero_version,
+    p.estado,
+    COALESCE(tv.id_configuracion_horaria, p.id_configuracion_horaria) AS id_configuracion_horaria,
+    ch.codigo   AS configuracion,
+    h.hora,                    -- NULL si es monomia
+    tv.id_franja_horaria,      -- NULL si es monomia
+    f.codigo    AS franja,     -- NULL si es monomia
+    f.tipo_dia,
+    cf.tipo_hora,              -- NULL si es monomia
+    tv.valor,
+    tv.unidad
+FROM tarifa_valor tv
+JOIN periodo_tarifario p ON p.id_periodo_tarifario = tv.id_periodo_tarifario
+JOIN tarifa t ON t.id_tarifa = p.id_tarifa
+LEFT JOIN configuracion_horaria ch ON ch.id_configuracion_horaria = tv.id_configuracion_horaria
+LEFT JOIN configuracion_hora h ON h.id_configuracion_horaria = tv.id_configuracion_horaria
+                              AND h.id_franja_horaria = tv.id_franja_horaria
+LEFT JOIN franja_horaria f ON f.id_franja_horaria = tv.id_franja_horaria
+LEFT JOIN configuracion_franja cf ON cf.id_configuracion_horaria = tv.id_configuracion_horaria
+                                  AND cf.id_franja_horaria = tv.id_franja_horaria;
 
 COMMIT;
 
