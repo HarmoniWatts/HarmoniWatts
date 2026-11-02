@@ -135,6 +135,27 @@ class TarifaRepository:
             )
             .first()
         )
+        
+    def get_configuracion_horaria(
+        self,
+        id_configuracion_horaria: int,
+    ) -> Optional[ConfiguracionHoraria]:
+        """
+        Obtiene una configuración horaria por su ID.
+        
+        Args:
+            id_configuracion_horaria: ID de la configuración horaria
+        
+        Returns:
+            ConfiguracionHoraria o None si no existe
+        """
+        return (
+            self.db.query(ConfiguracionHoraria)
+            .filter(
+                ConfiguracionHoraria.id_configuracion_horaria == id_configuracion_horaria
+            )
+            .first()
+        )
     
     def crear_periodo(self, periodo_data: Dict[str, Any]) -> PeriodoTarifario:
         """
@@ -865,6 +886,12 @@ class TarifaRepository:
         precios = self.get_precios_por_hora_desde_vista(periodo.id_periodo_tarifario)
         componentes = self.get_componentes_by_periodo(periodo.id_periodo_tarifario)
         
+        # Obtener la configuración horaria (si existe)
+        cod_configuracion_horaria = None
+        if periodo.id_configuracion_horaria:
+            configuracion = self.get_configuracion_horaria(periodo.id_configuracion_horaria)
+            cod_configuracion_horaria = configuracion.codigo
+        
         # Separar valores por hora de la monomia (hora IS NULL)
         valores_hora = [p for p in precios if p.hora is not None]
         monomias = [p for p in precios if p.hora is None]
@@ -897,6 +924,7 @@ class TarifaRepository:
             'id_cliente': id_cliente,
             'tarifa': tarifa,
             'periodo': periodo,
+            'cod_configuracion_horaria': cod_configuracion_horaria,
             'monomia': monomia,
             'valores': valores,
             'componentes': componentes,

@@ -12,6 +12,21 @@ from app.models.consumption import (
     DailyTotalResponse,
     TimeSeriesResponse
 )
+from app.models.sync import (
+    SyncClienteRequest,
+    SyncViviendaRequest,
+    SyncMedidorRequest,
+    SyncMedidorResponse,
+    SyncClienteResponse,
+    SyncViviendaResponse,
+    SyncEstadoResponse,
+    SyncHistorialResponse,
+)
+from app.services.sync_service import SyncService
+from app.services.vivienda_resolver import ViviendaResolverMock
+from app.services.tarifa_resolver import TarifaResolverHTTP, TarifaResolverMock
+from app.repositories.sync_repository import SyncRepository
+
 from app.config import settings
 
 router = APIRouter(prefix="/api/v1/consumption", tags=["consumption"])
@@ -231,3 +246,176 @@ async def get_yearly_series(
         values_kwh=result["values_kwh"],
         values_cost=result["values_cost"]
     )
+    
+    
+# =====================================================
+# DEPENDENCIAS
+# =====================================================
+
+def get_sync_service() -> SyncService:
+    """
+    Construye SyncService con implementaciones por defecto.
+    
+    - ViviendaResolver: MOCK (hasta tener user-service)
+    - TarifaResolver: HTTP (tariff-service) con fallback a MOCK
+    """
+    vivienda_resolver = ViviendaResolverMock()
+    
+    # Elegir tarifa resolver según entorno
+    if settings.ENVIRONMENT == "development" and not settings.TARIFF_SERVICE_URL:
+        tarifa_resolver = TarifaResolverMock()
+    else:
+        tarifa_resolver = TarifaResolverHTTP(
+            base_url=settings.TARIFF_SERVICE_URL,
+        )
+    
+    return SyncService(
+        vivienda_resolver=vivienda_resolver,
+        tarifa_resolver=tarifa_resolver,
+    )
+
+
+def get_sync_repository() -> SyncRepository:
+    return SyncRepository()
+
+
+# =====================================================
+# ENDPOINTS
+# =====================================================
+
+
+# =====================================================
+# SINCRONIZACIÓN MANUAL
+# =====================================================
+
+
+@router.post("/sync/manual/vivienda/{id_vivienda}", response_model=SyncViviendaResponse, status_code=202)
+async def sync_por_vivienda(
+    id_vivienda: int,
+    request: SyncViviendaRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_vivienda(
+        id_vivienda=id_vivienda,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+   
+    return SyncViviendaResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        id_vivienda=resultado["id_vivienda"],
+        medidores=resultado["medidores"],
+        total_medidores=resultado["total_medidores"],
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje=resultado["mensaje"],
+        detalles = resultado["detalles"],
+    )
+
+@router.post("/sync/manual/cliente/{id_cliente}", response_model=SyncClienteResponse, status_code=202)
+async def sync_por_cliente(
+    id_cliente: int,
+    request: SyncClienteRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_vivienda(
+        id_cliente=request.id_cliente,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+    return SyncClienteResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        id_cliente=resultado.get("id_cliente"),
+        medidores=resultado.get("medidores"),
+        total_medidores=resultado.get("total_medidores"),
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje=resultado["mensaje"],
+        detalles = resultado["detalles"],
+    )
+
+@router.post("/sync/manual/medidor/{meter_no}", response_model=SyncMedidorResponse, status_code=202)
+async def sync_manual(
+    request: SyncMedidorRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_medidor(
+        meter_no=request.meter_no,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+    return SyncMedidorResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        meter_no=resultado.get("meter_no"),
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje="Sincronización completada",
+    )
+
+
+# =====================================================
+# CONSULTAR ESTADO
+# =====================================================
+
+@router.get("/sync/estado/{id_sincronizacion}", response_model=SyncEstadoResponse)
+async def get_sync_estado(
+    id_sincronizacion: str,
+    repo: SyncRepository = Depends(get_sync_repository),
+):
+    """Consulta el estado de una sincronización."""
+    doc = await repo.obtener_sync_estado(id_sincronizacion)
+    
+    if not doc:
+        raise HTTPException(404, f"Sincronización no encontrada: {id_sincronizacion}")
+    
+    # return SyncEstadoResponse(
+    #     id_sincronizacion=doc["id_sincronizacion"],
+    #     estado=doc["estado"],
+    #     meter_no=doc.get("meter_no"),
+    #     registros_obtenidos=doc.get("registros_obtenidos", 0),
+    #     registros_insertados=doc.get("registros_insertados", 0),
+    #     registros_duplicados=doc.get("registros_duplicados", 0),
+    #     errores=doc.get("errores", []),
+    #     duracion_seg=doc.get("duracion_seg"),
+    #     creada_en=doc.get("creada_en"),
+    #     finalizada_en=doc.get("finalizada_en"),
+    # )
+    return SyncEstadoResponse(**doc)
+
+
+# =====================================================
+# HISTORIAL
+# =====================================================
+
+@router.get("/sync/historial", response_model=SyncHistorialResponse)
+async def get_sync_historial(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    repo: SyncRepository = Depends(get_sync_repository),
+):
+    """Consulta el historial de sincronizaciones."""
+    return await repo.obtener_historial(limit=limit, offset=offset)

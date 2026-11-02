@@ -24,7 +24,7 @@ db.createCollection("consumos_enriquecidos", {
         _id: { bsonType: "objectId" },
         
         id_vivienda: { 
-          bsonType: "long", 
+          bsonType: "int", 
           description: "Referencia a Vivienda.id_vivienda en PostgreSQL" 
         },
 		
@@ -40,6 +40,10 @@ db.createCollection("consumos_enriquecidos", {
 		lectura_acumulada_kwh: { 
           bsonType: "double", 
           description: "Total kWh en el contador" 
+        },
+		lectura_acumulada_mensual_kwh: { 
+          bsonType: "double", 
+          description: "Acumulado mensual kWh en el contador" 
         },
         valor_kwh: { 
           bsonType: "double", 
@@ -77,7 +81,7 @@ db.createCollection("consumos_enriquecidos", {
 			"costo_total_monomia"
 		  ],
 		  properties: {
-			id_tarifa: { bsonType: "long" },
+			id_tarifa: { bsonType: "int" },
 			cod_tipo_tarifa: { bsonType: "string" },
 			periodo: { bsonType: "int" },
 			configuracion_horaria: { bsonType: "string" },
@@ -97,7 +101,7 @@ db.createCollection("consumos_enriquecidos", {
           items: {
             bsonType: "object",
             properties: {
-              id_tarifa: { bsonType: "long" },
+              id_tarifa: { bsonType: "int" },
               cod_tipo_tarifa: { bsonType: "string" },
 			  periodo: { bsonType: "int" },
 			  modo: { bsonType: "string", enum: ["TOU", "RTP", "MONOMIA"] },
@@ -161,18 +165,17 @@ db.createCollection("consumos_enriquecidos", {
 // =====================================================
 
 // En MongoDB, usar upsert con índice único
-db.consumos_enriquecidos.create_index(
-    [("id_medidor", 1), ("timestamp", 1)],
-    unique=True,
-    name="uq_medidor_timestamp"
-)
+db.consumos_enriquecidos.createIndex(
+  {id_medidor: 1, timestamp: 1},
+  {unique: true, name: "uq_medidor_timestamp"}
+);
 
 // Upsert
-db.consumos_enriquecidos.update_one(
+/* db.consumos_enriquecidos.update_one(
     {"id_medidor": id_medidor, "timestamp": timestamp},
     {"$set": documento},
-    upsert=True
-)
+    upsert=true
+) */
 
 // Índice principal para consultas por vivienda y rango de fechas
 db.consumos_enriquecidos .createIndex(
@@ -228,11 +231,11 @@ db.createCollection("consumos", {
         
         // Referencias
         id_vivienda: { 
-          bsonType: "long", 
+          bsonType: "int", 
           description: "Referencia a Vivienda.id_vivienda en PostgreSQL" 
         },
         id_tarifa_usuario: { 
-          bsonType: "long", 
+          bsonType: "int", 
           description: "Referencia a TarifaUsuario.id_tarifa_usuario activa en el momento" 
         },
         
@@ -296,11 +299,11 @@ db.createCollection("consumos_ts", {
 
         // Referencias
         id_vivienda: {
-          bsonType: "long",
+          bsonType: "int",
           description: "Referencia a Vivienda.id_vivienda en PostgreSQL"
         },
         id_tarifa_usuario: {
-          bsonType: "long",
+          bsonType: "int",
           description: "Referencia a TarifaUsuario.id_tarifa_usuario activa en el momento"
         },
 
@@ -323,7 +326,7 @@ db.createCollection("consumos_ts", {
           bsonType: "object",
           required: ["id_tarifa", "nombre_tarifa", "precio_kwh", "costo_total", "franja_aplicada"],
           properties: {
-            id_tarifa: { bsonType: "long" },
+            id_tarifa: { bsonType: "int" },
             nombre_tarifa: { bsonType: "string" },
             precio_kwh: { bsonType: "double" },
             costo_total: { bsonType: "double" },
@@ -351,7 +354,7 @@ db.createCollection("predicciones_consumo", {
       required: ["id_vivienda", "fecha_generacion", "predicciones"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_vivienda: { bsonType: "long" },
+        id_vivienda: { bsonType: "int" },
         fecha_generacion: { bsonType: "date" },
         horizonte_horas: { bsonType: "int" },
         predicciones: {
@@ -392,7 +395,7 @@ db.createCollection("eventos_dispositivos", {
       required: ["id_dispositivo", "timestamp", "evento", "estado"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_dispositivo: { bsonType: "long" },
+        id_dispositivo: { bsonType: "int" },
         timestamp: { bsonType: "date" },
         evento: { 
           bsonType: "string",
@@ -407,7 +410,7 @@ db.createCollection("eventos_dispositivos", {
           }
         },
         origen: { bsonType: "string", enum: ["manual", "automatico", "programado"] },
-        id_recomendacion: { bsonType: "long" }
+        id_recomendacion: { bsonType: "int" }
       }
     }
   }
@@ -426,7 +429,7 @@ db.createCollection("ahorro_real", {
       required: ["id_vivienda", "periodo_inicio", "periodo_fin"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_vivienda: { bsonType: "long" },
+        id_vivienda: { bsonType: "int" },
         periodo_inicio: { bsonType: "date" },
         periodo_fin: { bsonType: "date" },
         consumo_real_kwh: { bsonType: "double" },
@@ -439,7 +442,7 @@ db.createCollection("ahorro_real", {
           items: {
             bsonType: "object",
             properties: {
-              id_recomendacion: { bsonType: "long" },
+              id_recomendacion: { bsonType: "int" },
               electrodomestico: { bsonType: "string" },
               ahorro_estimado: { bsonType: "double" },
               ahorro_real: { bsonType: "double" },
@@ -465,19 +468,19 @@ db.createCollection("simulaciones_tarifarias", {
       required: ["id_usuario", "fecha_simulacion", "tarifa_origen", "tarifa_destino"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_usuario: { bsonType: "long" },
+        id_usuario: { bsonType: "int" },
         fecha_simulacion: { bsonType: "date" },
         tarifa_origen: {
           bsonType: "object",
           properties: {
-            id_tarifa: { bsonType: "long" },
+            id_tarifa: { bsonType: "int" },
             nombre: { bsonType: "string" }
           }
         },
         tarifa_destino: {
           bsonType: "object",
           properties: {
-            id_tarifa: { bsonType: "long" },
+            id_tarifa: { bsonType: "int" },
             nombre: { bsonType: "string" }
           }
         },
@@ -521,7 +524,7 @@ db.createCollection("tarifas_historicas_mensuales", {
       required: ["id_tarifa", "anio", "mes", "valores_completos"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_tarifa: { bsonType: "long", description: "Referencia a Tarifa.id_tarifa en PostgreSQL" },
+        id_tarifa: { bsonType: "int", description: "Referencia a Tarifa.id_tarifa en PostgreSQL" },
         anio: { bsonType: "int" },
         mes: { bsonType: "int" },
         valores_completos: {
@@ -581,7 +584,7 @@ db.createCollection("comparativas_anonimas", {
       required: ["id_vivienda", "periodo", "grupo_similar_id"],
       properties: {
         _id: { bsonType: "objectId" },
-        id_vivienda: { bsonType: "long" },
+        id_vivienda: { bsonType: "int" },
         periodo: { bsonType: "date" },
         grupo_similar_id: { bsonType: "string" },
         consumo_promedio_grupo: { bsonType: "double" },
