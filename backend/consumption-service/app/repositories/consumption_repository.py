@@ -68,7 +68,18 @@ class ConsumptionRepository:
                 "$group": {
                     "_id": None,
                     "total_consumption_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost_cop": {"$sum": "$tarifa_aplicada.costo_total"},
+                    
+                    # Elegir el costo correcto según el modo
+                    "total_cost_cop": {
+                        "$sum": {
+                            "$cond": [
+                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                "$tarifa_aplicada.costo_total_monomia",
+                                "$tarifa_aplicada.costo_total_franja"
+                            ]
+                        }
+                    },
+                    
                     "average_power_kw": {"$avg": "$valor_kwh"},
                     "peak_power_kw": {"$max": "$valor_kwh"},
                     "readings_count": {"$sum": 1}
@@ -122,8 +133,28 @@ class ConsumptionRepository:
                 "$group": {
                     "_id": {"hour": {"$hour": "$timestamp"}},
                     "consumption_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
-                    "tarifa_promedio": {"$avg": "$tarifa_aplicada.precio_kwh"}
+                    
+                    # Sumar el costo correcto según el modo
+                    "total_cost": {
+                        "$sum": {
+                            "$cond": [
+                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                "$tarifa_aplicada.costo_total_monomia",
+                                "$tarifa_aplicada.costo_total_franja"
+                            ]
+                        }
+                    },
+                    
+                    # Promediar el precio correcto según el modo
+                    "tarifa_promedio": {
+                        "$avg": {
+                            "$cond": [
+                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                "$tarifa_aplicada.precio_kwh_monomia",
+                                "$tarifa_aplicada.precio_kwh_franja"
+                            ]
+                        }
+                    }
                 }
             },
             {"$sort": {"_id.hour": 1}}
@@ -178,10 +209,30 @@ class ConsumptionRepository:
             },
             {
                 "$group": {
-                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
+                    "_id": {
+                        "$dateToString": {
+                            "format": "%Y-%m-%d", 
+                            "date": "$timestamp",
+                            "timezone": "America/Bogota" # ✅ Importante para agrupar por día local
+                        }
+                    },
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"}
+                    
+                    # ✅ Elegir el costo correcto según el modo
+                    "total_cost": {
+                        "$sum": {
+                            "$cond": [
+                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                "$tarifa_aplicada.costo_total_monomia",
+                                "$tarifa_aplicada.costo_total_franja"
+                            ]
+                        }
+                    }
                 }
+            },
+            {
+                # ✅ Ordenar por fecha para que la serie salga en orden cronológico
+                "$sort": {"_id": 1} 
             }
         ]
         
@@ -216,10 +267,24 @@ class ConsumptionRepository:
             },
             {
                 "$group": {
-                    "_id": {"$month": "$timestamp"},
+                    "_id": {"$month": {"date": "$timestamp", "timezone": "America/Bogota"}},
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"}
+                    
+                    # Elegir el costo correcto según el modo
+                    "total_cost": {
+                        "$sum": {
+                            "$cond": [
+                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                "$tarifa_aplicada.costo_total_monomia",
+                                "$tarifa_aplicada.costo_total_franja"
+                            ]
+                        }
+                    }
                 }
+            },
+            {
+                # Ordenar por mes
+                "$sort": {"_id": 1}
             }
         ]
         
