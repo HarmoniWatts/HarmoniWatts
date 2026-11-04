@@ -3,6 +3,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 from enum import Enum
+from pathlib import Path
 
 
 class Environment(str, Enum):
@@ -58,6 +59,10 @@ class Settings(BaseSettings):
     INELCA_TIMEOUT_SEC: int = 60
     INELCA_RATE_LIMIT_DELAY_SEC: float = 0.5
     INELCA_MAX_RETRIES: int = 3
+    # El servidor de INELCA no envía el certificado intermedio de su cadena
+    # (Go Daddy Secure Certificate Authority - G2). Windows lo descarga solo,
+    # pero en Linux/Docker la verificación TLS falla sin él.
+    EXTRA_CA_FILE: Optional[str] = str(Path(__file__).resolve().parent.parent / "certs" / "gdig2.pem")
     
     
     # Tariff Service

@@ -73,7 +73,7 @@ class MeterMapper:
                 # Fuente
                 "fuente": "api_externa",
                 "calidad_dato": "real",
-                "fecha_registro": datetime.utcnow().replace(tzinfo=ZoneInfo("America/Bogota")),
+                "fecha_registro": datetime.now(ZoneInfo("America/Bogota")),
                 "version_schema": "2.0",
             }
             

@@ -1,3 +1,4 @@
+import os
 import ssl
 import truststore
 import httpx
@@ -20,7 +21,10 @@ class HTTPClientManager:
             
             # Usar el almacén de certificados del sistema operativo
             ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-            
+            # Intermedios que algunos servidores (INELCA) no envían en su cadena
+            if settings.EXTRA_CA_FILE and os.path.isfile(settings.EXTRA_CA_FILE):
+                ctx.load_verify_locations(cafile=settings.EXTRA_CA_FILE)
+
             cls.client = httpx.AsyncClient(
                 timeout=httpx.Timeout(settings.INELCA_TIMEOUT_SEC),
                 limits=httpx.Limits(
