@@ -1,6 +1,7 @@
 # app/services/active/franja_service.py
 
 from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 from typing import Optional, Dict, Any, List
 from loguru import logger
 
@@ -19,12 +20,7 @@ class FranjaService:
         - Determinar la franja actual del sistema
     """
     
-    def __init__(
-        self,
-        repo: TarifaRepository,
-        cliente_repo: Optional[ClienteRepository] = None,
-        selector: Optional[TarifaSelector] = None
-    ):
+    def __init__(self, repo: TarifaRepository, cliente_repo: ClienteRepository, selector: TarifaSelector):
         self.repo = repo
         self.cliente_repo = cliente_repo
         self.selector = selector
@@ -46,18 +42,16 @@ class FranjaService:
             Dict con 'fecha', 'id_cliente' y lista de 'precios'
         """
         fecha_consulta = fecha or date.today()
+        cliente = self.cliente_repo.get_by_id(id_cliente)
+        cod_tipo_tarifa = self.selector.seleccionar_tipo_tarifa(cliente, consumo_mensual_kwh=consumo_mensual_kwh)
         
-        precios = self.repo.get_precios_dia(
+        resultado = self.repo.get_precios_dia(
             id_cliente=id_cliente,
             fecha=fecha_consulta,
-            cod_tipo_tarifa=self._tipo_tarifa(id_cliente, consumo_mensual_kwh)
+            cod_tipo_tarifa=cod_tipo_tarifa
         )
         
-        return {
-            'id_cliente': id_cliente,
-            'fecha': fecha_consulta,
-            'precios': precios,
-        }
+        return resultado
     
     # =====================================================
     # FRANJA ACTUAL
@@ -79,15 +73,43 @@ class FranjaService:
         Returns:
             Dict con la franja actual o None si no existe
         """
+        
+        cliente = self.cliente_repo.get_by_id(id_cliente)
+        cod_tipo_tarifa = self.selector.seleccionar_tipo_tarifa(cliente, consumo_mensual_kwh=consumo_mensual_kwh)
+        
         hora_consulta = self._resolver_hora(hora)
+        
+        # Fecha inicial de consulta
         fecha_consulta = date.today()
         
-        precio = self.repo.get_precio_por_hora(
-            id_cliente=id_cliente,
-            fecha=fecha_consulta,
-            hora=hora_consulta,
-            cod_tipo_tarifa=self._tipo_tarifa(id_cliente, consumo_mensual_kwh)
-        )
+        # Número máximo de meses hacia atrás
+        MAX_MESES_ATRAS = 6
+
+        precio = None
+        fecha_usada = fecha_consulta
+
+        for intento in range(MAX_MESES_ATRAS + 1):
+            # Consultar precio para la fecha actual del intento
+            precio = self.repo.get_precio_por_hora(
+                id_cliente=id_cliente,
+                fecha=fecha_consulta,
+                hora=hora_consulta,
+                cod_tipo_tarifa=cod_tipo_tarifa
+            )
+            
+            # Si encontramos precio, salir del bucle
+            if precio:
+                fecha_usada = fecha_consulta
+                break
+            
+            # Si no hay precio, retroceder un mes
+            logger.warning(
+                f"Sin precio para cliente {id_cliente} en {fecha_consulta}, "
+                f"retrocediendo un mes (intento {intento + 1}/{MAX_MESES_ATRAS})"
+            )
+            fecha_consulta = fecha_consulta - relativedelta(months=1)
+
+        # Si después de 6 intentos no hay precio
         
         if not precio:
             logger.warning(
@@ -104,25 +126,6 @@ class FranjaService:
             'precio': precio.get('precio'),
             'unidad': precio.get('unidad'),
         }
-    
-    def _tipo_tarifa(
-        self,
-        id_cliente: int,
-        consumo_mensual_kwh: Optional[float]
-    ) -> Optional[str]:
-        """
-        Tipo de tarifa (A, B, C, D) del cliente según TarifaSelector.
-        None si no hay selector o el cliente no existe (el repositorio
-        usa entonces su criterio por defecto).
-        """
-        if not (self.cliente_repo and self.selector):
-            return None
-        cliente = self.cliente_repo.get_by_id(id_cliente)
-        if cliente is None:
-            return None
-        return self.selector.seleccionar_tipo_tarifa(
-            cliente, consumo_mensual_kwh=consumo_mensual_kwh
-        )
     
     def _resolver_hora(self, hora: Optional[int]) -> int:
         """

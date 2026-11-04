@@ -36,13 +36,13 @@ BEGIN
         --  nombre          tipo  estrato  nivel        mercado       municipio
         ('MN57A84E9C8C',   'R',  5,       'N1_1',      'CAUCA',      'Popayán'),          -- Nodo I   · Residencial
         ('MN3053A27FAA',   'R',  3,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo II  · Residencial
-        ('MNB22B64A8E3',   'E',  5,       'N1_1',      'BOGOTA',     'Girardot'),         -- Nodo III · Especial    (estrato original: 5)
-        ('MN53EF93833D',   'C',  2,       'N1_2_1_3',  'CARIBE_MAR', 'Cereté'),           -- Nodo IV  · Comercial   (estrato original: 2)
+        ('MNB22B64A8E3',   'E',  NULL,    'N1_1',      'BOGOTA',     'Girardot'),         -- Nodo III · Especial    (estrato original: 5)
+        ('MN53EF93833D',   'C',  NULL,    'N1_2_1_3',  'CARIBE_MAR', 'Cereté'),           -- Nodo IV  · Comercial   (estrato original: 2)
         ('MN4B45F58D3C',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo V   · Residencial
         ('MN4A59921A8B',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo VI  · Residencial
         ('MNE067834B30',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Caucasia'),         -- Nodo VII · Residencial
-        ('MN4ABA1F08F8',   'C',  4,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo VIII· Comercial   (estrato original: 4)
-        ('MN5EE61A9F74',   'E',  4,       'N1_1',      'CALI',       'Santiago de Cali')  -- Nodo IX  · Especial    (estrato original: 4)
+        ('MN4ABA1F08F8',   'C',  NULL,    'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo VIII· Comercial   (estrato original: 4)
+        ('MN5EE61A9F74',   'E',  NULL,    'N1_1',      'CALI',       'Santiago de Cali')  -- Nodo IX  · Especial    (estrato original: 4)
     ) AS v(nombre, tipo, estrato, nivel, mercado, municipio)
     JOIN zona_geografica z ON z.municipio = v.municipio;
 

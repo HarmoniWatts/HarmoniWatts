@@ -136,33 +136,86 @@ class TarifaActivaResponse(BaseModel):
 # 2. PRECIOS DEL DÍA
 # =====================================================
 
+class MonomiaInfo(BaseModel):
+    """
+    Valor de la monomia (CU sin desglose horario).
+    
+    Solo presente cuando el modo de tarifa es MONOMIA o MIXTO.
+    """
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "valor": 867.79,
+                "unidad": "COP/kWh",
+                "tipo": "CU"
+            }
+        }
+    )
+    
+    valor: float = Field(..., ge=0, description="Valor de la monomia")
+    unidad: str = Field(..., description="Unidad de medida (COP/kWh)")
+    tipo: str = Field(
+        "CU",
+        description="Tipo de concepto: CU (Costo Unitario), CU_BASE, CU_APLICADO, etc."
+    )
+
+
 class PreciosDiaResponse(BaseModel):
     """
     Respuesta del endpoint GET /tariff/active/daily-bands/{id_cliente}
     
     Contiene la curva de precios de las 24 horas del día.
     Útil para el gráfico del dashboard con franjas de fondo.
+    
     """
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {
-                "id_cliente": 123,
-                "fecha": "2024-01-15",
-                "precios": [
-                    {"hora": 1, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 752.15, "unidad": "COP/kWh"},
-                    {"hora": 2, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 752.15, "unidad": "COP/kWh"},
-                    {"hora": 24, "codigo_franja": "F5", "tipo_hora": "VALLE", "precio": 771.51, "unidad": "COP/kWh"}
-                ]
-            }
+            "examples": [
+                {
+                    "summary": "Tarifa mixta (franja + monomia de referencia)",
+                    "value": {
+                        "id_cliente": 4,
+                        "fecha": "2024-04-10",
+                        "precios": [
+                            {"hora": 1, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh"}
+                        ],
+                        "monomia": {
+                            "valor": 867.79,
+                            "unidad": "COP/kWh",
+                            "tipo": "CU"
+                        }
+                    }
+                }
+            ]
         }
     )
     
     id_cliente: int = Field(..., description="ID del cliente")
     fecha: date = Field(..., description="Fecha de los precios")
+    
     precios: List[PrecioHora] = Field(
         default_factory=list,
-        description="Lista de precios por hora (24 elementos)"
+        description=(
+            "Lista de precios por hora (24 elementos) cuando modo_tarifa "
+            "es FRANJA_HORARIA o MIXTO. Vacío cuando es MONOMIA."
+        )
     )
+    
+    monomia: Optional[MonomiaInfo] = Field(
+        None,
+        description=(
+            "Valor de la monomia (CU sin desglose horario). "
+            "Presente solo cuando modo_tarifa es MONOMIA o MIXTO."
+        )
+    )
+    
+class PrecioHora(BaseModel):
+    """Precio de una hora específica."""
+    hora: int = Field(..., ge=1, le=24, description="Hora (1=00:00-01:00, 24=23:00-24:00)")
+    codigo_franja: Optional[str] = Field(None, description="Código de la franja (F1..F8)")
+    tipo_hora: Optional[str] = Field(None, description="Tipo: VALLE, MEDIA, PICO")
+    precio: Optional[float] = Field(None, ge=0, description="Precio unitario")
+    unidad: Optional[str] = Field(None, description="Unidad de medida (COP/kWh)")
 
 
 # =====================================================
