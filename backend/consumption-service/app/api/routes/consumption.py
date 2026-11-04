@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from typing import Optional, Union
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.database import get_database
 from app.repositories.consumption_repository import ConsumptionRepository
@@ -102,12 +103,15 @@ async def get_daily_total(
 async def get_hourly_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
+    start_date_str: Optional[date] = Query(None, alias="date>=", description="Fecha de inicio (YYYY-MM-DD)"),
+    end_date_str: Optional[date] = Query(None, alias="date<=", description="Fecha de fin (YYYY-MM-DD)"),
+    hours: int = Query(24, ge=1, le=8760, description="Horas hacia atrás (solo si no se envían fechas)"),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Obtiene serie temporal con consumo por hora (0-23)
     """
-    # print(f"Received request for hourly series - household_id: {household_id}, date: {date_param}")
+    print(f"Received request for hourly series - household_id: {household_id}, date: {date_param}")
     if settings.HOUSEHOLD_ID_TYPE == "int":
         try:
             household_id = int(household_id)
@@ -117,9 +121,24 @@ async def get_hourly_series(
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    target_date = date_param or datetime.now(timezone.utc).date()
     
-    series = await service.get_hourly_series(household_id, target_date)
+    local_tz = ZoneInfo("America/Bogota")
+    
+    target_date = date_param or datetime.now(local_tz).date()
+    start_date = datetime.combine(target_date, datetime.min.time())
+    end_date = datetime.combine(target_date, datetime.max.time())
+    
+    # 1. Determinar el inicio y fin del rango
+    if start_date_str and end_date_str:
+        start_date = datetime.combine(start_date_str, datetime.min.time(), tzinfo=local_tz)
+        end_date = datetime.combine(end_date_str, datetime.max.time(), tzinfo=local_tz)
+    elif hours:
+        end_date = datetime.now(local_tz)
+        start_date = end_date - timedelta(hours=hours)
+
+        
+    
+    series = await service.get_hourly_series(household_id, start_date, end_date)
     
     return TimeSeriesResponse(
         id_vivienda=household_id,

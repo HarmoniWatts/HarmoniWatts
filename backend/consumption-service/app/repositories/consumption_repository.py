@@ -111,7 +111,8 @@ class ConsumptionRepository:
     async def get_hourly_consumption(
         self,
         household_id: Union[int, str],
-        target_date: date
+        start_date: datetime,
+        end_date: datetime
     ) -> List[Dict[str, Any]]:
         """
         Obtiene consumo por hora para un día
@@ -119,37 +120,62 @@ class ConsumptionRepository:
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
         
-        start = datetime.combine(target_date, datetime.min.time())
-        end = datetime.combine(target_date, datetime.max.time())
+        start = start_date
+        end = end_date
         
         pipeline = [
             {
                 "$match": {
                     "id_vivienda": household_id,
-                    "timestamp": {"$gte": start, "$lte": end}
+                    "timestamp": {
+                        "$gte": start,
+                        "$lte": end
+                    }
                 }
             },
             {
                 "$group": {
-                    "_id": {"hour": {"$hour": "$timestamp"}},
-                    "consumption_kwh": {"$sum": "$valor_kwh"},
-                    
-                    # Sumar el costo correcto según el modo
+                    "_id": {
+                        "date": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$timestamp",
+                                "timezone": "America/Bogota"
+                            }
+                        },
+                        "hour": {
+                            "$hour": {
+                                "date": "$timestamp",
+                                "timezone": "America/Bogota"
+                            }
+                        }
+                    },
+                    "consumption_kwh": {
+                        "$sum": "$valor_kwh"
+                    },
                     "total_cost": {
                         "$sum": {
                             "$cond": [
-                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                {
+                                    "$eq": [
+                                        "$tarifa_aplicada.modo",
+                                        "MONOMIA"
+                                    ]
+                                },
                                 "$tarifa_aplicada.costo_total_monomia",
                                 "$tarifa_aplicada.costo_total_franja"
                             ]
                         }
                     },
-                    
-                    # Promediar el precio correcto según el modo
                     "tarifa_promedio": {
                         "$avg": {
                             "$cond": [
-                                { "$eq": ["$tarifa_aplicada.modo", "MONOMIA"] },
+                                {
+                                    "$eq": [
+                                        "$tarifa_aplicada.modo",
+                                        "MONOMIA"
+                                    ]
+                                },
                                 "$tarifa_aplicada.precio_kwh_monomia",
                                 "$tarifa_aplicada.precio_kwh_franja"
                             ]
@@ -157,7 +183,12 @@ class ConsumptionRepository:
                     }
                 }
             },
-            {"$sort": {"_id.hour": 1}}
+            {
+                "$sort": {
+                    "_id.date": 1,
+                    "_id.hour": 1
+                }
+            }
         ]
         
         cursor = self.collection.aggregate(pipeline)

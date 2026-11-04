@@ -93,13 +93,14 @@ class ConsumptionService:
     async def get_hourly_series(
         self, 
         household_id: Union[int, str], 
-        target_date: date
+        start_date: datetime,
+        end_date: datetime
     ) -> Dict[str, List[float]]:
         """
         Retorna series horarias de consumo y costo
         """
         hourly_data = await self.repository.get_hourly_consumption(
-            household_id, target_date
+            household_id, start_date, end_date
         )
         
         consumption = [0.0] * 24

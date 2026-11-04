@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from loguru import logger
 import holidays
 
@@ -72,7 +73,7 @@ class MeterMapper:
                 # Fuente
                 "fuente": "api_externa",
                 "calidad_dato": "real",
-                "fecha_registro": datetime.utcnow(),
+                "fecha_registro": datetime.utcnow().replace(tzinfo=ZoneInfo("America/Bogota")),
                 "version_schema": "2.0",
             }
             
@@ -105,7 +106,9 @@ class MeterMapper:
         if not date_time_str:
             return None
         try:
-            return datetime.strptime(date_time_str, "%d/%m/%Y %H:%M:%S")
+            return datetime.strptime(date_time_str, "%d/%m/%Y %H:%M:%S").replace(
+                tzinfo=ZoneInfo("America/Bogota")
+            )
         except ValueError:
             return None
     
