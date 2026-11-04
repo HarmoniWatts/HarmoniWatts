@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 from loguru import logger
 
 from app.services.ports import TarifaResolverPort

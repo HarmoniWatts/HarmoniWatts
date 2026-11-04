@@ -1,7 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 from loguru import logger
-from bson import ObjectId
 
 from app.core.database import MongoDBManager
 from app.config import settings
@@ -82,9 +81,7 @@ class SyncRepository:
                 "errores": len(resultado.bulk_api_result.get("writeErrors", [])),
             }
         except Exception as e:
-            import time
             # logger.error(f"Error en upsert_consumos_batch.....")
-            # time.sleep(5)
             logger.error(f"Error en upsert_consumos_batch: {e}")
             return {"insertados": 0, "actualizados": 0, "errores": len(documentos)}
     
