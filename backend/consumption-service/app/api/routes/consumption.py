@@ -2,9 +2,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from typing import Optional
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone as dt_timezone
+from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.database import get_database
+from app.core.local_calendar import utc_range_for_local_calendar_day
 from app.repositories.consumption_repository import ConsumptionRepository
 from app.services.consumption_service import ConsumptionService
 from app.models.consumption import (
@@ -12,6 +14,21 @@ from app.models.consumption import (
     DailyTotalResponse,
     TimeSeriesResponse
 )
+from app.models.sync import (
+    SyncClienteRequest,
+    SyncViviendaRequest,
+    SyncMedidorRequest,
+    SyncMedidorResponse,
+    SyncClienteResponse,
+    SyncViviendaResponse,
+    SyncEstadoResponse,
+    SyncHistorialResponse,
+)
+from app.services.sync_service import SyncService
+from app.services.vivienda_resolver import ViviendaResolverMock
+from app.services.tarifa_resolver import TarifaResolverHTTP, TarifaResolverMock
+from app.repositories.sync_repository import SyncRepository
+
 from app.config import settings
 
 router = APIRouter(prefix="/api/v1/consumption", tags=["consumption"])
@@ -92,6 +109,9 @@ async def get_daily_total(
 async def get_hourly_series(
     household_id: str = Path(..., description="ID de la vivienda"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
+    start_date_str: Optional[date] = Query(None, alias="date>=", description="Fecha de inicio (YYYY-MM-DD)"),
+    end_date_str: Optional[date] = Query(None, alias="date<=", description="Fecha de fin (YYYY-MM-DD)"),
+    hours: Optional[int] = Query(None, ge=1, le=8760, description="Horas hacia atrás desde ahora (solo si no se envían fechas)"),
     timezone: str = Query(
         settings.DEFAULT_TIMEZONE,
         alias="timezone",
@@ -100,9 +120,13 @@ async def get_hourly_series(
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     """
-    Obtiene serie temporal con consumo por hora (0-23)
+    Obtiene serie temporal con consumo por hora (0-23).
+
+    Ventana consultada, en orden de prioridad:
+    - `date>=` y `date<=`: días civiles completos del rango (en `timezone`).
+    - `hours`: las últimas N horas hasta ahora.
+    - `date` (o hoy): el día civil completo.
     """
-    # print(f"Received request for hourly series - household_id: {household_id}, date: {date_param}")
     if settings.HOUSEHOLD_ID_TYPE == "int":
         try:
             household_id = int(household_id)
@@ -112,15 +136,28 @@ async def get_hourly_series(
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    target_date = date_param or datetime.now(timezone.utc).date()
-    
-    series = await service.get_hourly_series(household_id, target_date, timezone)
-    
+    local_tz = ZoneInfo(timezone)
+    if start_date_str and end_date_str:
+        start, _ = utc_range_for_local_calendar_day(start_date_str, timezone)
+        _, end_exclusive = utc_range_for_local_calendar_day(end_date_str, timezone)
+        first_day, last_day = start_date_str, end_date_str
+    elif hours:
+        end_exclusive = datetime.now(dt_timezone.utc)
+        start = end_exclusive - timedelta(hours=hours)
+        first_day = start.astimezone(local_tz).date()
+        last_day = end_exclusive.astimezone(local_tz).date()
+    else:
+        target_date = date_param or datetime.now(local_tz).date()
+        start, end_exclusive = utc_range_for_local_calendar_day(target_date, timezone)
+        first_day = last_day = target_date
+
+    series = await service.get_hourly_series(household_id, start, end_exclusive, timezone)
+
     return TimeSeriesResponse(
         id_vivienda=household_id,
         granularity="hour",
-        start_date=target_date.isoformat(),
-        end_date=target_date.isoformat(),
+        start_date=first_day.isoformat(),
+        end_date=last_day.isoformat(),
         labels=[f"{h:02d}:00" for h in range(24)],
         values_kwh=series["consumption_kwh"],
         values_cost=series["costs_cop"]
@@ -256,3 +293,176 @@ async def get_yearly_series(
         values_kwh=result["values_kwh"],
         values_cost=result["values_cost"]
     )
+    
+    
+# =====================================================
+# DEPENDENCIAS
+# =====================================================
+
+def get_sync_service() -> SyncService:
+    """
+    Construye SyncService con implementaciones por defecto.
+    
+    - ViviendaResolver: MOCK (hasta tener user-service)
+    - TarifaResolver: HTTP (tariff-service) con fallback a MOCK
+    """
+    vivienda_resolver = ViviendaResolverMock()
+    
+    # Elegir tarifa resolver según entorno
+    if settings.ENVIRONMENT == "development" and not settings.TARIFF_SERVICE_URL:
+        tarifa_resolver = TarifaResolverMock()
+    else:
+        tarifa_resolver = TarifaResolverHTTP(
+            base_url=settings.TARIFF_SERVICE_URL,
+        )
+    
+    return SyncService(
+        vivienda_resolver=vivienda_resolver,
+        tarifa_resolver=tarifa_resolver,
+    )
+
+
+def get_sync_repository() -> SyncRepository:
+    return SyncRepository()
+
+
+# =====================================================
+# ENDPOINTS
+# =====================================================
+
+
+# =====================================================
+# SINCRONIZACIÓN MANUAL
+# =====================================================
+
+
+@router.post("/sync/manual/vivienda/{id_vivienda}", response_model=SyncViviendaResponse, status_code=202)
+async def sync_por_vivienda(
+    id_vivienda: int,
+    request: SyncViviendaRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_vivienda(
+        id_vivienda=id_vivienda,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+   
+    return SyncViviendaResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        id_vivienda=resultado["id_vivienda"],
+        medidores=resultado["medidores"],
+        total_medidores=resultado["total_medidores"],
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje=resultado["mensaje"],
+        detalles = resultado["detalles"],
+    )
+
+@router.post("/sync/manual/cliente/{id_cliente}", response_model=SyncClienteResponse, status_code=202)
+async def sync_por_cliente(
+    id_cliente: int,
+    request: SyncClienteRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_cliente(
+        id_cliente=id_cliente,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+    return SyncClienteResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        id_cliente=resultado.get("id_cliente"),
+        medidores=resultado.get("medidores"),
+        total_medidores=resultado.get("total_medidores"),
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje=resultado["mensaje"],
+        detalles = resultado["detalles"],
+    )
+
+@router.post("/sync/manual/medidor/{meter_no}", response_model=SyncMedidorResponse, status_code=202)
+async def sync_manual(
+    request: SyncMedidorRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_medidor(
+        meter_no=request.meter_no,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+    return SyncMedidorResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        meter_no=resultado.get("meter_no"),
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+        mensaje="Sincronización completada",
+    )
+
+
+# =====================================================
+# CONSULTAR ESTADO
+# =====================================================
+
+@router.get("/sync/estado/{id_sincronizacion}", response_model=SyncEstadoResponse)
+async def get_sync_estado(
+    id_sincronizacion: str,
+    repo: SyncRepository = Depends(get_sync_repository),
+):
+    """Consulta el estado de una sincronización."""
+    doc = await repo.obtener_sync_estado(id_sincronizacion)
+    
+    if not doc:
+        raise HTTPException(404, f"Sincronización no encontrada: {id_sincronizacion}")
+    
+    # return SyncEstadoResponse(
+    #     id_sincronizacion=doc["id_sincronizacion"],
+    #     estado=doc["estado"],
+    #     meter_no=doc.get("meter_no"),
+    #     registros_obtenidos=doc.get("registros_obtenidos", 0),
+    #     registros_insertados=doc.get("registros_insertados", 0),
+    #     registros_duplicados=doc.get("registros_duplicados", 0),
+    #     errores=doc.get("errores", []),
+    #     duracion_seg=doc.get("duracion_seg"),
+    #     creada_en=doc.get("creada_en"),
+    #     finalizada_en=doc.get("finalizada_en"),
+    # )
+    return SyncEstadoResponse(**doc)
+
+
+# =====================================================
+# HISTORIAL
+# =====================================================
+
+@router.get("/sync/historial", response_model=SyncHistorialResponse)
+async def get_sync_historial(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    repo: SyncRepository = Depends(get_sync_repository),
+):
+    """Consulta el historial de sincronizaciones."""
+    return await repo.obtener_historial(limit=limit, offset=offset)

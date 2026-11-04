@@ -286,6 +286,8 @@ services:
       CONSUMPTION_COLLECTION: consumos_enriquecidos
       HOUSEHOLD_ID_TYPE: int
       DEFAULT_TIMEZONE: America/Bogota
+      # Tarifa vigente de cada lectura sincronizada desde INELCA
+      TARIFF_SERVICE_URL: http://harmoniwatts-tariff-service:8006
     ports:
       - "${HW_CONSUMPTION_SERVICE_PORT:-8001}:8001"
     depends_on:

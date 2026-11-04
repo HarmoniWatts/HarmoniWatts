@@ -2,7 +2,7 @@
 
 Documento de referencia para la API del **tariff-service**: tarifas activas, extracción desde comercializadoras y administración de asignaciones. Complementa la visión de [ARQUITECTURA-HarmoniWatts.md](ARQUITECTURA-HarmoniWatts.md).
 
-**Estado de cada endpoint** (columna *Estado* en el resumen de la sección 7):
+**Estado de cada endpoint** (columna *Estado* en el resumen de la sección 8):
 
 | Estado | Significado |
 |--------|-------------|
@@ -21,6 +21,19 @@ Documento de referencia para la API del **tariff-service**: tarifas activas, ext
 | **D — Dependency Inversion** | Los routers son **finos**: delegan en servicios (`TarifaActivaService`, `FranjaService`, `AlertaTarifaService`, `ExtractionService`) que reciben repositorios y selectores por inyección (`Depends`). La lógica de negocio (selección de tipo de tarifa, resolución hora→franja, detección de franja alta) vive en los servicios, no en los controladores. |
 
 La UI puede llamar los recursos de **activas** en paralelo; los de **históricas** solo cuando se abre el módulo de análisis; los de **extracción** solo desde el panel administrativo.
+
+### Dependencias internas del servicio
+
+| Componente | Responsabilidad |
+|------------|-----------------|
+| `TarifaRepository` | Acceso a datos de tarifas, períodos, valores, componentes y configuraciones horarias. |
+| `ClienteRepository` | Obtención de datos del cliente (comercializadora, mercado, nivel, estrato, CS). |
+| `TarifaSelector` | Selección del tipo de tarifa (A, B, C, D) según reglas CREG 119/2007 y consumo del cliente. |
+| `TarifaActivaService` | Lógica de tarifa vigente completa. |
+| `FranjaService` | Lógica de precios por hora y franja actual. |
+| `AlertaTarifaService` | Detección de ventanas de alta tarifa. |
+| `ExtractionService` | Pipeline de extracción de PDFs y persistencia. |
+| `ExtractionStateStore` | Seguimiento del estado de las extracciones en background. |
 
 ---
 
@@ -67,7 +80,7 @@ Entrega la tarifa activa del cliente, incluyendo cabecera, período vigente, val
 | Parámetro | Obligatorio | Descripción |
 |-----------|:-----------:|-------------|
 | `fecha` | No | Día a consultar (`YYYY-MM-DD`). Default: hoy (TZ cliente). |
-| `consumo_mensual_kwh` | No | Consumo mensual en kWh. |
+| `consumo_mensual_kwh` | No | Consumo mensual en kWh. Se usa para determinar el tipo de tarifa (A, B, C, D) según reglas CREG. Si se omite, se asume consumo = CS. |
 
 **Respuesta `200 OK`** (`TarifaActivaResponse`)
 
@@ -95,6 +108,7 @@ Entrega la tarifa activa del cliente, incluyendo cabecera, período vigente, val
     "estado": "PUBLICADA",
     "fecha_publicacion": "2024-04-01"
   },
+  "cod_configuracion_horaria": "CH00",
   "monomia": {
     "valor": 854.38,
     "unidad": "COP/kWh",
@@ -112,8 +126,8 @@ Entrega la tarifa activa del cliente, incluyendo cabecera, período vigente, val
   "componentes": [
     { "cod_componente": "Cm",  "valor": 48.99 },
     { "cod_componente": "Dm",  "valor": 254.70 },
-    { "cod_componente": "Gm",  "valor": 426.57 },
-    { "cod_componente": "PRm", "valor": 76.17 },
+    { "cod_componente": "Gm",  "valor": 425.57 },
+    { "cod_componente": "PRm", "valor": 75.17 },
     { "cod_componente": "Rm",  "valor": 7.10 },
     { "cod_componente": "Tm",  "valor": 54.27 },
     { "cod_componente": "Cfmj","valor": 8839.00 }
@@ -139,14 +153,12 @@ Entrega la tarifa activa del cliente, incluyendo cabecera, período vigente, val
 
 **`GET /api/v1/tariff/active/daily-bands/{id_cliente}`**
 
-Curva de precios de las 24 horas del día, con franja y tipo, para pintar el gráfico del dashboard.
-
 **Query parameters**
 
 | Parámetro | Obligatorio | Descripción |
 |-----------|:-----------:|-------------|
 | `fecha` | No | Día (`YYYY-MM-DD`). Default: hoy. |
-| `consumo_mensual_kwh` | No | Consumo mensual en kWh. |
+| `consumo_mensual_kwh` | No | Consumo mensual en kWh (para determinar el tipo de tarifa). |
 
 **Respuesta `200 OK`** (`PreciosDiaResponse`)
 
@@ -155,8 +167,8 @@ Curva de precios de las 24 horas del día, con franja y tipo, para pintar el gr�
   "id_cliente": 4,
   "fecha": "2024-04-10",
   "precios": [
-    { "hora": 1,  "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh" },
-    { "hora": 2,  "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh" },
+    { "hora": 1, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh" },
+    { "hora": 2, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh" },
     { "hora": 24, "codigo_franja": "F1", "tipo_hora": "VALLE", "precio": 854.38, "unidad": "COP/kWh" }
   ],
   "monomia": {
@@ -421,11 +433,138 @@ El cliente hace polling cada X segundos hasta que el estado sea `completado` o `
 
 ---
 
-## 5. Endpoints — Administración (*Planeado*)
+## 5. Endpoints — Tarifas Históricas — *Implementado*
+
+### 5.1. Tarifas de un mes
+
+**`GET /api/v1/tariff/historical/{anio}/{mes}`**
+
+**Query parameters**
+
+| Parámetro | Obligatorio | Descripción |
+|-----------|-------------|-------------|
+| `comercializadora` | No | Filtrar por comercializadora. |
+| `mercado` | No | Filtrar por mercado. |
+| `nivel` | No | Filtrar por nivel de tensión. |
+| `tipo_tarifa` | No | Filtrar por tipo de tarifa (A, B, C, D). |
+
+**Respuesta `200 OK`**
+
+```json
+{
+  "anio": 2025,
+  "mes": 10,
+  "total_tarifas": 1,
+  "tarifas": [
+    {
+      "codigo": "CALI-N1_1-A",
+      "nombre_tarifa": "CALI N1_1 tipo A",
+      "cod_comercializadora": "ENERTOTAL",
+      "cod_mercado": "CALI",
+      "cod_nivel": "N1_1",
+      "cod_tipo_tarifa": "A",
+      "resolucion_regulatoria": null,
+      "numero_version": 1,
+      "fecha_inicio": "2025-10-01",
+      "fecha_fin": "2025-10-31",
+      "fecha_publicacion": null,
+      "configuracion_horaria": "CH00",
+      "monomia": { "valor": 888.43, "unidad": "COP/kWh", "tipo": "CU" },
+      "valores": [
+        { "codigo_franja": "F1", "tipo_hora": "VALLE", "valor": 874.09, "unidad": "COP/kWh", "horas": [1, 2, 3, 4, 24] }
+      ],
+      "componentes": [ { "cod_componente": "Gm", "valor": 387.07 } ]
+    }
+  ]
+}
+```
+
+### 5.2. Tendencias de precios
+
+**`GET /api/v1/tariff/historical/trends`**
+
+**Query parameters**
+
+| Parámetro          | Obligatorio | Descripción |
+|--------------------|-------------|-------------|
+| `mercado`          | Sí          | Código del mercado (ej. META). |
+| `nivel`            | Sí          | Código del nivel de tensión (ej. N1_2_1_3). |
+| `tipo_tarifa`      | No          | Tipo de tarifa (A, B, C, D). Default: A. |
+| `comercializadora` | No          | Código de la comercializadora. |
+| `desde`            | No          | Inicio del rango (se usa el mes). Default: 12 meses antes de hasta. |
+| `hasta`            | No          | Fin del rango (se usa el mes). Default: último mes publicado. |
+
+
+**Respuesta `200 OK`**
+
+```json
+{
+  "cod_comercializadora": "ENERTOTAL",
+  "mercado": "META",
+  "nivel": "N1_2_1_3",
+  "tipo_tarifa": "A",
+  "desde": { "anio": 2025, "mes": 1 },
+  "hasta": { "anio": 2025, "mes": 4 },
+  "unidad": "COP/kWh",
+  "serie": [
+    { "anio": 2025, "mes": 1, "precio_promedio": 765.08, "precio_min": 745.2, "precio_max": 780.1, "variacion": null, "meses_omitidos": 0, "configuracion": "CH00" }
+  ],
+  "meses_faltantes": [],
+  "tendencia_anual": 1.83,
+  "precio_min_12m": 745.2,
+  "precio_max_12m": 795.0,
+  "advertencias": []
+}
+```
+
+### 5.3. Comparar dos períodos
+
+**`GET /api/v1/tariff/historical/compare`**
+
+**Query parameters**
+
+| Parámetro          | Obligatorio | Descripción |
+|--------------------|-------------|-------------|
+| `mercado`          | Sí          | Código del mercado (ej. META). |
+| `nivel`            | Sí          | Código del nivel de tensión (ej. N1_2_1_3). |
+| `periodo_a`        | Sí          | Formato YYYY-MM |
+| `periodo_b`        | Sí          | Formato YYYY-MM |
+| `tipo_tarifa`      | No          | Tipo de tarifa (A, B, C, D). Default: A. |
+| `comercializadora` | No          | Código de la comercializadora. |
+
+
+**Respuesta `200 OK`**
+
+```json
+{
+  "cod_comercializadora": "ENERTOTAL",
+  "mercado": "CALI",
+  "nivel": "N1_1",
+  "tipo_tarifa": "A",
+  "periodo_a": { "anio": 2025, "mes": 9, "numero_version": 1 },
+  "periodo_b": { "anio": 2025, "mes": 10, "numero_version": 1 },
+  "configuracion_a": "CH00",
+  "configuracion_b": "CH00",
+  "configuracion_distinta": false,
+  "unidad": "COP/kWh",
+  "precio_promedio_a": 880.12,
+  "precio_promedio_b": 888.43,
+  "variacion_total": 0.94,
+  "variacion_monomia": { "a": 880.0, "b": 888.43, "diferencia": 8.43, "porcentaje": 0.96 },
+  "variacion_horas": [ ... ],
+  "variacion_tipo_hora": [ ... ],
+  "variacion_componentes": [ ... ],
+  "advertencias": []
+}
+```
+
+---
+
+## 6. Endpoints — Administración (*Planeado*)
 
 > Ningún endpoint de esta sección existe aún en el código.
 
-### 5.1. Asignar tarifa a un cliente
+### 6.1. Asignar tarifa a un cliente
 
 **`POST /api/v1/tariff/admin/assign`**
 
@@ -462,7 +601,7 @@ Asigna manualmente una tarifa a un cliente.
 
 ---
 
-### 5.2. Listar comercializadoras
+### 6.2. Listar comercializadoras
 
 **`GET /api/v1/tariff/admin/comercializadoras`**
 
@@ -480,7 +619,7 @@ Asigna manualmente una tarifa a un cliente.
 
 ---
 
-### 5.3. Listar mercados
+### 6.3. Listar mercados
 
 **`GET /api/v1/tariff/admin/mercados`**
 
@@ -503,7 +642,7 @@ Asigna manualmente una tarifa a un cliente.
 
 ---
 
-## 6. Códigos de error comunes
+## 7. Códigos de error comunes
 
 | Código | Significado | Ejemplo |
 |--------|-------------|---------|
@@ -537,7 +676,7 @@ Asigna manualmente una tarifa a un cliente.
 
 ---
 
-## 7. Resumen de rutas
+## 8. Resumen de rutas
 
 | Método | Ruta | Responsabilidad | Estado |
 |--------|------|-----------------|--------|
@@ -550,13 +689,16 @@ Asigna manualmente una tarifa a un cliente.
 | `GET` | `/api/v1/tariff/ubicacion/calendario` | Tarifas publicadas mes a mes | Implementado |
 | `POST` | `/api/v1/tariff/extraction/manual` | Extracción manual por rango | Implementado |
 | `GET` | `/api/v1/tariff/extraction/estado/{id}` | Estado de una extracción | Implementado |
+| `GET` | `/api/v1/tariff/historical/{anio}/{mes}` | Tarifas publicadas de un mes | Implementado |
+| `GET` | `/api/v1/tariff/historical/trends` | Tendencia de precios de una tarifa | Implementado |
+| `GET` | `/api/v1/tariff/historical/compare` | Comparar dos períodos | Implementado |
 | `POST` | `/api/v1/tariff/admin/assign` | Asignar tarifa a cliente | Planeado |
 | `GET` | `/api/v1/tariff/admin/comercializadoras` | Listar comercializadoras | Planeado |
 | `GET` | `/api/v1/tariff/admin/mercados` | Listar mercados | Planeado |
 
 ---
 
-## 8. Próximos pasos sugeridos
+## 9. Próximos pasos sugeridos
 
 1. **Habilitar autenticación JWT** en los endpoints de activas (descomentar `get_current_cliente` y la validación `id_cliente`) y proteger `extraction/*` y `admin/*` con rol administrativo.
 2. **Alinear códigos de respuesta**: `202 Accepted` en `POST /extraction/manual`; decidir si `daily-bands` devuelve `200` con `precios: []` para clientes solo-monomía en lugar de `404`.

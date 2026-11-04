@@ -106,6 +106,7 @@ class TarifaActivaResponse(BaseModel):
                     "estado": "PUBLICADA",
                     "fecha_publicacion": "2024-01-01"
                 },
+                "cod_configuracion_horaria": "CH00",
                 "monomia": {
                     "valor": 874.09,
                     "unidad": "COP/kWh",
@@ -127,6 +128,7 @@ class TarifaActivaResponse(BaseModel):
     fecha_consulta: date = Field(..., description="Fecha en que se realizó la consulta")
     tarifa: TarifaInfo = Field(..., description="Información de la tarifa")
     periodo: PeriodoInfo = Field(..., description="Período tarifario vigente")
+    cod_configuracion_horaria: Optional[str] = Field(None, description="Código de la configuración horaria (si aplica)")
     monomia: Optional[MonomiaInfo] = Field(None, description="Información de la monomía (si aplica)")
     valores: List[ValorFranja] = Field(default_factory=list, description="Valores por franja horaria")
     componentes: List[ComponenteCU] = Field(default_factory=list, description="Componentes del CU")
