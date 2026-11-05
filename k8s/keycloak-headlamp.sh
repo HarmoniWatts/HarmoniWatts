@@ -2,7 +2,8 @@
 # =============================================================================
 # Se ejecuta DENTRO del pod de Keycloak (lo llama k8s/deploy.sh con kubectl exec).
 # Crea o actualiza, en el realm "master":
-#   - el cliente OIDC "headlamp" (confidencial, PKCE, redirect a /headlamp/oidc-callback)
+#   - el cliente OIDC "headlamp" (confidencial, PKCE, redirect a /headlamp/oidc-callback,
+#     tokens de 30 min: el realm master los da de 1 min y Headlamp perdía la conexión)
 #   - un mapper que publica los grupos del usuario en el claim "groups"
 #   - el grupo "k8s-admins" (administradores del clúster, ver k8s/cluster/headlamp-rbac.yaml)
 #     con el administrador de Keycloak como miembro
@@ -41,6 +42,7 @@ fi
   -s "redirectUris=[\"https://$APP_HOST/headlamp/oidc-callback\"]" \
   -s "webOrigins=[\"https://$APP_HOST\"]" \
   -s 'attributes."pkce.code.challenge.method"=S256' \
+  -s 'attributes."access.token.lifespan"=1800' \
   -s "attributes.\"post.logout.redirect.uris\"=https://$APP_HOST/headlamp/*"
 
 if ! "$KC" get "clients/$CID/protocol-mappers/models" -r "$REALM" --fields name --format csv --noquotes \
