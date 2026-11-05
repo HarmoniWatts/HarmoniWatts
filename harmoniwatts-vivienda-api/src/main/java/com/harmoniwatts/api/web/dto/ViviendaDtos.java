@@ -42,7 +42,6 @@ public final class ViviendaDtos {
       String zonaClimatica,
       Short idZona,
       String codMercado,
-      String numeroContrato,
       String fechaRegistro) {
 
     public static ViviendaResponse from(Vivienda v) {
@@ -55,7 +54,6 @@ public final class ViviendaDtos {
           v.getZonaClimatica(),
           v.getIdZona(),
           v.getCodMercado(),
-          v.getNumeroContrato(),
           v.getFechaRegistro() != null ? v.getFechaRegistro().toString() : null);
     }
   }

@@ -35,7 +35,7 @@ public class ViviendaService {
     v.setHabitantes(req.habitantes());
     v.setEstrato(req.estrato());
     v.setDireccion(req.ubicacion().trim());
-    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado(), req.numeroContrato());
+    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado());
     return ViviendaResponse.from(viviendaRepository.save(v));
   }
 
@@ -54,7 +54,7 @@ public class ViviendaService {
     } else {
       v.setZonaClimatica(null);
     }
-    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado(), req.numeroContrato());
+    aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado());
     return ViviendaResponse.from(viviendaRepository.save(v));
   }
 
@@ -63,7 +63,7 @@ public class ViviendaService {
    * La ciudad es opcional, pero sin ella no se pueden resolver las tarifas de la vivienda.
    */
   private static void aplicarUbicacionTarifaria(
-      Vivienda v, Short idZona, String codMercado, String numeroContrato) {
+      Vivienda v, Short idZona, String codMercado) {
     String mercado = codMercado != null && !codMercado.isBlank() ? codMercado.trim() : null;
     if ((idZona == null) != (mercado == null)) {
       throw new ResponseStatusException(
@@ -71,8 +71,6 @@ public class ViviendaService {
     }
     v.setIdZona(idZona);
     v.setCodMercado(mercado);
-    v.setNumeroContrato(
-        numeroContrato != null && !numeroContrato.isBlank() ? numeroContrato.trim() : null);
   }
 
   @Transactional

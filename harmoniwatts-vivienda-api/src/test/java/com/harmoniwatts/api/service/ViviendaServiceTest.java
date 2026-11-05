@@ -68,7 +68,6 @@ class ViviendaServiceTest {
 
     assertThat(res.idZona()).isEqualTo((short) 9);
     assertThat(res.codMercado()).isEqualTo("BOGOTA");
-    assertThat(res.numeroContrato()).isEqualTo("123-456");
   }
 
   @Test

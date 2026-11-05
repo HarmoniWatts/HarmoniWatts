@@ -44,10 +44,6 @@ public class Vivienda {
   @Column(name = "cod_mercado", length = 30)
   private String codMercado;
 
-  /** Número de contrato / cuenta con la comercializadora. */
-  @Column(name = "numero_contrato", length = 30)
-  private String numeroContrato;
-
   @Column(name = "fecha_registro", nullable = false)
   private Instant fechaRegistro = Instant.now();
 
@@ -123,13 +119,6 @@ public class Vivienda {
     this.codMercado = codMercado;
   }
 
-  public String getNumeroContrato() {
-    return numeroContrato;
-  }
-
-  public void setNumeroContrato(String numeroContrato) {
-    this.numeroContrato = numeroContrato;
-  }
 
   public Instant getFechaRegistro() {
     return fechaRegistro;
