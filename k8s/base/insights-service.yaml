@@ -1,0 +1,55 @@
+# insights-service (Node). Rutas públicas /api/v1/dashboard y /api/v1/recommendations.
+apiVersion: v1
+kind: Service
+metadata:
+  name: harmoniwatts-insights-service
+spec:
+  selector:
+    app.kubernetes.io/name: insights-service
+  ports:
+    - name: http
+      port: 7001
+      targetPort: 7001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insights-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: insights-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: insights-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: insights-service
+          image: harmoniwatts/insights-service
+          ports:
+            - containerPort: 7001
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "7001"
+            - name: CONSUMPTION_SERVICE_URL
+              value: http://harmoniwatts-consumption-service:8001
+            - name: PREDICTION_SERVICE_URL
+              value: http://harmoniwatts-consumption-service:8001
+            - name: DEFAULT_TIMEZONE
+              value: America/Bogota
+          readinessProbe:
+            httpGet: { path: /health, port: 7001 }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /health, port: 7001 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 192Mi }

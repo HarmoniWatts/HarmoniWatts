@@ -1,0 +1,54 @@
+# Encender / apagar la VM de Azure desde GitHub (Actions → "Azure VM" → Run workflow).
+# Apagar = "deallocate": deja de cobrarse el cómputo; solo se cobran disco e IP.
+# Además la VM tiene apagado automático diario configurado en Azure (provision.sh).
+
+name: Azure VM
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Acción sobre la VM
+        type: choice
+        options: [start, stop, status]
+        default: status
+  # Ejemplo: encenderla automáticamente de lunes a viernes a las 7:00 (hora Colombia).
+  # schedule:
+  #   - cron: '0 12 * * 1-5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  power:
+    name: VM ${{ inputs.action || 'start' }}
+    runs-on: ubuntu-latest
+    environment: azure
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      VM: ${{ vars.AZURE_VM_NAME }}
+      ACTION: ${{ inputs.action || 'start' }}
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Ejecutar acción
+        run: |
+          case "$ACTION" in
+            start) az vm start -g "$RG" -n "$VM" ;;
+            stop)  az vm deallocate -g "$RG" -n "$VM" ;;
+          esac
+          state="$(az vm get-instance-view -g "$RG" -n "$VM" \
+            --query "instanceView.statuses[?starts_with(code,'PowerState/')].displayStatus | [0]" -o tsv)"
+          echo "Estado de $VM: $state"
+          echo "### VM \`$VM\`: $state" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://${{ vars.APP_HOST }}" >> "$GITHUB_STEP_SUMMARY"

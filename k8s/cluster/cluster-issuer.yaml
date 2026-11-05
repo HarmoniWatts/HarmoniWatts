@@ -1,0 +1,16 @@
+# Emisor de certificados Let's Encrypt (recurso de clúster, fuera del namespace).
+# deploy.sh reemplaza __LETSENCRYPT_EMAIL__ (correo para avisos de vencimiento).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: "__LETSENCRYPT_EMAIL__"
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik

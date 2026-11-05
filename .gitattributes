@@ -1,0 +1,4 @@
+# Scripts que corren en Linux (contenedores, runners, VM): siempre LF
+*.sh text eol=lf
+k8s/** text eol=lf
+infra/** text eol=lf

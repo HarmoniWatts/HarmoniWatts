@@ -1,0 +1,17 @@
+# Configuración no sensible compartida. Las credenciales van en el Secret
+# "harmoniwatts-secrets" (lo crea k8s/deploy.sh desde los secretos de GitHub).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harmoniwatts-config
+data:
+  APP_HOST: "__APP_HOST__"
+  POSTGRES_DB: keycloak_db
+  KEYCLOAK_REALM: harmoniwatts
+  # URL pública de Keycloak (claim "iss" de los tokens que emite)
+  KEYCLOAK_PUBLIC_URL: "https://__APP_HOST__/auth"
+  # URL interna (red del clúster)
+  KEYCLOAK_INTERNAL_URL: "http://keycloak:8080/auth"
+  KEYCLOAK_ISSUER_URI: "https://__APP_HOST__/auth/realms/harmoniwatts"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/auth/realms/harmoniwatts/protocol/openid-connect/certs"
+  TZ: America/Bogota
