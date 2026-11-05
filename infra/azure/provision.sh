@@ -92,7 +92,13 @@ az identity create -g "$RG" -n "$IDENTITY" -o none
 APP_ID="$(az identity show -g "$RG" -n "$IDENTITY" --query clientId -o tsv)"
 PRINCIPAL_ID="$(az identity show -g "$RG" -n "$IDENTITY" --query principalId -o tsv)"
 SUBJECT="repo:${GITHUB_REPO}:environment:${GITHUB_ENV}"
-az identity federated-credential create -g "$RG" --identity-name "$IDENTITY"   -n "github-${GITHUB_ENV}"   --issuer https://token.actions.githubusercontent.com   --subject "$SUBJECT"   --audiences api://AzureADTokenExchange -o none
+az identity federated-credential create -g "$RG" --identity-name "$IDENTITY"   -n "github-${GITHUB_ENV}" --issuer https://token.actions.githubusercontent.com   --subject "$SUBJECT" --audiences api://AzureADTokenExchange -o none
+# GitHub puede emitir el subject con IDs inmutables: repo:Owner@<id>/Repo@<id>:environment:...
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  IDS="$(gh api "repos/${GITHUB_REPO}" --jq '"\(.owner.id) \(.id)"')"
+  SUBJECT_IDS="repo:${GITHUB_REPO%%/*}@${IDS%% *}/${GITHUB_REPO##*/}@${IDS##* }:environment:${GITHUB_ENV}"
+  az identity federated-credential create -g "$RG" --identity-name "$IDENTITY"     -n "github-${GITHUB_ENV}-ids" --issuer https://token.actions.githubusercontent.com     --subject "$SUBJECT_IDS" --audiences api://AzureADTokenExchange -o none
+fi
 RG_ID="$(az group show -n "$RG" --query id -o tsv)"
 # La identidad recién creada puede tardar unos segundos en propagarse
 for i in 1 2 3 4 5 6; do
