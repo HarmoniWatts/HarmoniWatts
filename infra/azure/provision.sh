@@ -136,4 +136,6 @@ EOF
 fi
 
 echo
-echo "Siguiente paso: infra/azure/get-kubeconfig.sh (cuando cloud-init termine, ~3-5 min)."
+echo "Siguientes pasos (cuando cloud-init termine, ~3-5 min):"
+echo "  infra/azure/get-kubeconfig.sh"
+echo "  infra/azure/configure-k3s-oidc.sh   # login de Headlamp con Keycloak"

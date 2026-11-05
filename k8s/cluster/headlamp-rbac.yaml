@@ -1,0 +1,15 @@
+# Administradores del clúster: miembros del grupo "k8s-admins" del realm "master"
+# de Keycloak. El API server antepone "oidc:" a usuarios y grupos que vienen del
+# token (ver infra/azure/configure-k3s-oidc.sh).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-k8s-admins
+subjects:
+  - kind: Group
+    name: oidc:k8s-admins
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

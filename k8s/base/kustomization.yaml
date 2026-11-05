@@ -27,4 +27,5 @@ resources:
   - tariff-service.yaml
   - prediction-service.yaml
   - frontend.yaml
+  - headlamp.yaml
   - ingress.yaml

@@ -43,6 +43,7 @@ for d in cert-manager cert-manager-webhook cert-manager-cainjector; do
 done
 
 sed "s|__LETSENCRYPT_EMAIL__|${LETSENCRYPT_EMAIL}|g" "$ROOT/k8s/cluster/cluster-issuer.yaml" | kubectl apply -f -
+kubectl apply -f "$ROOT/k8s/cluster/headlamp-rbac.yaml"
 
 # -----------------------------------------------------------------------------
 log "Namespace, secretos y ConfigMaps"
@@ -66,6 +67,12 @@ if [ -n "${GHCR_PULL_TOKEN:-}" ]; then
     --docker-username="${GHCR_PULL_USER:-github}" \
     --docker-password="$GHCR_PULL_TOKEN" \
     --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
+fi
+
+# Secreto del cliente "headlamp" en Keycloak: se genera la primera vez y se conserva
+if ! kubectl -n "$NS" get secret headlamp-oidc >/dev/null 2>&1; then
+  kubectl -n "$NS" create secret generic headlamp-oidc \
+    --from-literal=client-secret="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 fi
 
 kubectl -n "$NS" create configmap postgres-init \
@@ -135,9 +142,20 @@ kubectl -n "$NS" rollout status statefulset/postgres --timeout=5m
 kubectl -n "$NS" rollout status statefulset/mongodb --timeout=5m
 failed=()
 for d in keycloak harmoni-register vivienda-api electrodomesticos-api consumption-service \
-         insights-service tariff-service prediction-service frontend; do
+         insights-service tariff-service prediction-service frontend headlamp; do
   kubectl -n "$NS" rollout status "deployment/$d" --timeout=10m || failed+=("$d")
 done
+
+# -----------------------------------------------------------------------------
+log "Keycloak: cliente OIDC de Headlamp (realm master)"
+# Idempotente: crea o actualiza el cliente "headlamp", el mapper de grupos y el
+# grupo "k8s-admins" (con el administrador de Keycloak como miembro). Usa las
+# credenciales de administrador que el pod de Keycloak ya tiene en su entorno.
+HEADLAMP_SECRET="$(kubectl -n "$NS" get secret headlamp-oidc -o jsonpath='{.data.client-secret}' | base64 -d)"
+if ! kubectl -n "$NS" exec deploy/keycloak -- bash -c "$(cat "$ROOT/k8s/keycloak-headlamp.sh")" \
+     keycloak-headlamp "$APP_HOST" "$HEADLAMP_SECRET"; then
+  echo "::warning::No se pudo configurar el cliente de Headlamp en Keycloak (¿cambió la contraseña del admin?). El resto del despliegue no se ve afectado."
+fi
 
 kubectl -n "$NS" get pods -o wide
 

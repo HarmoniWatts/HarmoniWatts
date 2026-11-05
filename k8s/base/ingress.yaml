@@ -65,6 +65,12 @@ spec:
         - name: keycloak
           port: 8080
     - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/headlamp`)
+      priority: 100
+      services:
+        - name: headlamp
+          port: 4466
+    - kind: Rule
       match: Host(`__APP_HOST__`) && PathPrefix(`/api/auth`)
       priority: 100
       services:
