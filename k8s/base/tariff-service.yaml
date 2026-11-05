@@ -1,0 +1,59 @@
+# tariff-service (FastAPI → PostgreSQL harmoniwatts). Ruta pública /api/v1/tariff.
+apiVersion: v1
+kind: Service
+metadata:
+  name: harmoniwatts-tariff-service
+spec:
+  selector:
+    app.kubernetes.io/name: tariff-service
+  ports:
+    - name: http
+      port: 8006
+      targetPort: 8006
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tariff-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tariff-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tariff-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: tariff-service
+          image: harmoniwatts/tariff-service
+          ports:
+            - containerPort: 8006
+          env:
+            - name: ENVIRONMENT
+              value: development
+            - name: TZ
+              value: America/Bogota
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_PASSWORD } }
+            - name: POSTGRES_DATABASE
+              value: harmoniwatts
+          readinessProbe:
+            httpGet: { path: /health, port: 8006 }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /health, port: 8006 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 384Mi }

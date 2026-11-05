@@ -1,0 +1,49 @@
+# Seed de Mongo (equivale a harmoniwatts-mongo-seed del docker-compose).
+# Idempotente: si la colección ya tiene datos solo reconcilia contexto_temporal.
+# Los archivos vienen del ConfigMap "mongo-seed" (BD/datos + docker/mongo), creado
+# por deploy.sh, que además borra el Job anterior antes de aplicar uno nuevo.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongo-seed
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mongo-seed
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: mongo:7
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              URI="mongodb://harmoniwatts-mongodb:27017/harmoniwatts"
+              echo "[mongo-seed] Esperando a MongoDB..."
+              until mongosh "$URI" --quiet --eval 'db.adminCommand("ping")' >/dev/null 2>&1; do sleep 5; done
+              C=$(mongosh "$URI" --quiet --eval 'db.consumos_enriquecidos.countDocuments()')
+              if [ "$C" -gt 0 ]; then
+                echo "[mongo-seed] Colección ya tiene $C documentos; omitiendo import."
+                mongosh "$URI" /seed/reconcile-contexto.js
+              else
+                echo "[mongo-seed] Importando consumos demo (JSON)..."
+                mongoimport --uri="$URI" --collection=consumos_enriquecidos --file=/seed/consumos.json --jsonArray
+                mongosh "$URI" /seed/shift-timestamps.js
+              fi
+              echo "[mongo-seed] Listo."
+          volumeMounts:
+            - name: seed
+              mountPath: /seed
+              readOnly: true
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 384Mi }
+      volumes:
+        - name: seed
+          configMap:
+            name: mongo-seed
