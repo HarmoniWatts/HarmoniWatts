@@ -9,6 +9,7 @@
 # Reemplaza los objetos existentes (--clean). Después reinicia Keycloak y las APIs.
 # =============================================================================
 set -euo pipefail
+export MSYS_NO_PATHCONV=1  # Git Bash: no convertir rutas /tmp/...
 
 DIR="${1:-docker/snapshots/postgres}"
 NS=harmoniwatts

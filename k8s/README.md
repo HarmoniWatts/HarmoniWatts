@@ -17,7 +17,7 @@ Internet ──443──► Traefik (k3s) ─┬─ /auth ......................
 
 | Archivo | Qué hace |
 |---|---|
-| `infra/azure/provision.sh` | Crea grupo de recursos, IP + DNS, NSG, VM con k3s, apagado automático e identidad OIDC para GitHub |
+| `infra/azure/provision.sh` | Crea grupo de recursos, IP + DNS, NSG, VM con k3s, apagado automático e identidad administrada (OIDC) para GitHub |
 | `infra/azure/get-kubeconfig.sh` | Saca el kubeconfig de la VM y lo guarda como secreto `KUBECONFIG` en GitHub |
 | `k8s/base/` | Manifiestos (Kustomize) de todos los servicios |
 | `k8s/deploy.sh` | Instala cert-manager, crea secretos/ConfigMaps y aplica los manifiestos |
@@ -27,9 +27,11 @@ Internet ──443──► Traefik (k3s) ─┬─ /auth ......................
 
 ## Costo (aprox.)
 
-VM `Standard_B2ms` (2 vCPU, 8 GB) ≈ 0,08 USD/h encendida + disco 64 GB Standard SSD (~5 USD/mes)
-+ IP estática (~3,6 USD/mes). Encendida 24/7 ≈ 70 USD/mes; con el apagado automático
-diario y encendiéndola solo cuando se usa, mucho menos. No hay balanceador de carga ni
+VM `Standard_D2as_v7` (2 vCPU, 8 GB) ≈ 0,091 USD/h encendida + disco 64 GB Standard SSD (~5 USD/mes)
++ IP estática (~3,6 USD/mes). Encendida 24/7 ≈ 75 USD/mes; con el apagado automático
+diario y encendiéndola solo cuando se usa, mucho menos. (La serie B no está habilitada
+en la prueba gratuita; con Azure for Students se puede usar `VM_SIZE=Standard_B2ms`,
+algo más barata.) No hay balanceador de carga ni
 registro de contenedores de pago (GHCR es gratis).
 
 ## Configuración inicial (una sola vez por suscripción)
@@ -129,12 +131,12 @@ MongoDB se carga automáticamente con `BD/datos` (Job `mongo-seed`).
    Los scripts sobrescriben los secretos `AZURE_*` y `KUBECONFIG` del environment;
    los secretos de la aplicación (paso 4) se conservan.
 3. Borra lo de la suscripción anterior: `az group delete -n rg-harmoniwatts` (con la
-   suscripción anterior seleccionada) y la app registration `github-rg-harmoniwatts`.
+   suscripción anterior seleccionada) (incluye la identidad `id-github-rg-harmoniwatts`).
 
 ## Notas
 
 - La suscripción de prueba gratuita de Azure limita los vCPU por región (normalmente 4);
-  la B2ms usa 2.
+  la D2as_v7 usa 2.
 - El frontend de producción (`frontend/Dockerfile.prod`) usa `src/environments/environment.ts`,
   que apunta todo al mismo dominio. El desarrollo local con docker-compose no cambia.
 - `pgAdmin` y `mongo-express` no se despliegan; para inspeccionar usa
