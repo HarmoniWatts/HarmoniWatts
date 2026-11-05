@@ -58,25 +58,25 @@ for v in GEMINI_API_KEY OPENAI_API_KEY MISTRAL_API_KEY SMTP_HOST SMTP_PORT SMTP_
   if [ -n "${!v:-}" ]; then secret_args+=(--from-literal="$v=${!v}"); fi
 done
 kubectl -n "$NS" create secret generic harmoniwatts-secrets "${secret_args[@]}" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 
 if [ -n "${GHCR_PULL_TOKEN:-}" ]; then
   kubectl -n "$NS" create secret docker-registry ghcr-pull \
     --docker-server=ghcr.io \
     --docker-username="${GHCR_PULL_USER:-github}" \
     --docker-password="$GHCR_PULL_TOKEN" \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 fi
 
 kubectl -n "$NS" create configmap postgres-init \
   --from-file=02-harmoniwatts-db.sh="$ROOT/docker/postgres/init-harmoniwatts-db.sh" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 
 kubectl -n "$NS" create configmap mongo-seed \
   --from-file=consumos.json="$ROOT/BD/datos/harmoniwatts.consumos_enriquecidos.json" \
   --from-file=shift-timestamps.js="$ROOT/docker/mongo/shift-timestamps.js" \
   --from-file=reconcile-contexto.js="$ROOT/docker/mongo/reconcile-contexto.js" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 
 # Realm: agrega el dominio público al cliente del SPA (redirects, CORS, logout)
 WORK="$(mktemp -d)"
@@ -102,7 +102,7 @@ with open(dst, "w", encoding="utf-8") as f:
 EOF
 kubectl -n "$NS" create configmap keycloak-realm \
   --from-file=realm-export.json="$WORK/realm-export.json" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 
 # -----------------------------------------------------------------------------
 log "Manifiestos (imágenes ${IMAGE_REGISTRY}/harmoniwatts-*:${IMAGE_TAG})"
