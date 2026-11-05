@@ -21,7 +21,7 @@ Internet ──443──► Traefik (k3s) ─┬─ /auth ......................
 | `infra/azure/get-kubeconfig.sh` | Saca el kubeconfig de la VM y lo guarda como secreto `KUBECONFIG` en GitHub |
 | `k8s/base/` | Manifiestos (Kustomize) de todos los servicios |
 | `k8s/deploy.sh` | Instala cert-manager, crea secretos/ConfigMaps y aplica los manifiestos |
-| `.github/workflows/deploy-azure.yml` | Build + push a GHCR + despliegue (push a `main` o manual) |
+| `.github/workflows/deploy-azure.yml` | Build + push a GHCR + despliegue (push a `qa` o manual) |
 | `.github/workflows/azure-vm.yml` | Encender / apagar / ver estado de la VM desde GitHub |
 | `scripts/k8s/restore-postgres.sh` | Carga los snapshots de PostgreSQL en el clúster |
 
@@ -87,7 +87,7 @@ GitHub → Packages → Package settings).
 
 ### 5. Primer despliegue
 
-GitHub → Actions → **Deploy Azure** → Run workflow (o un push a `main`).
+GitHub → Actions → **Deploy Azure** → Run workflow (o un push a `qa`).
 
 En el primer despliegue la base `harmoniwatts` está vacía, así que `vivienda-api`,
 `electrodomesticos-api` y `tariff-service` no arrancan hasta cargar los datos. Exporta

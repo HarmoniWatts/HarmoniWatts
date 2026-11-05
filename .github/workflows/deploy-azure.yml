@@ -12,7 +12,7 @@ name: Deploy Azure
 
 on:
   push:
-    branches: [main]
+    branches: [qa]
   workflow_dispatch:
 
 permissions:
