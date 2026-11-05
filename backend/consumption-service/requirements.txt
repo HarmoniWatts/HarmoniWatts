@@ -13,3 +13,6 @@ pytz==2023.3
 pendulum==3.0.0
 tenacity==8.2.3
 structlog==24.1.0
+truststore==0.10.5
+holidays==0.57
+loguru==0.7.2

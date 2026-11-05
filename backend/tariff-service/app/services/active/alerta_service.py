@@ -1,13 +1,13 @@
 # app/services/active/alerta_service.py
 
-from datetime import date, datetime
-from typing import Optional, Dict, Any, List
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from typing import Optional, Dict, Any, List, Tuple
 from loguru import logger
 
 from app.repositories.postgres.tarifa_repository import TarifaRepository
 from app.repositories.postgres.cliente_repository import ClienteRepository
 from app.services.business.tarifa_selector import TarifaSelector
-from app.services.active.franja_service import FranjaService
 
 
 class AlertaTarifaService:
@@ -25,17 +25,12 @@ class AlertaTarifaService:
     UMBRAL_DIFERENCIA = 0.20   # 20% más que el mínimo
     
     # Códigos de franja típicos de PUNTA
-    FRANJAS_PUNTA = {'F3', 'F4'}
+    FRANJAS_pico = {'F3', 'F4'}
     
-    def __init__(
-        self,
-        repo: TarifaRepository,
-        cliente_repo: Optional[ClienteRepository] = None,
-        selector: Optional[TarifaSelector] = None
-    ):
+    def __init__(self, repo: TarifaRepository, cliente_repo: ClienteRepository, selector: TarifaSelector):
         self.repo = repo
-        # Reutiliza la selección de tipo de tarifa de FranjaService
-        self.franja_service = FranjaService(repo, cliente_repo, selector)
+        self.cliente_repo = cliente_repo
+        self.selector = selector
     
     # =====================================================
     # DETECCIÓN DE VENTANA ALTA
@@ -45,8 +40,8 @@ class AlertaTarifaService:
         self,
         id_cliente: int,
         horizonte_horas: int = 12,
-        umbral_punta: bool = True,
-        consumo_mensual_kwh: Optional[float] = None
+        umbral_pico: bool = True,
+        consumo_mensual_kwh: Optional[float] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         Detecta la próxima ventana de alta tarifa.
@@ -54,7 +49,7 @@ class AlertaTarifaService:
         Args:
             id_cliente: ID del cliente
             horizonte_horas: horas a futuro para buscar (1-24)
-            umbral_punta: si True, solo considera franjas PUNTA
+            umbral_pico: si True, solo considera franjas PUNTA
         
         Returns:
             Dict con la ventana detectada o None si no hay
@@ -62,25 +57,69 @@ class AlertaTarifaService:
         # 1. Determinar hora actual
         ahora = datetime.now()
         hora_actual = ahora.hour if ahora.hour > 0 else 24
-        hora_fin = min(hora_actual + horizonte_horas, 24)
+        fecha_actual = ahora.date()
         
-        # 2. Obtener precios del día
-        precios_dia = self.repo.get_precios_dia(
-            id_cliente=id_cliente,
-            fecha=date.today(),
-            cod_tipo_tarifa=self.franja_service._tipo_tarifa(id_cliente, consumo_mensual_kwh)
+        # 1. Construir lista de (fecha, hora) para el horizonte
+        horas_horizonte = self._construir_horizonte(
+            fecha_actual, hora_actual, horizonte_horas
         )
         
-        if not precios_dia:
-            logger.warning(f"Sin precios para cliente {id_cliente}")
-            return None
+        cliente = self.cliente_repo.get_by_id(id_cliente)
+        cod_tipo_tarifa = self.selector.seleccionar_tipo_tarifa(cliente, consumo_mensual_kwh=consumo_mensual_kwh)
         
-        # 3. Filtrar precios en el horizonte
-        precios_horizonte = [
-            p for p in precios_dia
-            if hora_actual <= p['hora'] <= hora_fin
-            and p.get('precio') is not None
-        ]
+        # 2. Obtener precios del día
+        
+        # Fecha inicial de consulta
+        fecha_consulta = date.today()
+        
+        # 3. Obtener precios del día con retroceso mensual
+        MAX_MESES_ATRAS = 6
+        fecha_consulta = fecha_actual
+        precios_dia = None
+        
+        for intento in range(MAX_MESES_ATRAS + 1):
+            precios_dia = self.repo.get_precios_dia(
+                id_cliente=id_cliente,
+                fecha=fecha_consulta,
+                cod_tipo_tarifa=cod_tipo_tarifa,
+            )
+            
+            # Si hay precios, salir del bucle
+            if precios_dia and precios_dia.get('precios'):
+                logger.info(
+                    f"Precios encontrados para cliente {id_cliente} "
+                    f"en {fecha_consulta}"
+                )
+                break
+            
+            # Si no hay, retroceder un mes
+            logger.warning(
+                f"Sin precios para cliente {id_cliente} en {fecha_consulta}, "
+                f"retrocediendo un mes (intento {intento + 1}/{MAX_MESES_ATRAS})"
+            )
+            fecha_consulta = fecha_consulta - relativedelta(months=1)
+        
+        # Si después de 6 intentos no hay precios
+        if not precios_dia or not precios_dia.get('precios'):
+            logger.warning(
+                f"Sin precios para cliente {id_cliente} "
+                f"tras {MAX_MESES_ATRAS} meses hacia atrás"
+            )
+            return self._respuesta_sin_franja(
+                id_cliente, hora_actual,
+                "No hay precios disponibles para el cliente"
+            )
+        
+        # 4. Filtrar precios en el horizonte
+        #    Cada elemento de horas_horizonte es (fecha, hora)
+        #    Los precios del día tienen 'hora' (1-24)
+        precios = precios_dia['precios']
+        precios_horizonte = self._filtrar_precios_horizonte(
+            precios=precios,
+            horas_horizonte=horas_horizonte,
+        )
+        
+        #logger.debug(f"precios_horizonte: {precios_horizonte}")
         
         if not precios_horizonte:
             return self._respuesta_sin_franja(
@@ -88,11 +127,11 @@ class AlertaTarifaService:
                 "No hay precios en el horizonte especificado"
             )
         
-        # 4. Detectar ventana
+        # 5. Detectar ventana de alta tarifa
         ventana = self._detectar_ventana(
             precios_horizonte,
-            precios_dia,
-            umbral_punta
+            precios,
+            umbral_pico,
         )
         
         if not ventana:
@@ -101,17 +140,67 @@ class AlertaTarifaService:
                 "No se detectó una franja de alta tarifa en el horizonte"
             )
         
-        # 5. Calcular ahorro potencial
-        ahorro = self._calcular_ahorro(ventana, precios_dia)
+        # 6. Calcular ahorro potencial
+        ahorro = self._calcular_ahorro(ventana, precios)
         
-        # 6. Construir respuesta
+        # 7. Construir respuesta
         return self._construir_respuesta(
             id_cliente=id_cliente,
             hora_actual=hora_actual,
             ventana=ventana,
-            ahorro=ahorro
+            ahorro=ahorro,
         )
+        
+    def _construir_horizonte(
+        self,
+        fecha_inicio: date,
+        hora_inicio: int,
+        horizonte_horas: int,
+    ) -> List[Tuple[date, int]]:
+        """
+        Construye una lista de (fecha, hora) para el horizonte,
+        considerando el cruce de medianoche.
+        
+        Returns:
+            Lista de tuplas (fecha, hora) donde hora ∈ [1, 24].
+        """
+        resultado = []
+        
+        for offset in range(horizonte_horas):
+            hora_absoluta = hora_inicio + offset
+            
+            if hora_absoluta > 24:
+                dias_extra = (hora_absoluta - 1) // 24
+                fecha_hora = fecha_inicio + timedelta(days=dias_extra)
+                hora_normalizada = ((hora_absoluta - 1) % 24) + 1
+            else:
+                fecha_hora = fecha_inicio
+                hora_normalizada = hora_absoluta
+            
+            resultado.append((fecha_hora, hora_normalizada))
+        
+        return resultado
     
+    def _filtrar_precios_horizonte(
+        self,
+        precios: List[Dict[str, Any]],
+        horas_horizonte: List[Tuple[date, int]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Filtra los precios del día según el horizonte de (fecha, hora).
+        
+        Como el horizonte puede cruzar medianoche, se asume que `precios`
+        corresponde al día de `fecha_actual`. Las horas del día siguiente
+        se filtran contra el mismo array (asumiendo que son las mismas
+        para el siguiente día).
+        """
+        horas_set = {hora for _, hora in horas_horizonte}
+        
+        return [
+            p for p in precios
+            if p.get('hora') in horas_set
+            and p.get('precio') is not None
+        ]
     # =====================================================
     # DETECCIÓN INTERNA
     # =====================================================
@@ -120,25 +209,25 @@ class AlertaTarifaService:
         self,
         precios_horizonte: List[Dict],
         precios_dia: List[Dict],
-        umbral_punta: bool
+        umbral_pico: bool
     ) -> Optional[Dict[str, Any]]:
         """
         Detecta la ventana de alta tarifa.
         
         Estrategia:
-            - Si umbral_punta=True: busca franjas PUNTA o F3/F4
-            - Si umbral_punta=False: busca la hora de mayor precio
+            - Si umbral_pico=True: busca franjas PUNTA o F3/F4
+            - Si umbral_pico=False: busca la hora de mayor precio
         """
         # Estrategia A: buscar franja PUNTA
-        if umbral_punta:
-            horas_punta = [
+        if umbral_pico:
+            horas_pico = [
                 p for p in precios_horizonte
-                if p.get('tipo_hora') == 'PUNTA'
-                or p.get('codigo_franja') in self.FRANJAS_PUNTA
+                if p.get('tipo_hora') == 'PICO'
+                or p.get('codigo_franja') in self.FRANJAS_pico
             ]
             
-            if horas_punta:
-                return self._agrupar_ventana(horas_punta)
+            if horas_pico:
+                return self._agrupar_ventana(horas_pico)
         
         # Estrategia B: buscar hora de mayor precio
         return self._detectar_por_precio(precios_horizonte)
@@ -217,6 +306,7 @@ class AlertaTarifaService:
         
         Compara el precio máximo de la ventana con el precio mínimo del día.
         """
+        # print(f"precios_dia {precios_dia}")
         precios = [
             p['precio'] for p in precios_dia
             if p.get('precio') is not None

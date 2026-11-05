@@ -3,7 +3,7 @@
 --
 -- Regla, según las horas que tiene cada franja en su configuración
 -- (hora 1 = 00:00-01:00 ... hora 24 = 23:00-24:00):
---   PICO  : la franja incluye alguna hora entre 19 y 22 (18:00-22:00)
+--   PICO  : la franja incluye alguna hora entre 19 y 21 (18:00-21:00)
 --   VALLE : todas sus horas son 1, 2, 3, 4 o 24 (23:00-04:00)
 --   MEDIA : el resto
 --
@@ -19,7 +19,7 @@ FROM (
     SELECT h.id_configuracion_horaria,
            h.id_franja_horaria,
            CASE
-               WHEN bool_or(h.hora BETWEEN 19 AND 22)    THEN 'PICO'
+               WHEN bool_or(h.hora BETWEEN 19 AND 21)    THEN 'PICO'
                WHEN bool_and(h.hora IN (1, 2, 3, 4, 24)) THEN 'VALLE'
                ELSE 'MEDIA'
            END AS tipo

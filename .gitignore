@@ -1,14 +1,13 @@
-# Variables de entorno con secretos (nunca versionar)
+# =========================
+# Variables de entorno
+# =========================
 .env
 .env.local
 .env.*.local
 
-# Python
-**/__pycache__/
-*.py[cod]
-*$py.class
-
+# =========================
 # Dependencias y builds
+# =========================
 node_modules/
 frontend/.angular/
 dist/
@@ -17,23 +16,38 @@ build/
 *.jar
 *.war
 
-# IDEs y OS
-.idea/
-.vscode/
-*.swp
-.DS_Store
-Thumbs.db
+# =========================
+# Python
+# =========================
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
 
-# Logs y temporales
-*.log
-tmp/
-temp/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Snapshots de datos (pg_dump / mongodump) — compartir por ZIP, no por git
-docker/snapshots/postgres/*.dump
-docker/snapshots/mongo/harmoniwatts/
-docker/snapshots/MANIFEST.txt
-harmoniwatts-snapshots-*.zip
+venv/
+.venv/
+env/
+
+# =========================
+# Modelos Machine Learning
+# =========================
+*.pkl
+*.joblib
+*.h5
+*.keras
+*.onnx
+*.pt
+*.pth
+
+# =========================
+# Datasets y archivos masivos
+# =========================
+*.parquet
+*.feather
 
 # prediction-service: modelos entrenados y datasets (se montan como volumen)
 backend/prediction-service/model/*
@@ -41,5 +55,49 @@ backend/prediction-service/data/*
 !backend/prediction-service/model/.gitkeep
 !backend/prediction-service/data/.gitkeep
 
+# =========================
+# Logs y temporales
+# =========================
+*.log
+tmp/
+temp/
+
+# =========================
+# IDEs y OS
+# =========================
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# =========================
+# Archivos de extracción (tariff-service)
+# =========================
+backend/tariff-service/**/*.pdf
+backend/tariff-service/**/*.csv
+downloads/
+output/
+cache/
+
+# =========================
+# Mongo / Data dumps
+# =========================
+*.bson
+*.archive
+dump/
+
+# Snapshots de datos (pg_dump / mongodump) — compartir por ZIP, no por git
+docker/snapshots/postgres/*.dump
+docker/snapshots/mongo/harmoniwatts/
+docker/snapshots/MANIFEST.txt
+harmoniwatts-snapshots-*.zip
+
 # Respaldos locales de BD
 docker/backups/
+
+# =========================
+# Documentación temporal
+# =========================
+*.borrador
+*-borrador.*

@@ -135,6 +135,27 @@ class TarifaRepository:
             )
             .first()
         )
+        
+    def get_configuracion_horaria(
+        self,
+        id_configuracion_horaria: int,
+    ) -> Optional[ConfiguracionHoraria]:
+        """
+        Obtiene una configuración horaria por su ID.
+        
+        Args:
+            id_configuracion_horaria: ID de la configuración horaria
+        
+        Returns:
+            ConfiguracionHoraria o None si no existe
+        """
+        return (
+            self.db.query(ConfiguracionHoraria)
+            .filter(
+                ConfiguracionHoraria.id_configuracion_horaria == id_configuracion_horaria
+            )
+            .first()
+        )
     
     def crear_periodo(self, periodo_data: Dict[str, Any]) -> PeriodoTarifario:
         """
@@ -865,13 +886,19 @@ class TarifaRepository:
         precios = self.get_precios_por_hora_desde_vista(periodo.id_periodo_tarifario)
         componentes = self.get_componentes_by_periodo(periodo.id_periodo_tarifario)
         
+        # Obtener la configuración horaria (si existe)
+        cod_configuracion_horaria = None
+        if periodo.id_configuracion_horaria:
+            configuracion = self.get_configuracion_horaria(periodo.id_configuracion_horaria)
+            cod_configuracion_horaria = configuracion.codigo
+        
         # Separar valores por hora de la monomia (hora IS NULL)
         valores_hora = [p for p in precios if p.hora is not None]
         monomias = [p for p in precios if p.hora is None]
 
         # Formatear valores por hora
         valores = [
-            {
+            {   
                 'hora': p.hora,
                 'codigo_franja': p.franja,
                 'tipo_hora': p.tipo_hora,
@@ -897,6 +924,7 @@ class TarifaRepository:
             'id_cliente': id_cliente,
             'tarifa': tarifa,
             'periodo': periodo,
+            'cod_configuracion_horaria': cod_configuracion_horaria,
             'monomia': monomia,
             'valores': valores,
             'componentes': componentes,
@@ -908,50 +936,91 @@ class TarifaRepository:
         id_cliente: int,
         fecha: date,
         cod_tipo_tarifa: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
-        Obtiene los precios de las 24 horas del día para un cliente.
-        Reutiliza los valores por hora de la vista v_tarifa_hora que ya trae
-        `get_tarifa_vigente_completa`; si la tarifa es monomia (sin franjas),
-        todas las horas toman el valor de la monomia.
+        Obtiene los precios de las 24 horas del día para un cliente
+        consultando la vista v_tarifa_hora.
+        
+        Returns:
+            {
+                'id_cliente': int,
+                'fecha': date,
+                'precios': list[dict],   # 24 elementos (o lista vacía si MONOMIA)
+                'monomia': dict | None,  # Solo si existe monomia
+            }
         """
-        tarifa_data = self.get_tarifa_vigente_completa(
-            id_cliente, fecha, cod_tipo_tarifa=cod_tipo_tarifa
-        )
-
+        # Respuesta base para casos sin datos
+        respuesta_vacia = {
+            'id_cliente': id_cliente,
+            'fecha': fecha,
+            'precios': [],
+            'monomia': None,
+        }
+        
+        # 1. Obtener tarifa vigente completa
+        tarifa_data = self.get_tarifa_vigente_completa(id_cliente, fecha, cod_tipo_tarifa)
         if not tarifa_data:
             logger.warning(f"Sin tarifa vigente para cliente Id:{id_cliente}")
-            return []
-
-        valores_por_hora = {v['hora']: v for v in tarifa_data['valores']}
-        monomia = tarifa_data.get('monomia')
-
-        if not valores_por_hora and not monomia:
-            logger.warning(f"Sin valores por hora para cliente {id_cliente}")
-            return []
-
-        # Construir resultado para 24 horas (hora 1 = 00:00-01:00)
+            return respuesta_vacia
+        
+        # 2. Consultar la vista v_tarifa_hora (1 sola query)
+        filas_vista = (
+            self.db.query(VTarifaHora)
+            .filter(
+                VTarifaHora.id_periodo_tarifario == tarifa_data['periodo'].id_periodo_tarifario
+            )
+            .all()
+        )
+        
+        if not filas_vista:
+            logger.warning(
+                f"Sin filas en v_tarifa_hora para periodo "
+                f"{tarifa_data['periodo'].id_periodo_tarifario}"
+            )
+            return respuesta_vacia
+        
+        # 3. Separar filas por hora vs monomia
+        precios_por_hora = {f.hora: f for f in filas_vista if f.hora is not None}
+        monomia_row = next((f for f in filas_vista if f.hora is None), None)
+        
+        # 4. Construir precios de las 24 horas
         precios = []
         for hora in range(1, 25):
-            valor = valores_por_hora.get(hora)
-            if valor:
-                precios.append({
-                    'hora': hora,
-                    'codigo_franja': valor['codigo_franja'],
-                    'tipo_hora': valor['tipo_hora'],
-                    'precio': valor['valor'],
-                    'unidad': valor['unidad'],
-                })
-            else:
+            fila = precios_por_hora.get(hora)
+            
+            if not fila:
                 precios.append({
                     'hora': hora,
                     'codigo_franja': None,
                     'tipo_hora': None,
-                    'precio': monomia['valor'] if monomia else None,
-                    'unidad': monomia['unidad'] if monomia else None,
+                    'precio': None,
+                    'unidad': None,
                 })
-
-        return precios
+                continue
+            
+            precios.append({
+                'hora': hora,
+                'codigo_franja': fila.franja,
+                'tipo_hora': fila.tipo_hora,
+                'precio': float(fila.valor),
+                'unidad': fila.unidad or 'COP/kWh',
+            })
+        
+        # 5. Extraer monomia (si existe)
+        monomia = None
+        if monomia_row:
+            monomia = {
+                'valor': float(monomia_row.valor),
+                'unidad': monomia_row.unidad or 'COP/kWh',
+                'tipo': 'CU',
+            }
+        
+        return {
+            'id_cliente': id_cliente,
+            'fecha': fecha,
+            'precios': precios,
+            'monomia': monomia,
+        }
     
     def get_precio_por_hora(
         self,
@@ -964,7 +1033,7 @@ class TarifaRepository:
         Obtiene el precio para una hora específica.
         Reutiliza `get_precios_dia` y filtra.
         """
-        precios = self.get_precios_dia(id_cliente, fecha, cod_tipo_tarifa=cod_tipo_tarifa)
+        precios = self.get_precios_dia(id_cliente, fecha, cod_tipo_tarifa).get('precios')
         return next((p for p in precios if p['hora'] == hora), None)
     
     

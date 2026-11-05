@@ -106,6 +106,7 @@ class TarifaActivaService:
                 'estado': periodo.estado,
                 'fecha_publicacion': periodo.fecha_publicacion,
             },
+            'cod_configuracion_horaria': tarifa_data.get('cod_configuracion_horaria'),
             'monomia': tarifa_data.get('monomia'),
             'valores': [
                 {

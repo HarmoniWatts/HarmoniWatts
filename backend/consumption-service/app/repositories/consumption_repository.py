@@ -9,6 +9,23 @@ import structlog
 
 logger = structlog.get_logger()
 
+# Costo y precio de una lectura según el modo de la tarifa (MONOMIA o franja).
+# Los documentos anteriores a la sincronización con INELCA solo traen
+# `costo_total` / `precio_kwh`; se usan como respaldo.
+_ES_MONOMIA = {"$eq": ["$tarifa_aplicada.modo", "MONOMIA"]}
+COSTO_LECTURA = {
+    "$ifNull": [
+        {"$cond": [_ES_MONOMIA, "$tarifa_aplicada.costo_total_monomia", "$tarifa_aplicada.costo_total_franja"]},
+        "$tarifa_aplicada.costo_total",
+    ]
+}
+PRECIO_LECTURA = {
+    "$ifNull": [
+        {"$cond": [_ES_MONOMIA, "$tarifa_aplicada.precio_kwh_monomia", "$tarifa_aplicada.precio_kwh_franja"]},
+        "$tarifa_aplicada.precio_kwh",
+    ]
+}
+
 
 class ConsumptionRepository:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -68,7 +85,8 @@ class ConsumptionRepository:
                 "$group": {
                     "_id": None,
                     "total_consumption_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost_cop": {"$sum": "$tarifa_aplicada.costo_total"},
+                    
+                    "total_cost_cop": {"$sum": COSTO_LECTURA},
                     "average_power_kw": {"$avg": "$valor_kwh"},
                     "peak_power_kw": {"$max": "$valor_kwh"},
                     "readings_count": {"$sum": 1}
@@ -100,16 +118,17 @@ class ConsumptionRepository:
     async def get_hourly_consumption(
         self,
         household_id: Union[int, str],
-        target_date: date,
+        start: datetime,
+        end_exclusive: datetime,
         tz: str,
     ) -> List[Dict[str, Any]]:
         """
-        Obtiene consumo por hora para un día civil en `tz` (0-23 = hora local).
+        Obtiene consumo por hora (0-23 = hora local en `tz`) dentro de
+        [start, end_exclusive). Si la ventana abarca varios días, cada hora
+        acumula el consumo de esa hora en todos los días.
         """
         if settings.HOUSEHOLD_ID_TYPE == "int":
             household_id = int(household_id)
-
-        start, end_exclusive = utc_range_for_local_calendar_day(target_date, tz)
 
         pipeline = [
             {
@@ -126,8 +145,8 @@ class ConsumptionRepository:
                         }
                     },
                     "consumption_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
-                    "tarifa_promedio": {"$avg": "$tarifa_aplicada.precio_kwh"},
+                    "total_cost": {"$sum": COSTO_LECTURA},
+                    "tarifa_promedio": {"$avg": PRECIO_LECTURA},
                 }
             },
             {"$sort": {"_id.hour": 1}}
@@ -191,8 +210,12 @@ class ConsumptionRepository:
                         }
                     },
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
+                    "total_cost": {"$sum": COSTO_LECTURA},
                 }
+            },
+            {
+                # ✅ Ordenar por fecha para que la serie salga en orden cronológico
+                "$sort": {"_id": 1} 
             }
         ]
         
@@ -232,8 +255,12 @@ class ConsumptionRepository:
                 "$group": {
                     "_id": {"$month": {"date": "$timestamp", "timezone": tz}},
                     "total_kwh": {"$sum": "$valor_kwh"},
-                    "total_cost": {"$sum": "$tarifa_aplicada.costo_total"},
+                    "total_cost": {"$sum": COSTO_LECTURA},
                 }
+            },
+            {
+                # Ordenar por mes
+                "$sort": {"_id": 1}
             }
         ]
         

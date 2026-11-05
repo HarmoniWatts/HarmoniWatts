@@ -93,7 +93,6 @@ class PeriodoTarifario(Base):
         foreign_keys=[id_tarifa]
     )
     
-    # ⚠️ ESTA ERA LA QUE FALTABA
     configuracion_horaria = relationship(
         "ConfiguracionHoraria",
         back_populates="periodos_tarifarios",
@@ -125,4 +124,5 @@ class PeriodoTarifario(Base):
             f"anio={self.anio}, mes={self.mes}, "
             f"version={self.numero_version}, "
             f"estado='{self.estado}')>"
+            f"id_configuracion_horaria={self.id_configuracion_horaria})>"
         )
