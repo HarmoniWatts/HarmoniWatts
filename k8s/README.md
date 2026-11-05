@@ -18,9 +18,11 @@ Internet ──443──► Traefik (k3s) ─┬─ /auth ......................
 | Archivo | Qué hace |
 |---|---|
 | `infra/azure/provision.sh` | Crea grupo de recursos, IP + DNS, NSG, VM con k3s, apagado automático e identidad administrada (OIDC) para GitHub |
+| `infra/azure/configure-k3s-oidc.sh` | Hace que el API server de k3s acepte los tokens de Keycloak (login de Headlamp) |
 | `infra/azure/get-kubeconfig.sh` | Saca el kubeconfig de la VM y lo guarda como secreto `KUBECONFIG` en GitHub |
 | `k8s/base/` | Manifiestos (Kustomize) de todos los servicios |
 | `k8s/deploy.sh` | Instala cert-manager, crea secretos/ConfigMaps y aplica los manifiestos |
+| `k8s/keycloak-headlamp.sh` | Crea en Keycloak el cliente `headlamp` y el grupo `k8s-admins` (lo ejecuta `deploy.sh`) |
 | `.github/workflows/deploy-azure.yml` | Build + push a GHCR + despliegue (push a `qa` o manual) |
 | `.github/workflows/azure-vm.yml` | Encender / apagar / ver estado de la VM desde GitHub |
 | `scripts/k8s/restore-postgres.sh` | Carga los snapshots de PostgreSQL en el clúster |
@@ -66,6 +68,7 @@ El script crea el environment **`azure`** en GitHub y guarda `AZURE_CLIENT_ID`,
 
 ```bash
 bash infra/azure/get-kubeconfig.sh
+bash infra/azure/configure-k3s-oidc.sh   # login de Headlamp con Keycloak
 ```
 
 ### 4. Secretos y variables de la aplicación
@@ -113,6 +116,11 @@ MongoDB se carga automáticamente con `BD/datos` (Job `mongo-seed`).
   al ejecutar `provision.sh`; si cambia, vuelve a ejecutarlo.
 - **Logs:** `kubectl -n harmoniwatts logs deploy/keycloak --tail=100`
 - **Consola de Keycloak:** `https://<APP_HOST>/auth/admin`
+- **Headlamp (interfaz gráfica del clúster):** `https://<APP_HOST>/headlamp` → *Sign in* →
+  login de Keycloak del realm **master** (el administrador de Keycloak ya es miembro).
+  Para dar acceso a otra persona: en la consola de Keycloak, realm **master** → *Users* →
+  crear el usuario → *Groups* → unirlo a **k8s-admins** (permiso `cluster-admin`).
+  Los usuarios del realm de la aplicación (`harmoniwatts`) no pueden entrar.
 - **Modelos de predicción** (no están en git):
   `kubectl -n harmoniwatts cp backend/prediction-service/model/. <pod>:/app/model`,
   donde `<pod>` sale de `kubectl -n harmoniwatts get pods -l app.kubernetes.io/name=prediction-service`.
