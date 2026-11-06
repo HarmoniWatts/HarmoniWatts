@@ -16,7 +16,6 @@
 --   * password_hash: valor ficticio NO válido (estos clientes no pueden iniciar sesión).
 --   * cs_kwh_mes no se inserta: lo calcula el trigger trg_cliente_cs por la altura de la zona.
 -- =====================================================================
-
 BEGIN;
 
 
@@ -56,7 +55,7 @@ DECLARE
     v_insertadas INT;
 BEGIN
     INSERT INTO cliente
-        (nombre, email, password_hash, cod_tipo_cliente, estrato, cod_nivel,
+        (nombre, no_contrato, email, password_hash, cod_tipo_cliente, estrato, cod_nivel,
          id_zona, cod_mercado, cod_comercializadora)
     SELECT v.nombre, v.no_contrato,
            lower(v.nombre) || '@example.com',
@@ -74,7 +73,7 @@ BEGIN
         ('MN157A243DFE', '320306',  'R',  3,       'N1_1',      'CARIBE_MAR', 'Caucasia'),         -- Nodo VII · Residencial
         ('MN233D2ED722', '97158',   'C',  4,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo VIII· Comercial   (estrato original: 4)
         ('MNDD305C0D60', '73894',   'E',  4,       'N1_1',      'CALI',       'Santiago de Cali')  -- Nodo IX  · Especial    (estrato original: 4)
-    ) AS v(nombre, tipo, estrato, nivel, mercado, municipio)
+    ) AS v(nombre, no_contrato, tipo, estrato, nivel, mercado, municipio)
     JOIN zona_geografica z ON z.municipio = v.municipio;
 
     GET DIAGNOSTICS v_insertadas = ROW_COUNT;
@@ -91,6 +90,5 @@ JOIN zona_geografica z USING (id_zona)
 ORDER BY c.id_cliente;
 
 COMMIT;
-
 -- Limpieza de los datos de prueba:
 --   DELETE FROM cliente WHERE email LIKE '%@example.com';

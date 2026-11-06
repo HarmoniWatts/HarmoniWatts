@@ -27,14 +27,14 @@ class SyncRepository:
     
     async def upsert_consumo(self, documento: Dict[str, Any]) -> bool:
         """
-        Upsert idempotente por (id_medidor, timestamp).
+        Upsert idempotente por (serie_medidor, timestamp).
         
         Returns:
             True si insertó nuevo, False si actualizó o falló
         """
         try:
             filtro = {
-                "id_medidor": documento["id_medidor"],
+                "serie_medidor": documento["serie_medidor"],
                 "timestamp": documento["timestamp"],
             }
             
@@ -66,7 +66,7 @@ class SyncRepository:
         operaciones = []
         for doc in documentos:
             filtro = {
-                "id_medidor": doc["id_medidor"],
+                "serie_medidor": doc["serie_medidor"],
                 "timestamp": doc["timestamp"],
             }
             operaciones.append(
@@ -92,15 +92,22 @@ class SyncRepository:
     async def crear_sync_estado(
         self,
         id_sincronizacion: str,
+        no_contrato: Optional[int],
+        cod_comercializadora: Optional[str],
         meter_no: Optional[str],
+        id_cliente: Optional[int],
         fecha_inicio: Optional[date],
         fecha_fin: Optional[date],
     ):
+
         await self.collection_estado.insert_one({
             "id_sincronizacion": id_sincronizacion,
+            "no_contrato": no_contrato,
+            "cod_comercializadora": cod_comercializadora,
             "meter_no": meter_no,
             "fecha_inicio": fecha_inicio.isoformat() if fecha_inicio else None,
             "fecha_fin": fecha_fin.isoformat() if fecha_fin else None,
+            "id_cliente": id_cliente,
             "estado": "pendiente",
             "registros_obtenidos": 0,
             "registros_insertados": 0,
@@ -134,6 +141,8 @@ class SyncRepository:
     async def registrar_historial(
         self,
         id_sincronizacion: str,
+        no_contrato: Optional[int],
+        cod_comercializadora: Optional[str],
         meter_no: Optional[str],
         estado: str,
         registros_obtenidos: int,
@@ -144,6 +153,8 @@ class SyncRepository:
     ):
         await self.collection_historial.insert_one({
             "id_sincronizacion": id_sincronizacion,
+            "no_contrato": no_contrato,
+            "cod_comercializadora": cod_comercializadora,
             "meter_no": meter_no,
             "estado": estado,
             "registros_obtenidos": registros_obtenidos,

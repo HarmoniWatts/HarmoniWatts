@@ -19,33 +19,38 @@ class ConsumptionService:
     
     async def get_current_consumption(
         self, 
-        household_id: Union[int, str]
+        no_contrat: Union[int, str],
+        cod_retail: str
     ) -> CurrentConsumptionResponse:
         """
         Obtiene el consumo actual (última lectura)
         """
-        latest = await self.repository.get_latest_reading(household_id)
+        latest = await self.repository.get_latest_reading(no_contrat, cod_retail)
         
         if not latest:
             logger.warning(
                 "no_consumption_data_found",
-                household_id=household_id
+                no_contrat=no_contrat,
+                cod_retail=cod_retail
             )
             return CurrentConsumptionResponse(
-                id_vivienda=int(household_id) if isinstance(household_id, str) else household_id,
+                no_contrat=str(no_contrat),
+                cod_retail=cod_retail,
                 current_power_kw=0.0,
                 last_update=datetime.utcnow()
             )
         
         return CurrentConsumptionResponse(
-            id_vivienda=latest["id_vivienda"],
+            no_contrat=str(no_contrat),
+            cod_retail=cod_retail,
             current_power_kw=latest["valor_kwh"],
             last_update=latest["timestamp"]
         )
     
     async def get_daily_total(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         target_date: Optional[date] = None,
         tz: Optional[str] = None,
     ) -> DailyTotalResponse:
@@ -56,16 +61,18 @@ class ConsumptionService:
             target_date = datetime.utcnow().date()
         tz = tz or settings.DEFAULT_TIMEZONE
 
-        daily_stats = await self.repository.get_daily_total(household_id, target_date, tz)
+        daily_stats = await self.repository.get_daily_total(no_contrat, cod_retail, target_date, tz)
         
         if not daily_stats:
             logger.info(
                 "no_daily_data_found",
-                household_id=household_id,
+                no_contrat=no_contrat,
+                cod_retail=cod_retail,
                 date=target_date.isoformat()
             )
             return DailyTotalResponse(
-                id_vivienda=int(household_id) if isinstance(household_id, str) else household_id,
+                no_contrat=str(no_contrat),
+                cod_retail=cod_retail,
                 date=target_date.isoformat(),
                 total_consumption_kwh=0.0,
                 total_cost_cop=0,
@@ -75,7 +82,7 @@ class ConsumptionService:
             )
         
         # Calcular variación vs día anterior
-        yesterday_total = await self.repository.get_previous_day_total(household_id, target_date, tz)
+        yesterday_total = await self.repository.get_previous_day_total(no_contrat, cod_retail, target_date, tz)
         # TODO: se calcula pero DailyTotalResponse no lo expone; decidir si se agrega al contrato o se elimina.
         yesterday_variation = None  # noqa: F841
         if yesterday_total and yesterday_total > 0:
@@ -84,7 +91,8 @@ class ConsumptionService:
             )
         
         return DailyTotalResponse(
-            id_vivienda=int(household_id) if isinstance(household_id, str) else household_id,
+            no_contrat=str(no_contrat),
+            cod_retail=cod_retail,
             date=target_date.isoformat(),
             total_consumption_kwh=daily_stats["total_consumption_kwh"],
             total_cost_cop=daily_stats["total_cost_cop"],
@@ -93,9 +101,10 @@ class ConsumptionService:
             peak_hour=daily_stats.get("peak_hour")
         )
     
-    async def get_hourly_series(
+    async def get_hourly_days_series(
         self, 
-        household_id: Union[int, str], 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
         start: datetime,
         end_exclusive: datetime,
         tz: Optional[str] = None,
@@ -104,8 +113,37 @@ class ConsumptionService:
         Retorna series horarias de consumo y costo para [start, end_exclusive)
         """
         tz = tz or settings.DEFAULT_TIMEZONE
+        hourly_data = await self.repository.get_hourly_days_consumption(
+            no_contrat, cod_retail, start, end_exclusive, tz
+        )
+        logger.info(f"Hourly days data - {hourly_data}")
+        consumption = [0.0] * 24
+        costs = [0.0] * 24
+        
+        for item in hourly_data:
+            hour = item["hour"]
+            consumption[hour] = item["consumption_kwh"]
+            costs[hour] = item["total_cost"]
+        
+        return {
+            "consumption_kwh": consumption,
+            "costs_cop": costs
+        }
+        
+    async def get_hourly_series(
+        self, 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
+        start: datetime,
+        end_exclusive: datetime,
+        tz: Optional[str] = None,
+    ) -> Dict[str, List[float]]:
+        """
+        Retorna series horarias de consumo y costo para un día completo (24 horas) en el rango [start, end_exclusive)
+        """
+        tz = tz or settings.DEFAULT_TIMEZONE
         hourly_data = await self.repository.get_hourly_consumption(
-            household_id, start, end_exclusive, tz
+            no_contrat, cod_retail, start, end_exclusive, tz
         )
         
         consumption = [0.0] * 24
@@ -123,7 +161,8 @@ class ConsumptionService:
     
     async def get_daily_series(
         self, 
-        household_id: Union[int, str], 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
         year: int, 
         month: int,
         tz: Optional[str] = None,
@@ -139,7 +178,7 @@ class ConsumptionService:
         tz = tz or settings.DEFAULT_TIMEZONE
 
         daily_totals = await self.repository.get_daily_totals(
-            household_id, start_date, end_date, tz
+            no_contrat, cod_retail, start_date, end_date, tz
         )
         
         labels = []
@@ -167,7 +206,8 @@ class ConsumptionService:
     
     async def get_monthly_series(
         self, 
-        household_id: Union[int, str], 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
         year: int,
         tz: Optional[str] = None,
     ) -> Dict[str, List[float]]:
@@ -175,7 +215,7 @@ class ConsumptionService:
         Retorna consumo mensual para un año
         """
         tz = tz or settings.DEFAULT_TIMEZONE
-        monthly_totals = await self.repository.get_monthly_totals(household_id, year, tz)
+        monthly_totals = await self.repository.get_monthly_totals(no_contrat, cod_retail, year, tz)
         
         values_kwh = [0.0] * 12
         values_cost = [0.0] * 12
@@ -191,7 +231,8 @@ class ConsumptionService:
     
     async def get_yearly_series(
         self, 
-        household_id: Union[int, str], 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
         start_year: int, 
         end_year: int,
         tz: Optional[str] = None,
@@ -204,7 +245,7 @@ class ConsumptionService:
         values_cost = []
         
         for year in range(start_year, end_year + 1):
-            monthly_data = await self.repository.get_monthly_totals(household_id, year, tz)
+            monthly_data = await self.repository.get_monthly_totals(no_contrat, cod_retail, year, tz)
             total_kwh = sum(data["kwh"] for data in monthly_data.values())
             total_cost = sum(data["cost"] for data in monthly_data.values())
             values_kwh.append(total_kwh)

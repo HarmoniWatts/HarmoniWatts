@@ -18,6 +18,9 @@ class MeterMapper:
     def transformar(
         self,
         lectura_comercializador: Dict[str, Any],
+        no_contrato: Optional[int] = None,
+        cod_comercializadora: Optional[str] = None,
+        id_cliente: Optional[int] = None,
         id_vivienda: Optional[int] = None,
         tarifa_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
@@ -26,6 +29,9 @@ class MeterMapper:
         
         Args:
             lectura_comercializador: registro crudo de comercializador
+            no_contrato: ID de contrato asociado
+            cod_comercializadora: código de la comercializadora
+            id_cliente: ID del cliente asociado
             id_vivienda: ID de vivienda asociada (lookup en PostgreSQL)
             tarifa_data: tarifa vigente en el timestamp (del tariff-service)
         
@@ -41,11 +47,20 @@ class MeterMapper:
                 )
                 return None
             
+            if id_vivienda is None:
+                logger.warning(
+                    f"ID de vivienda no proporcionado para medidor {lectura_comercializador.get('METER_NO')}"
+                )
+                id_vivienda = 0  # Valor por defecto para evitar errores de null en MongoDB
+            
             # 2. Construir documento base
             doc = {
                 # Referencias
+                "no_contrato": str(no_contrato),
+                "cod_comercializadora": cod_comercializadora,
+                "id_cliente": id_cliente,
                 "id_vivienda": id_vivienda,
-                "id_medidor": lectura_comercializador["METER_NO"],
+                "serie_medidor": lectura_comercializador["METER_NO"],
                 # "rnum": lectura_comercializador.get("RNUM"),
                 
                 # Timestamp
