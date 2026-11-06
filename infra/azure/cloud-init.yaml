@@ -1,0 +1,9 @@
+#cloud-config
+# Instala k3s (Kubernetes ligero, incluye Traefik y almacenamiento local-path).
+# provision.sh reemplaza __APP_HOST__ para que el certificado de la API de
+# Kubernetes (puerto 6443) sea válido también con el dominio público.
+package_update: true
+packages:
+  - curl
+runcmd:
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable sh -s - server --tls-san "__APP_HOST__" --write-kubeconfig-mode 600

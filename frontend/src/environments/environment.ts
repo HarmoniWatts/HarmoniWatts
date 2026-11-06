@@ -1,32 +1,39 @@
 import type { DashboardApiEndpoints } from '../app/features/dashboard/dashboard.models';
 
+/**
+ * Build de producción (Kubernetes): frontend, APIs y Keycloak se sirven en el mismo dominio
+ * detrás del Ingress (ver k8s/base/ingress.yaml). Se usa el origen absoluto (no rutas
+ * relativas) porque el interceptor Bearer de `app.config.ts` compara URLs completas.
+ */
+const origin: string = globalThis.location?.origin ?? '';
+
 export const environment = {
   production: true,
   keycloak: {
-    url: 'http://localhost:8080',
+    url: `${origin}/auth`,
     realm: 'harmoniwatts',
     clientId: 'harmoniwatts-frontend',
   },
-  registrationApiUrl: '' as string | undefined,
+  registrationApiUrl: `${origin}/api/auth/register` as string | undefined,
   /** URL del backend para solicitar correo de restablecimiento de contraseña (harmoni-register). */
-  forgotPasswordApiUrl: '' as string | undefined,
+  forgotPasswordApiUrl: `${origin}/api/auth/forgot-password` as string | undefined,
   /**
    * Origen del API REST (sin barra final). Vacío = mismo origen que la app (`/api/...` en el host actual).
    * Debe coincidir con un patrón del interceptor Bearer en `app.config.ts`.
    */
-  apiBaseUrl: '' as string,
+  apiBaseUrl: origin as string,
   /** harmoni-register (Keycloak). Vacío = usar `apiBaseUrl` para perfil/contraseña. */
-  harmoniRegisterBaseUrl: '' as string,
+  harmoniRegisterBaseUrl: origin as string,
   /** API Spring Boot viviendas. Sin barra final. */
-  viviendaApiBaseUrl: '' as string,
+  viviendaApiBaseUrl: origin as string,
   /** tariff-service (tarifas por ubicación de la vivienda). Vacío = mismo origen. */
-  tariffApiBaseUrl: '' as string,
+  tariffApiBaseUrl: origin as string,
   /** API Spring Boot electrodomésticos por vivienda. Sin barra final. */
-  electrodomesticosApiBaseUrl: '' as string,
+  electrodomesticosApiBaseUrl: origin as string,
   /**
    * Base URL del insights-service (dashboard). Vacío: se usa `apiBaseUrl`.
    */
-  dashboardInsightsBaseUrl: '' as string | undefined,
+  dashboardInsightsBaseUrl: origin as string | undefined,
   /** Si el usuario tiene varias viviendas, se envía como `householdId` en las peticiones del dashboard. */
   defaultHouseholdId: undefined as string | undefined,
   /** Rutas versionadas del contrato DASHBOARD-API.md (sustituibles por entorno / despliegue). */

@@ -1,0 +1,127 @@
+# Entrada pública: un solo dominio (__APP_HOST__) con HTTPS de Let's Encrypt.
+# Se usan IngressRoute de Traefik (incluido en k3s) porque la ruta
+# /api/v1/viviendas/{id}/electrodomesticos necesita una regex para no caer en vivienda-api.
+#
+#   /auth                                      → keycloak
+#   /api/auth                                  → harmoni-register
+#   /api/v1/viviendas/{id}/electrodomesticos   → electrodomesticos-api
+#   /api/v1/electrodomesticos                  → electrodomesticos-api
+#   /api/v1/viviendas                          → vivienda-api
+#   /api/v1/tariff                             → tariff-service
+#   /api/v1/dashboard, /api/v1/recommendations → insights-service
+#   /                                          → frontend
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: harmoniwatts-tls
+spec:
+  secretName: harmoniwatts-tls
+  dnsNames:
+    - "__APP_HOST__"
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+# Headlamp solo responde en /headlamp/ (con barra final)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: headlamp-slash
+spec:
+  redirectRegex:
+    regex: ^(https?://[^/]+/headlamp)$
+    replacement: ${1}/
+    permanent: true
+---
+# HTTP → HTTPS. Los retos ACME de cert-manager (/.well-known/acme-challenge/...)
+# usan un Ingress propio con una regla más específica, así que no se ven afectados.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: harmoniwatts-http
+spec:
+  entryPoints: [web]
+  routes:
+    - kind: Rule
+      match: Host(`__APP_HOST__`)
+      priority: 1
+      middlewares:
+        - name: redirect-https
+      services:
+        - name: frontend
+          port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: harmoniwatts
+spec:
+  entryPoints: [websecure]
+  tls:
+    secretName: harmoniwatts-tls
+  routes:
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/auth`)
+      priority: 100
+      services:
+        - name: keycloak
+          port: 8080
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && Path(`/headlamp`)
+      priority: 110
+      middlewares:
+        - name: headlamp-slash
+      services:
+        - name: headlamp
+          port: 4466
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/headlamp`)
+      priority: 100
+      services:
+        - name: headlamp
+          port: 4466
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/api/auth`)
+      priority: 100
+      services:
+        - name: harmoni-register
+          port: 8081
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && (PathRegexp(`^/api/v1/viviendas/[^/]+/electrodomesticos`) || PathPrefix(`/api/v1/electrodomesticos`))
+      priority: 200
+      services:
+        - name: electrodomesticos-api
+          port: 8083
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/api/v1/viviendas`)
+      priority: 100
+      services:
+        - name: vivienda-api
+          port: 8082
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && PathPrefix(`/api/v1/tariff`)
+      priority: 100
+      services:
+        - name: harmoniwatts-tariff-service
+          port: 8006
+    - kind: Rule
+      match: Host(`__APP_HOST__`) && (PathPrefix(`/api/v1/dashboard`) || PathPrefix(`/api/v1/recommendations`))
+      priority: 100
+      services:
+        - name: harmoniwatts-insights-service
+          port: 7001
+    - kind: Rule
+      match: Host(`__APP_HOST__`)
+      priority: 1
+      services:
+        - name: frontend
+          port: 80

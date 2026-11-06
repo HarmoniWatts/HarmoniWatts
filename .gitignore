@@ -101,3 +101,6 @@ docker/backups/
 # =========================
 *.borrador
 *-borrador.*
+
+# Overlay temporal que genera k8s/deploy.sh
+k8s/.generated/

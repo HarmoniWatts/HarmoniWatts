@@ -1,0 +1,142 @@
+# Despliegue en Azure (k3s en una VM). Guía completa: k8s/README.md
+#
+# 1. Construye las imágenes y las publica en GitHub Container Registry (GHCR).
+# 2. Enciende la VM si está apagada, abre temporalmente el puerto 6443 solo para
+#    la IP de este runner, aplica los manifiestos con k8s/deploy.sh y cierra el puerto.
+#
+# La autenticación con Azure es por OIDC (sin contraseñas). Todo lo específico de
+# la suscripción vive en el environment "azure" de GitHub: para cambiar de
+# suscripción basta con actualizar sus secretos y variables.
+
+name: Deploy Azure
+
+on:
+  push:
+    branches: [qa]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Imagen ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { name: frontend, context: frontend, file: frontend/Dockerfile.prod }
+          - { name: harmoni-register, context: harmoni-register, file: harmoni-register/Dockerfile }
+          - { name: vivienda-api, context: harmoniwatts-vivienda-api, file: harmoniwatts-vivienda-api/Dockerfile }
+          - { name: electrodomesticos-api, context: harmoniwatts-electrodomesticos-api, file: harmoniwatts-electrodomesticos-api/Dockerfile }
+          - { name: consumption-service, context: backend/consumption-service, file: backend/consumption-service/Dockerfile }
+          - { name: insights-service, context: backend/insights-service, file: backend/insights-service/Dockerfile }
+          - { name: tariff-service, context: backend/tariff-service, file: backend/tariff-service/Dockerfile }
+          - { name: prediction-service, context: backend/prediction-service, file: backend/prediction-service/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Nombre de la imagen
+        id: img
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/harmoniwatts-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:${{ github.sha }}
+            ${{ steps.img.outputs.name }}:latest
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=deploy-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=deploy-${{ matrix.name }}
+
+  deploy:
+    name: Desplegar en k3s
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: azure
+      url: https://${{ vars.APP_HOST }}
+    permissions:
+      contents: read
+      id-token: write # OIDC con Azure
+    env:
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      VM: ${{ vars.AZURE_VM_NAME }}
+      NSG: ${{ vars.AZURE_NSG_NAME }}
+      FW_RULE: github-actions-deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Encender la VM
+        run: az vm start -g "$RG" -n "$VM"
+
+      - name: Abrir 6443 solo para este runner
+        run: |
+          ip="$(curl -fsS https://api.ipify.org)"
+          az network nsg rule create -g "$RG" --nsg-name "$NSG" -n "$FW_RULE" --priority 120 \
+            --access Allow --protocol Tcp --direction Inbound \
+            --destination-port-ranges 6443 --source-address-prefixes "$ip" -o none
+
+      - name: Configurar kubectl
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          printf '%s\n' "$KUBECONFIG_CONTENT" > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Esperar a que el clúster responda
+        run: |
+          for i in $(seq 1 30); do
+            if kubectl get nodes >/dev/null 2>&1; then kubectl get nodes; exit 0; fi
+            echo "Esperando la API de Kubernetes ($i/30)..."; sleep 10
+          done
+          echo "::error::La API de Kubernetes no respondió en 5 minutos"; exit 1
+
+      - name: Desplegar
+        env:
+          APP_HOST: ${{ vars.APP_HOST }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          IMAGE_TAG: ${{ github.sha }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          KC_ADMIN_USERNAME: ${{ secrets.KC_ADMIN_USERNAME }}
+          KC_ADMIN_PASSWORD: ${{ secrets.KC_ADMIN_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          GHCR_PULL_USER: ${{ github.repository_owner }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          export IMAGE_REGISTRY="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          bash k8s/deploy.sh
+
+      - name: Cerrar 6443
+        if: always()
+        run: az network nsg rule delete -g "$RG" --nsg-name "$NSG" -n "$FW_RULE" || true

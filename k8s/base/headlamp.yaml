@@ -1,0 +1,70 @@
+# Headlamp: interfaz web para administrar el clúster, en https://<APP_HOST>/headlamp
+#
+# El login es con Keycloak (realm "master", cliente "headlamp"). Headlamp envía el
+# id_token del usuario al API server de k3s, que lo valida (ver
+# infra/azure/configure-k3s-oidc.sh) y aplica RBAC: solo los miembros del grupo
+# "k8s-admins" de Keycloak tienen permisos (k8s/cluster/headlamp-rbac.yaml).
+# La cuenta de servicio de Headlamp no tiene ningún permiso propio.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: headlamp }
+  template:
+    metadata:
+      labels: { app: headlamp }
+    spec:
+      serviceAccountName: headlamp
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: headlamp
+          image: ghcr.io/headlamp-k8s/headlamp:v0.46.0
+          args:
+            - -in-cluster
+            - -in-cluster-context-name=harmoniwatts
+            - -base-url=/headlamp
+            - -oidc-client-id=headlamp
+            - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
+            - -oidc-idp-issuer-url=https://__APP_HOST__/auth/realms/master
+            - -oidc-callback-url=https://__APP_HOST__/headlamp/oidc-callback
+            - -oidc-scopes=openid,profile,email
+            - -oidc-use-pkce
+          env:
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: headlamp-oidc, key: client-secret } }
+          ports:
+            - { name: http, containerPort: 4466 }
+          readinessProbe:
+            httpGet: { path: /headlamp/, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /headlamp/, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headlamp
+spec:
+  selector: { app: headlamp }
+  ports:
+    - { name: http, port: 4466, targetPort: http }

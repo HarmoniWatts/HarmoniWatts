@@ -1,0 +1,31 @@
+# Manifiestos de HarmoniWatts para k3s (una VM en Azure). Ver k8s/README.md.
+#
+# Los nombres de imagen "harmoniwatts/*" son genéricos: k8s/deploy.sh los
+# reemplaza por ghcr.io/<owner>/harmoniwatts-*:<sha> y sustituye __APP_HOST__
+# por el dominio real. Secrets y ConfigMaps grandes (realm, seed de Mongo)
+# también los crea deploy.sh.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: harmoniwatts
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: harmoniwatts
+
+resources:
+  - namespace.yaml
+  - app-config.yaml
+  - postgres.yaml
+  - mongodb.yaml
+  - mongo-seed-job.yaml
+  - keycloak.yaml
+  - harmoni-register.yaml
+  - vivienda-api.yaml
+  - electrodomesticos-api.yaml
+  - consumption-service.yaml
+  - insights-service.yaml
+  - tariff-service.yaml
+  - prediction-service.yaml
+  - frontend.yaml
+  - headlamp.yaml
+  - ingress.yaml
