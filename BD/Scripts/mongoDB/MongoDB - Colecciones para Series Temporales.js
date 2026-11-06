@@ -182,7 +182,7 @@ db.createCollection("consumos_enriquecidos", {
 db.consumos_enriquecidos.createIndex(
   { 
     cod_comercializadora: 1, 
-    numero_contrato: 1, 
+    no_contrato: 1, 
     timestamp: 1 
   },
   { 

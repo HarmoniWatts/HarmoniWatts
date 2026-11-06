@@ -47,19 +47,12 @@ class MeterMapper:
                 )
                 return None
             
-            if id_vivienda is None:
-                logger.warning(
-                    f"ID de vivienda no proporcionado para medidor {lectura_comercializador.get('METER_NO')}"
-                )
-                id_vivienda = 0  # Valor por defecto para evitar errores de null en MongoDB
-            
             # 2. Construir documento base
             doc = {
                 # Referencias
                 "no_contrato": str(no_contrato),
                 "cod_comercializadora": cod_comercializadora,
                 "id_cliente": id_cliente,
-                "id_vivienda": id_vivienda,
                 "serie_medidor": lectura_comercializador["METER_NO"],
                 # "rnum": lectura_comercializador.get("RNUM"),
                 
@@ -91,6 +84,10 @@ class MeterMapper:
                 "fecha_registro": datetime.now(ZoneInfo("America/Bogota")),
                 "version_schema": "2.0",
             }
+            # Los consumos se identifican por (no_contrato, cod_comercializadora);
+            # la vivienda solo se guarda si se conoce (no se usa 0 como comodín).
+            if id_vivienda is not None:
+                doc["id_vivienda"] = id_vivienda
             
             # 3. Contexto temporal
             doc["contexto_temporal"] = self._contexto_temporal(timestamp)

@@ -73,16 +73,9 @@ class SyncService:
             id_sincronizacion, estado="en_proceso"
         )
         
-        # 1. Resolver id_vivienda (si no viene)
+        # Las lecturas se identifican por (no_contrato, cod_comercializadora);
+        # la vivienda no hace falta para consultarlas.
         id_vivienda = None
-        if id_vivienda is None:
-            # id_vivienda = await self.vivienda_resolver.resolver(meter_no)
-            if id_vivienda is None:
-                logger.warning(
-                    # f"No se pudo resolver vivienda para medidor {meter_no}. "
-                    f"Se guardarán las lecturas con id_vivienda=0."
-                )
-                id_vivienda = 0  # Valor por defecto para evitar errores de null en MongoDB
         
         if cod_retail == "ENERTOTAL":
             self.client_retail = self.client_enertotal

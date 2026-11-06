@@ -40,6 +40,19 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/consumption", tags=["consumption"])
 
 
+
+def _normalizar_contrato(no_contrat: str, cod_retail: str) -> tuple[str, str]:
+    """Los consumos se identifican por (no_contrato, cod_comercializadora), ambos texto."""
+    no_contrat = (no_contrat or "").strip()
+    cod_retail = (cod_retail or "").strip().upper()
+    if not no_contrat or not cod_retail:
+        raise HTTPException(
+            status_code=400,
+            detail="Se requieren el número de contrato y el código de la comercializadora",
+        )
+    return no_contrat, cod_retail
+
+
 @router.get(
     "/current/{no_contrat}/{cod_retail}",
     response_model=CurrentConsumptionResponse,
@@ -54,12 +67,7 @@ async def get_current_consumption(
     """
     Endpoint para obtener el consumo actual (kW)
     """
-    # Convertir ID si es necesario
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -84,11 +92,7 @@ async def get_daily_total(
     """
     Endpoint para obtener el consumo acumulado del día (kWh) y costo (COP)
     """
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -121,11 +125,7 @@ async def get_hourly_days_series(
     Obtiene serie temporal con consumo por hora (0-23)
     """
     # print(f"Received request for hourly series - no_contrat: {no_contrat}")
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -181,11 +181,7 @@ async def get_hourly_series(
     Obtiene serie temporal con consumo por hora (0-23)
     """
     # print(f"Received request for hourly series - no_contrat: {no_contrat}")
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -231,11 +227,7 @@ async def get_hourly_series(
     Obtiene serie temporal con consumo por hora (0-23)
     """
     print(f"Received request for hourly series - no_contrat: {no_contrat}, date: {date_param}")
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -287,11 +279,7 @@ async def get_daily_series(
     """
     Obtiene serie temporal con consumo por día del mes
     """
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -325,11 +313,7 @@ async def get_monthly_series(
     """
     Obtiene serie temporal con consumo por mes del año
     """
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -367,11 +351,7 @@ async def get_yearly_series(
     """
     Obtiene serie temporal con consumo por año
     """
-    if settings.CONTRAT_ID_TYPE == "str":
-        try:
-            no_contrat = str(no_contrat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="no_contrat debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     if start_year > end_year:
         raise HTTPException(status_code=400, detail="start_year debe ser menor o igual a end_year")

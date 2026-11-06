@@ -48,8 +48,7 @@ class ConsumptionRepository:
         Obtiene la lectura más reciente de consumo
         """
         # Convertir ID al tipo correcto
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
         
         cursor = self.collection.find(
             {"no_contrato": no_contrat, "cod_comercializadora": cod_retail}
@@ -73,8 +72,7 @@ class ConsumptionRepository:
         Obtiene el consumo total del día y estadísticas
         Incluye costo total sumando los costos de cada registro
         """
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
 
         start, end_exclusive = utc_range_for_local_calendar_day(target_date, tz)
 
@@ -134,8 +132,7 @@ class ConsumptionRepository:
         [start, end_exclusive). Si la ventana abarca varios días, las
         horas y consumo se agrupan por día.
         """
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
 
         pipeline = [
             {
@@ -226,8 +223,7 @@ class ConsumptionRepository:
             [start, end_exclusive). Si la ventana abarca varios días, las
             horas y consumo se agrupan por día.
             """
-            if settings.CONTRAT_ID_TYPE == "str":
-                no_contrat = str(no_contrat)
+            no_contrat = str(no_contrat)
     
             pipeline = [
                 {
@@ -288,8 +284,7 @@ class ConsumptionRepository:
         Obtiene consumo total por día en un rango
         Retorna dict con formato: {"2025-04-21": {"kwh": 12.5, "cost": 4500}}
         """
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
 
         range_start, _ = utc_range_for_local_calendar_day(start_date, tz)
         _, range_end_exclusive = utc_range_for_local_calendar_day(end_date, tz)
@@ -339,8 +334,7 @@ class ConsumptionRepository:
         """
         Obtiene consumo total por mes para un año
         """
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
 
         start_d = date(year, 1, 1)
         end_d = date(year, 12, 31)
@@ -387,8 +381,7 @@ class ConsumptionRepository:
         """
         Obtiene registros de consumo en un rango de fechas
         """
-        if settings.CONTRAT_ID_TYPE == "str":
-            no_contrat = str(no_contrat)
+        no_contrat = str(no_contrat)
         
         cursor = self.collection.find({
             "no_contrato": no_contrat,
