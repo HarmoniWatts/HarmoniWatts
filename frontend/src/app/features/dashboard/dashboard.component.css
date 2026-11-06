@@ -321,8 +321,10 @@
 /* Filtros (vivienda + fecha + actualizar), compartidos con la página de tarifas */
 .dash-filters {
   display: grid;
-  /* La vivienda ocupa el espacio libre; fecha y Actualizar quedan a la derecha */
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* El panel mide lo que su contenido: vivienda con ancho acotado, fecha y Actualizar al lado */
+  width: fit-content;
+  max-width: 100%;
+  grid-template-columns: minmax(18rem, 30rem) auto auto;
   align-items: start;
   gap: 0.75rem 1rem;
   margin-bottom: 1.25rem;
@@ -421,6 +423,7 @@
 
 @media (max-width: 899px) {
   .dash-filters {
+    width: auto;
     grid-template-columns: 1fr auto;
   }
   .dash-filters-vivienda {
