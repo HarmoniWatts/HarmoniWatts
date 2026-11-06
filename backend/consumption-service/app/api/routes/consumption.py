@@ -1,8 +1,8 @@
 # app/api/routes/consumption.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from typing import Optional, Union
-from datetime import date, datetime, timezone, timedelta
+from typing import Optional
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.database import get_database
@@ -214,7 +214,7 @@ async def get_hourly_series(
     summary="Serie horaria de varios días",
     description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
 )
-async def get_hourly_series(
+async def get_raw_series(
     no_contrat: str = Path(..., description="No de la cuenta"),
     cod_retail: str = Path(..., description="Código de la comercializadora"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
