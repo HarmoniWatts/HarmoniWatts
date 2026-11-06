@@ -10,4 +10,10 @@ public interface ViviendaRepository extends JpaRepository<Vivienda, Long> {
   List<Vivienda> findByKeycloakUserIdOrderByIdAsc(String keycloakUserId);
 
   Optional<Vivienda> findByIdAndKeycloakUserId(Long id, String keycloakUserId);
+
+  boolean existsByCodComercializadoraAndNumeroContrato(
+      String codComercializadora, String numeroContrato);
+
+  boolean existsByCodComercializadoraAndNumeroContratoAndIdNot(
+      String codComercializadora, String numeroContrato, Long id);
 }

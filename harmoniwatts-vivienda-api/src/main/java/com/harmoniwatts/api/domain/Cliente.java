@@ -21,8 +21,9 @@ public class Cliente {
   @Column(nullable = false, length = 100)
   private String nombre;
 
-  @Column(name = "no_cuenta", nullable = false, length = 20)
-  private String NoContrato;
+  /** Número de contrato con la comercializadora (único junto con codComercializadora). */
+  @Column(name = "no_contrato", nullable = false, length = 50)
+  private String noContrato;
 
   /** Debe coincidir con el claim `email` del JWT de Keycloak; es único. */
   @Column(nullable = false, length = 100, unique = true)
@@ -70,8 +71,8 @@ public class Cliente {
   public void setId(Long id) { this.id = id; }
   public String getNombre() { return nombre; }
   public void setNombre(String nombre) { this.nombre = nombre; }
-  public String getNoContrato() { return NoContrato; }
-  public void setNoContrato(String NoContrato) { this.NoContrato = NoContrato; }
+  public String getNoContrato() { return noContrato; }
+  public void setNoContrato(String noContrato) { this.noContrato = noContrato; }
   public String getEmail() { return email; }
   public void setEmail(String email) { this.email = email; }
   public String getPasswordHash() { return passwordHash; }

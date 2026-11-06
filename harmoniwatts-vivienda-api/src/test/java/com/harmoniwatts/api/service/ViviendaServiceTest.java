@@ -35,7 +35,7 @@ class ViviendaServiceTest {
     when(repository.save(any(Vivienda.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ViviendaResponse res =
-        service.create(SUB, new ViviendaCreateRequest("  Casa ", 3, 4, " Calle 1 # 2-3 ", null, null, null));
+        service.create(SUB, new ViviendaCreateRequest("  Casa ", 3, 4, " Calle 1 # 2-3 ", null, null, null, null));
 
     assertThat(res.tipo()).isEqualTo("Casa");
     assertThat(res.ubicacion()).isEqualTo("Calle 1 # 2-3");
@@ -52,7 +52,7 @@ class ViviendaServiceTest {
     when(repository.save(any(Vivienda.class))).thenAnswer(inv -> inv.getArgument(0));
 
     ViviendaResponse res =
-        service.update(SUB, 5L, new ViviendaUpdateRequest("Apto", 2, 3, "Cra 7", "  ", null, null, null));
+        service.update(SUB, 5L, new ViviendaUpdateRequest("Apto", 2, 3, "Cra 7", "  ", null, null, null, null));
 
     assertThat(res.zonaClimatica()).isNull();
   }
@@ -64,10 +64,42 @@ class ViviendaServiceTest {
     ViviendaResponse res =
         service.create(
             SUB,
-            new ViviendaCreateRequest("Casa", 3, 2, "Cra 7", (short) 9, " BOGOTA ", " 123-456 "));
+            new ViviendaCreateRequest(
+                "Casa", 3, 2, "Cra 7", (short) 9, " BOGOTA ", " 123-456 ", " enertotal "));
 
     assertThat(res.idZona()).isEqualTo((short) 9);
     assertThat(res.codMercado()).isEqualTo("BOGOTA");
+    assertThat(res.numeroContrato()).isEqualTo("123-456");
+    assertThat(res.codComercializadora()).isEqualTo("ENERTOTAL");
+  }
+
+  @Test
+  void createConContratoSinComercializadoraDevuelve400() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    SUB,
+                    new ViviendaCreateRequest("Casa", 3, 2, "Cra 7", null, null, "123", " ")))
+        .isInstanceOf(ResponseStatusException.class)
+        .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    verify(repository, never()).save(any());
+  }
+
+  @Test
+  void createConContratoYaRegistradoDevuelve409() {
+    when(repository.existsByCodComercializadoraAndNumeroContrato("ENERTOTAL", "123"))
+        .thenReturn(true);
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    SUB,
+                    new ViviendaCreateRequest("Casa", 3, 2, "Cra 7", null, null, "123", "ENERTOTAL")))
+        .isInstanceOf(ResponseStatusException.class)
+        .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+        .isEqualTo(HttpStatus.CONFLICT);
+    verify(repository, never()).save(any());
   }
 
   @Test
@@ -75,7 +107,7 @@ class ViviendaServiceTest {
     assertThatThrownBy(
             () ->
                 service.create(
-                    SUB, new ViviendaCreateRequest("Casa", 3, 2, "Cra 7", (short) 9, " ", null)))
+                    SUB, new ViviendaCreateRequest("Casa", 3, 2, "Cra 7", (short) 9, " ", null, null)))
         .isInstanceOf(ResponseStatusException.class)
         .extracting(e -> ((ResponseStatusException) e).getStatusCode())
         .isEqualTo(HttpStatus.BAD_REQUEST);
@@ -87,7 +119,7 @@ class ViviendaServiceTest {
     when(repository.findByIdAndKeycloakUserId(7L, SUB)).thenReturn(Optional.empty());
 
     assertThatThrownBy(
-            () -> service.update(SUB, 7L, new ViviendaUpdateRequest("Apto", 2, 3, "Cra 7", null, null, null, null)))
+            () -> service.update(SUB, 7L, new ViviendaUpdateRequest("Apto", 2, 3, "Cra 7", null, null, null, null, null)))
         .isInstanceOf(ResponseStatusException.class)
         .extracting(e -> ((ResponseStatusException) e).getStatusCode())
         .isEqualTo(HttpStatus.NOT_FOUND);

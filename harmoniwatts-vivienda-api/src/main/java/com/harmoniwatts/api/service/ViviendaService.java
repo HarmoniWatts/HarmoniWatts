@@ -36,6 +36,7 @@ public class ViviendaService {
     v.setEstrato(req.estrato());
     v.setDireccion(req.ubicacion().trim());
     aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado());
+    aplicarContrato(v, req.numeroContrato(), req.codComercializadora());
     return ViviendaResponse.from(viviendaRepository.save(v));
   }
 
@@ -55,11 +56,12 @@ public class ViviendaService {
       v.setZonaClimatica(null);
     }
     aplicarUbicacionTarifaria(v, req.idZona(), req.codMercado());
+    aplicarContrato(v, req.numeroContrato(), req.codComercializadora());
     return ViviendaResponse.from(viviendaRepository.save(v));
   }
 
   /**
-   * Ciudad (idZona + codMercado, deben existir juntos en mercado_zona) y número de contrato.
+   * Ciudad (idZona + codMercado, deben existir juntos en mercado_zona).
    * La ciudad es opcional, pero sin ella no se pueden resolver las tarifas de la vivienda.
    */
   private static void aplicarUbicacionTarifaria(
@@ -71,6 +73,39 @@ public class ViviendaService {
     }
     v.setIdZona(idZona);
     v.setCodMercado(mercado);
+  }
+
+  /**
+   * Contrato con la comercializadora: número y comercializadora van juntos (los consumos se
+   * consultan con esa pareja). Ambos son opcionales; sin ellos la vivienda no tiene consumos.
+   */
+  private void aplicarContrato(Vivienda v, String numeroContrato, String codComercializadora) {
+    String numero = blankToNull(numeroContrato);
+    String comercializadora = blankToNull(codComercializadora);
+    if ((numero == null) != (comercializadora == null)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "numeroContrato y codComercializadora deben enviarse juntos");
+    }
+    if (numero != null) {
+      comercializadora = comercializadora.toUpperCase();
+      boolean enUso =
+          v.getId() == null
+              ? viviendaRepository.existsByCodComercializadoraAndNumeroContrato(
+                  comercializadora, numero)
+              : viviendaRepository.existsByCodComercializadoraAndNumeroContratoAndIdNot(
+                  comercializadora, numero, v.getId());
+      if (enUso) {
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT, "Ese contrato ya está registrado en otra vivienda");
+      }
+    }
+    v.setNumeroContrato(numero);
+    v.setCodComercializadora(comercializadora);
+  }
+
+  private static String blankToNull(String s) {
+    return s != null && !s.isBlank() ? s.trim() : null;
   }
 
   @Transactional
