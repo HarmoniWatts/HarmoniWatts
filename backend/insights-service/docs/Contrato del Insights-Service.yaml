@@ -1,7 +1,8 @@
 GET /api/v1/insights/consumption-chart
   Query parameters:
     - date (opcional): YYYY-MM-DD
-    - householdId (obligatorio): ID de la vivienda
+    - noContrato (obligatorio): número de contrato de la vivienda con la comercializadora
+    - codComercializadora (obligatorio): código de la comercializadora (ej. ENERTOTAL)
 
 Response 200 OK:
 {

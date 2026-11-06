@@ -18,11 +18,17 @@ import {
  *     tags: [Dashboard]
  *     parameters:
  *       - in: query
- *         name: householdId
+ *         name: noContrato
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la vivienda
+ *         description: Número de contrato de la vivienda con la comercializadora
+ *       - in: query
+ *         name: codComercializadora
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código de la comercializadora (ej. ENERTOTAL)
  *       - in: query
  *         name: date
  *         schema:
@@ -58,11 +64,17 @@ router.get('/dashboard/summary', getSummary);
  *     tags: [Dashboard]
  *     parameters:
  *       - in: query
- *         name: householdId
+ *         name: noContrato
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la vivienda
+ *         description: Número de contrato de la vivienda con la comercializadora
+ *       - in: query
+ *         name: codComercializadora
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código de la comercializadora (ej. ENERTOTAL)
  *       - in: query
  *         name: date
  *         schema:
