@@ -28,4 +28,12 @@ resources:
   - prediction-service.yaml
   - frontend.yaml
   - headlamp.yaml
+  - cronjobs.yaml
   - ingress.yaml
+
+# Scripts de las tareas programadas (cronjobs.yaml)
+configMapGenerator:
+  - name: cron-scripts
+    files:
+      - cron/sincronizar-consumos.sh
+      - cron/actualizar-tarifas.sh

@@ -125,6 +125,22 @@ MongoDB se carga automáticamente con `BD/datos` (Job `mongo-seed`).
   `kubectl -n harmoniwatts cp backend/prediction-service/model/. <pod>:/app/model`,
   donde `<pod>` sale de `kubectl -n harmoniwatts get pods -l app.kubernetes.io/name=prediction-service`.
 
+## Tareas programadas (CronJobs)
+
+Definidas en `k8s/base/cronjobs.yaml`; los scripts están en `k8s/base/cron/`. Horario de Colombia.
+
+| CronJob | Cuándo | Qué hace |
+|---|---|---|
+| `sincronizar-consumos` | Cada hora (minuto 5) | Toma los contratos de PostgreSQL (viviendas con contrato + comercializadora y clientes con contrato) y pide a consumption-service las lecturas de ayer y hoy. Repetir un rango no duplica lecturas. |
+| `actualizar-tarifas` | Lunes 6:00 | Para cada comercializadora activa, tariff-service descarga y procesa los PDFs de tarifas desde el mes anterior. Las tarifas existentes no se duplican. |
+
+- Ver ejecuciones: `kubectl -n harmoniwatts get cronjobs,jobs` (o en Headlamp → Cargas de trabajo).
+- Ejecutar ya: `kubectl -n harmoniwatts create job --from=cronjob/sincronizar-consumos sync-manual`
+  (o `--from=cronjob/actualizar-tarifas tarifas-manual`).
+- Traer más días de consumo: `kubectl -n harmoniwatts set env cronjob/sincronizar-consumos DIAS_ATRAS=10`
+  (vuelve a 1 en el siguiente despliegue).
+- Con la VM apagada no corren; la siguiente ejecución vuelve a pedir el rango completo.
+
 ## Cambiar de suscripción (ej. de la prueba gratuita a Azure for Students)
 
 1. Respalda los datos de la nube (con el kubeconfig de la suscripción anterior):
