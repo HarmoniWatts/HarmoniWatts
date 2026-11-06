@@ -12,7 +12,9 @@ from app.services.consumption_service import ConsumptionService
 from app.models.consumption import (
     CurrentConsumptionResponse,
     DailyTotalResponse,
-    TimeSeriesResponse
+    TimeDaysSeriesResponse,
+    TimeSeriesResponse,
+    RawSeriesResponse
 )
 from app.models.sync import (
     SyncClienteRequest,
@@ -109,7 +111,7 @@ async def get_daily_total(
 
 @router.get(
     "/series/hourly-days/{no_contrat}/{cod_retail}",
-    response_model=TimeSeriesResponse,
+    response_model=TimeDaysSeriesResponse,
     summary="Serie horaria de varios días",
     description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
 )
@@ -138,12 +140,9 @@ async def get_hourly_days_series(
     end_date = datetime.combine(target_date, datetime.max.time())
     
     # 1. Determinar el inicio y fin del rango
-    print(f"start_date_str: {start_date_str}, end_date_str: {end_date_str}")
     if start_date_str and end_date_str:
         start_date = datetime.combine(start_date_str, datetime.min.time(), tzinfo=local_tz)
-        print(f"start_date_str: {start_date_str}, start_date: {start_date}")
         end_date = datetime.combine(end_date_str, datetime.max.time(), tzinfo=local_tz)
-        print(f"end_date_str: {end_date_str}, end_date: {end_date}")
     elif hours:
         end_date = datetime.now(local_tz)
         start_date = end_date - timedelta(hours=hours)
@@ -152,17 +151,15 @@ async def get_hourly_days_series(
     
     series = await service.get_hourly_days_series(no_contrat, cod_retail, start_date, end_date)
     
-    logger.info(f"Hourly days series - {series}")
+    # logger.info(f"Hourly days series - {series}")
     
-    return TimeSeriesResponse(
+    return TimeDaysSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
         granularity="hour",
         start_date=target_date.isoformat(),
         end_date=target_date.isoformat(),
-        labels=[f"{h:02d}:00" for h in range(24)],
-        values_kwh=series["consumption_kwh"],
-        values_cost=series["costs_cop"]
+        days_hourly=series
     )
     
 @router.get(
@@ -210,7 +207,7 @@ async def get_hourly_series(
     
 @router.get(
     "/series/raws/{no_contrat}/{cod_retail}",
-    response_model=TimeSeriesResponse,
+    response_model=RawSeriesResponse,
     summary="Serie horaria de varios días",
     description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
 )
@@ -249,17 +246,15 @@ async def get_raw_series(
 
         
     
-    series = await service.get_hourly_series(no_contrat, cod_retail, start_date, end_date)
-    
-    return TimeSeriesResponse(
+    series = await service.get_raw_series(no_contrat, cod_retail, start_date, end_date)
+    # logger.info(f"Raw series - {series}")
+    return RawSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
         granularity="hour",
         start_date=target_date.isoformat(),
         end_date=target_date.isoformat(),
-        labels=[f"{h:02d}:00" for h in range(24)],
-        values_kwh=series["consumption_kwh"],
-        values_cost=series["costs_cop"]
+        data=series
     )
 
 

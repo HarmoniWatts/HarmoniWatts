@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Dict, Optional, List, Any
 from bson import ObjectId
 
 
@@ -109,7 +109,29 @@ class TimeSeriesResponse(BaseModel):
     values_kwh: List[float]
     values_cost: Optional[List[float]] = None
     unit: str = "kWh"
-
+    
+class DailyProfile(BaseModel):
+    labels: List[str]
+    values_kwh: List[float]
+    values_cost: Optional[List[float]] = None
+    
+class TimeDaysSeriesResponse(BaseModel):
+    """Respuesta genérica para series temporales"""
+    no_contrat: str
+    cod_comercializadora: str
+    granularity: str  # hour, day, month, year
+    start_date: str
+    end_date: str
+    days_hourly: Dict[str, DailyProfile]
+    
+class RawSeriesResponse(BaseModel):
+    """Respuesta genérica para series temporales"""
+    no_contrat: str
+    cod_comercializadora: str
+    granularity: str  # hour, day, month, year
+    start_date: str
+    end_date: str
+    data:  List[Dict[str, Any]] # Lista de diccionarios con timestamp y kwh
 
 class ConsumptionSummaryResponse(BaseModel):
     """Resumen completo para dashboard"""

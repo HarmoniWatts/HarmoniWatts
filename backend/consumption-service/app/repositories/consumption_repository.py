@@ -137,7 +137,7 @@ class ConsumptionRepository:
         pipeline = [
             {
                 "$match": {
-                     "no_contrato": no_contrat,
+                    "no_contrato": no_contrat,
                     "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": start, "$lt": end_exclusive},
                 }
@@ -172,12 +172,10 @@ class ConsumptionRepository:
             }
         ]
         
-        logger.info(f"pipeline - {pipeline}\n")
-        print("start =", start)
-        print("end   =", end_exclusive)
+
         cursor = self.collection.aggregate(pipeline)
         results = await cursor.to_list(length=None)
-        logger.info(f"results - {results}")
+        # logger.info(f"results - {results}")
         daily_profiles = defaultdict(list)
 
         for result in results:
@@ -205,7 +203,7 @@ class ConsumptionRepository:
                 for hour in range(24)
             ]
             
-        logger.info(f"daily_profiles - {daily_profiles}")
+        # logger.info(f"daily_profiles - {daily_profiles}")
 
         return dict(sorted(daily_profiles.items()))
     
@@ -271,6 +269,46 @@ class ConsumptionRepository:
                 }
             
             return hourly
+        
+    async def get_raw_series_consumption(
+        self,
+        no_contrat: Union[int, str],
+        cod_retail: str,
+        start: datetime,
+        end_exclusive: datetime,
+        tz: str
+        ) -> List[Dict[str, Any]]:
+        pipeline = [
+            {
+                "$match": {
+                    "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
+                    "timestamp": {"$gte": start, "$lt": end_exclusive},
+                }
+            },
+            {"$sort": {"timestamp": 1}}, # Orden cronológico
+            {
+                "$project": {
+                    "_id": 0,
+                    "serie_medidor": 1,
+                    "timestamp": 1,
+                    "kwh": "$valor_kwh" # Renombramos para que sea directo
+                }
+            }
+        ]
+        
+        cursor = self.collection.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+        # logger.info(f"results - {results}")
+        
+        meter_no = results[0]["serie_medidor"] if results else None
+        
+        return {
+                "serie_medidor": meter_no,
+                "raw_data": [{"timestamp": item["timestamp"], "kwh": item["kwh"]} for item in results]
+            }
+        
+
     
     async def get_daily_totals(
         self,
