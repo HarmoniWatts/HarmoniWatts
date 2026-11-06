@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from typing import Optional
-from datetime import date, datetime, timedelta, timezone as dt_timezone
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.database import get_database
@@ -16,11 +16,13 @@ from app.models.consumption import (
 )
 from app.models.sync import (
     SyncClienteRequest,
+    SyncContratoRequest,
     SyncViviendaRequest,
     SyncMedidorRequest,
     SyncMedidorResponse,
     SyncClienteResponse,
     SyncViviendaResponse,
+    SyncContratoResponse,
     SyncEstadoResponse,
     SyncHistorialResponse,
 )
@@ -31,67 +33,72 @@ from app.repositories.sync_repository import SyncRepository
 
 from app.config import settings
 
+import structlog
+
+logger = structlog.get_logger()
+
 router = APIRouter(prefix="/api/v1/consumption", tags=["consumption"])
 
 
+
+def _normalizar_contrato(no_contrat: str, cod_retail: str) -> tuple[str, str]:
+    """Los consumos se identifican por (no_contrato, cod_comercializadora), ambos texto."""
+    no_contrat = (no_contrat or "").strip()
+    cod_retail = (cod_retail or "").strip().upper()
+    if not no_contrat or not cod_retail:
+        raise HTTPException(
+            status_code=400,
+            detail="Se requieren el número de contrato y el código de la comercializadora",
+        )
+    return no_contrat, cod_retail
+
+
 @router.get(
-    "/current/{household_id}",
+    "/current/{no_contrat}/{cod_retail}",
     response_model=CurrentConsumptionResponse,
     summary="Consumo actual",
     description="Obtiene el consumo actual en kW para una vivienda"
 )
 async def get_current_consumption(
-    household_id: str = Path(..., description="ID de la vivienda"),
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Endpoint para obtener el consumo actual (kW)
     """
-    # Convertir ID si es necesario
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    result = await service.get_current_consumption(household_id)
+    result = await service.get_current_consumption(no_contrat, cod_retail)
     
     return result
 
 
 @router.get(
-    "/daily-total/{household_id}",
+    "/daily-total/{no_contrat}/{cod_retail}",
     response_model=DailyTotalResponse,
     summary="Consumo acumulado del día",
     description="Obtiene el consumo total acumulado del día en kWh y su costo"
 )
 async def get_daily_total(
-    household_id: str = Path(..., description="ID de la vivienda"),
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
     date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
-    timezone: str = Query(
-        settings.DEFAULT_TIMEZONE,
-        alias="timezone",
-        description="Zona IANA del día civil (ej. America/Bogota)",
-    ),
-    db: AsyncIOMotorDatabase = Depends(get_database),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Endpoint para obtener el consumo acumulado del día (kWh) y costo (COP)
     """
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
     target_date = date_param or datetime.utcnow().date()
-    result = await service.get_daily_total(household_id, target_date, timezone)
+    result = await service.get_daily_total(no_contrat, cod_retail, target_date)
     
     return result
 
@@ -101,63 +108,155 @@ async def get_daily_total(
 # ============================================
 
 @router.get(
-    "/series/hourly/{household_id}",
+    "/series/hourly-days/{no_contrat}/{cod_retail}",
     response_model=TimeSeriesResponse,
-    summary="Serie horaria del día",
-    description="Obtiene el consumo por hora para un día específico"
+    summary="Serie horaria de varios días",
+    description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
 )
-async def get_hourly_series(
-    household_id: str = Path(..., description="ID de la vivienda"),
-    date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
-    start_date_str: Optional[date] = Query(None, alias="date>=", description="Fecha de inicio (YYYY-MM-DD)"),
-    end_date_str: Optional[date] = Query(None, alias="date<=", description="Fecha de fin (YYYY-MM-DD)"),
-    hours: Optional[int] = Query(None, ge=1, le=8760, description="Horas hacia atrás desde ahora (solo si no se envían fechas)"),
-    timezone: str = Query(
-        settings.DEFAULT_TIMEZONE,
-        alias="timezone",
-        description="Zona IANA para agrupar horas 0–23 del día civil",
-    ),
-    db: AsyncIOMotorDatabase = Depends(get_database),
+async def get_hourly_days_series(
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
+    start_date_str: Optional[date] = Query(None, alias="date>", description="Fecha de inicio (YYYY-MM-DD)"),
+    end_date_str: Optional[date] = Query(None, alias="date<", description="Fecha de fin (YYYY-MM-DD)"),
+    hours: int = Query(24, ge=1, le=8760, description="Horas hacia atrás (solo si no se envían fechas)"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Obtiene serie temporal con consumo por hora (0-23).
-
-    Ventana consultada, en orden de prioridad:
-    - `date>=` y `date<=`: días civiles completos del rango (en `timezone`).
-    - `hours`: las últimas N horas hasta ahora.
-    - `date` (o hoy): el día civil completo.
+    Obtiene serie temporal con consumo por hora (0-23)
     """
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    # print(f"Received request for hourly series - no_contrat: {no_contrat}")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    local_tz = ZoneInfo(timezone)
+    
+    local_tz = ZoneInfo("America/Bogota")
+    
+    target_date = datetime.now(local_tz).date()
+    start_date = datetime.combine(target_date, datetime.min.time())
+    end_date = datetime.combine(target_date, datetime.max.time())
+    
+    # 1. Determinar el inicio y fin del rango
+    print(f"start_date_str: {start_date_str}, end_date_str: {end_date_str}")
     if start_date_str and end_date_str:
-        start, _ = utc_range_for_local_calendar_day(start_date_str, timezone)
-        _, end_exclusive = utc_range_for_local_calendar_day(end_date_str, timezone)
-        first_day, last_day = start_date_str, end_date_str
+        start_date = datetime.combine(start_date_str, datetime.min.time(), tzinfo=local_tz)
+        print(f"start_date_str: {start_date_str}, start_date: {start_date}")
+        end_date = datetime.combine(end_date_str, datetime.max.time(), tzinfo=local_tz)
+        print(f"end_date_str: {end_date_str}, end_date: {end_date}")
     elif hours:
-        end_exclusive = datetime.now(dt_timezone.utc)
-        start = end_exclusive - timedelta(hours=hours)
-        first_day = start.astimezone(local_tz).date()
-        last_day = end_exclusive.astimezone(local_tz).date()
-    else:
-        target_date = date_param or datetime.now(local_tz).date()
-        start, end_exclusive = utc_range_for_local_calendar_day(target_date, timezone)
-        first_day = last_day = target_date
+        end_date = datetime.now(local_tz)
+        start_date = end_date - timedelta(hours=hours)
 
-    series = await service.get_hourly_series(household_id, start, end_exclusive, timezone)
-
+        
+    
+    series = await service.get_hourly_days_series(no_contrat, cod_retail, start_date, end_date)
+    
+    logger.info(f"Hourly days series - {series}")
+    
     return TimeSeriesResponse(
-        id_vivienda=household_id,
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
         granularity="hour",
-        start_date=first_day.isoformat(),
-        end_date=last_day.isoformat(),
+        start_date=target_date.isoformat(),
+        end_date=target_date.isoformat(),
+        labels=[f"{h:02d}:00" for h in range(24)],
+        values_kwh=series["consumption_kwh"],
+        values_cost=series["costs_cop"]
+    )
+    
+@router.get(
+    "/series/hourly/{no_contrat}/{cod_retail}",
+    response_model=TimeSeriesResponse,
+    summary="Serie horaria de varios días",
+    description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
+)
+async def get_hourly_series(
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
+    date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Obtiene serie temporal con consumo por hora (0-23)
+    """
+    # print(f"Received request for hourly series - no_contrat: {no_contrat}")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
+    
+    repository = ConsumptionRepository(db)
+    service = ConsumptionService(repository)
+    
+    
+    local_tz = ZoneInfo("America/Bogota")
+    
+    target_date = date_param or datetime.now(local_tz).date()
+    
+    start_date, end_date = utc_range_for_local_calendar_day(target_date, local_tz)
+
+        
+    
+    series = await service.get_hourly_series(no_contrat, cod_retail, start_date, end_date)
+    
+    return TimeSeriesResponse(
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
+        granularity="hour",
+        start_date=target_date.isoformat(),
+        end_date=target_date.isoformat(),
+        labels=[f"{h:02d}:00" for h in range(24)],
+        values_kwh=series["consumption_kwh"],
+        values_cost=series["costs_cop"]
+    )
+    
+@router.get(
+    "/series/raws/{no_contrat}/{cod_retail}",
+    response_model=TimeSeriesResponse,
+    summary="Serie horaria de varios días",
+    description="Obtiene el consumo por hora para un rango de días (hasta 7 días) en formato de serie temporal"
+)
+async def get_raw_series(
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
+    date_param: Optional[date] = Query(None, alias="date", description="Fecha YYYY-MM-DD"),
+    start_date_str: Optional[date] = Query(None, alias="date>", description="Fecha de inicio (YYYY-MM-DD)"),
+    end_date_str: Optional[date] = Query(None, alias="date<", description="Fecha de fin (YYYY-MM-DD)"),
+    hours: int = Query(24, ge=1, le=8760, description="Horas hacia atrás (solo si no se envían fechas)"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Obtiene serie temporal con consumo por hora (0-23)
+    """
+    print(f"Received request for hourly series - no_contrat: {no_contrat}, date: {date_param}")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
+    
+    repository = ConsumptionRepository(db)
+    service = ConsumptionService(repository)
+    
+    
+    local_tz = ZoneInfo("America/Bogota")
+    
+    target_date = date_param or datetime.now(local_tz).date()
+    start_date = datetime.combine(target_date, datetime.min.time())
+    end_date = datetime.combine(target_date, datetime.max.time())
+    
+    # 1. Determinar el inicio y fin del rango
+    if start_date_str and end_date_str:
+        start_date = datetime.combine(start_date_str, datetime.min.time(), tzinfo=local_tz)
+        end_date = datetime.combine(end_date_str, datetime.max.time(), tzinfo=local_tz)
+    elif hours:
+        end_date = datetime.now(local_tz)
+        start_date = end_date - timedelta(hours=hours)
+
+        
+    
+    series = await service.get_hourly_series(no_contrat, cod_retail, start_date, end_date)
+    
+    return TimeSeriesResponse(
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
+        granularity="hour",
+        start_date=target_date.isoformat(),
+        end_date=target_date.isoformat(),
         labels=[f"{h:02d}:00" for h in range(24)],
         values_kwh=series["consumption_kwh"],
         values_cost=series["costs_cop"]
@@ -165,38 +264,31 @@ async def get_hourly_series(
 
 
 @router.get(
-    "/series/daily/{household_id}",
+    "/series/daily/{no_contrat}/{cod_retail}",
     response_model=TimeSeriesResponse,
     summary="Serie diaria del mes",
     description="Obtiene el consumo por día para un mes específico"
 )
 async def get_daily_series(
-    household_id: str = Path(..., description="ID de la vivienda"),
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
     year: int = Query(..., description="Año (ej: 2025)", ge=2020, le=2030),
     month: int = Query(..., description="Mes (1-12)", ge=1, le=12),
-    timezone: str = Query(
-        settings.DEFAULT_TIMEZONE,
-        alias="timezone",
-        description="Zona IANA para asignar cada lectura a un día civil",
-    ),
-    db: AsyncIOMotorDatabase = Depends(get_database),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Obtiene serie temporal con consumo por día del mes
     """
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    result = await service.get_daily_series(household_id, year, month, timezone)
+    result = await service.get_daily_series(no_contrat, cod_retail, year, month)
     
     return TimeSeriesResponse(
-        id_vivienda=household_id,
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
         granularity="day",
         start_date=f"{year}-{month:02d}-01",
         end_date=f"{year}-{month:02d}-{result['days_in_month']}",
@@ -207,29 +299,21 @@ async def get_daily_series(
 
 
 @router.get(
-    "/series/monthly/{household_id}",
+    "/series/monthly/{no_contrat}/{cod_retail}",
     response_model=TimeSeriesResponse,
     summary="Serie mensual del año",
     description="Obtiene el consumo por mes para un año específico"
 )
 async def get_monthly_series(
-    household_id: str = Path(..., description="ID de la vivienda"),
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
     year: int = Query(..., description="Año (ej: 2025)", ge=2020, le=2030),
-    timezone: str = Query(
-        settings.DEFAULT_TIMEZONE,
-        alias="timezone",
-        description="Zona IANA para agrupar por mes civil",
-    ),
-    db: AsyncIOMotorDatabase = Depends(get_database),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Obtiene serie temporal con consumo por mes del año
     """
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
@@ -237,10 +321,11 @@ async def get_monthly_series(
     meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", 
              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
     
-    result = await service.get_monthly_series(household_id, year, timezone)
+    result = await service.get_monthly_series(no_contrat, cod_retail, year)
     
     return TimeSeriesResponse(
-        id_vivienda=household_id,
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
         granularity="month",
         start_date=f"{year}-01-01",
         end_date=f"{year}-12-31",
@@ -251,30 +336,22 @@ async def get_monthly_series(
 
 
 @router.get(
-    "/series/yearly/{household_id}",
+    "/series/yearly/{no_contrat}/{cod_retail}",
     response_model=TimeSeriesResponse,
     summary="Serie anual multi-año",
     description="Obtiene el consumo por año para un rango de años"
 )
 async def get_yearly_series(
-    household_id: str = Path(..., description="ID de la vivienda"),
+    no_contrat: str = Path(..., description="No de la cuenta"),
+    cod_retail: str = Path(..., description="Código de la comercializadora"),
     start_year: int = Query(..., description="Año inicial", ge=2020, le=2030),
     end_year: int = Query(..., description="Año final", ge=2020, le=2030),
-    timezone: str = Query(
-        settings.DEFAULT_TIMEZONE,
-        alias="timezone",
-        description="Zona IANA (coherente con series mensuales)",
-    ),
-    db: AsyncIOMotorDatabase = Depends(get_database),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Obtiene serie temporal con consumo por año
     """
-    if settings.HOUSEHOLD_ID_TYPE == "int":
-        try:
-            household_id = int(household_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="household_id debe ser un número entero")
+    no_contrat, cod_retail = _normalizar_contrato(no_contrat, cod_retail)
     
     if start_year > end_year:
         raise HTTPException(status_code=400, detail="start_year debe ser menor o igual a end_year")
@@ -282,10 +359,11 @@ async def get_yearly_series(
     repository = ConsumptionRepository(db)
     service = ConsumptionService(repository)
     
-    result = await service.get_yearly_series(household_id, start_year, end_year, timezone)
+    result = await service.get_yearly_series(no_contrat, cod_retail, start_year, end_year)
     
     return TimeSeriesResponse(
-        id_vivienda=household_id,
+        no_contrat=no_contrat,
+        cod_comercializadora=cod_retail,
         granularity="year",
         start_date=f"{start_year}-01-01",
         end_date=f"{end_year}-12-31",
@@ -336,6 +414,41 @@ def get_sync_repository() -> SyncRepository:
 # =====================================================
 
 
+@router.post("/sync/manual/contrato/{no_contrato}/{cod_retail}", response_model=SyncContratoResponse, status_code=200)
+async def sync_por_contrato(
+    no_contrato: str,
+    cod_retail: str,
+    request: SyncContratoRequest,
+    service: SyncService = Depends(get_sync_service),
+):
+    """
+    Dispara una sincronización manual para un medidor asociado a un contrato en un rango de fechas.
+    
+    La sincronización se ejecuta en segundo plano (background task).
+    Consulta el estado en /consumption/sync/estado/{id}.
+    """
+    # Ejecutar en background (o Celery si está configurado)
+    resultado = await service.sincronizar_contrato(
+        no_contrato=no_contrato,
+        cod_retail=cod_retail,
+        id_cliente=request.id_cliente,
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin,
+    )
+   
+    return SyncContratoResponse(
+        id_sincronizacion=resultado["id_sincronizacion"],
+        estado=resultado["estado"],
+        no_contrato=resultado["no_contrato"],
+        cod_comercializadora=resultado["cod_comercializadora"],
+        id_cliente=resultado["id_cliente"],
+        id_vivienda=resultado["id_vivienda"],
+        serie_medidor=resultado["serie_medidor"],
+        fecha_inicio=request.fecha_inicio,
+        fecha_fin=request.fecha_fin
+    )
+
+
 @router.post("/sync/manual/vivienda/{id_vivienda}", response_model=SyncViviendaResponse, status_code=202)
 async def sync_por_vivienda(
     id_vivienda: int,
@@ -380,8 +493,8 @@ async def sync_por_cliente(
     Consulta el estado en /consumption/sync/estado/{id}.
     """
     # Ejecutar en background (o Celery si está configurado)
-    resultado = await service.sincronizar_cliente(
-        id_cliente=id_cliente,
+    resultado = await service.sincronizar_vivienda(
+        id_cliente=request.id_cliente,
         fecha_inicio=request.fecha_inicio,
         fecha_fin=request.fecha_fin,
     )

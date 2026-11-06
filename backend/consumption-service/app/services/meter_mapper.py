@@ -18,6 +18,9 @@ class MeterMapper:
     def transformar(
         self,
         lectura_comercializador: Dict[str, Any],
+        no_contrato: Optional[int] = None,
+        cod_comercializadora: Optional[str] = None,
+        id_cliente: Optional[int] = None,
         id_vivienda: Optional[int] = None,
         tarifa_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
@@ -26,6 +29,9 @@ class MeterMapper:
         
         Args:
             lectura_comercializador: registro crudo de comercializador
+            no_contrato: ID de contrato asociado
+            cod_comercializadora: código de la comercializadora
+            id_cliente: ID del cliente asociado
             id_vivienda: ID de vivienda asociada (lookup en PostgreSQL)
             tarifa_data: tarifa vigente en el timestamp (del tariff-service)
         
@@ -44,8 +50,10 @@ class MeterMapper:
             # 2. Construir documento base
             doc = {
                 # Referencias
-                "id_vivienda": id_vivienda,
-                "id_medidor": lectura_comercializador["METER_NO"],
+                "no_contrato": str(no_contrato),
+                "cod_comercializadora": cod_comercializadora,
+                "id_cliente": id_cliente,
+                "serie_medidor": lectura_comercializador["METER_NO"],
                 # "rnum": lectura_comercializador.get("RNUM"),
                 
                 # Timestamp
@@ -76,6 +84,10 @@ class MeterMapper:
                 "fecha_registro": datetime.now(ZoneInfo("America/Bogota")),
                 "version_schema": "2.0",
             }
+            # Los consumos se identifican por (no_contrato, cod_comercializadora);
+            # la vivienda solo se guarda si se conoce (no se usa 0 como comodín).
+            if id_vivienda is not None:
+                doc["id_vivienda"] = id_vivienda
             
             # 3. Contexto temporal
             doc["contexto_temporal"] = self._contexto_temporal(timestamp)

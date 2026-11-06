@@ -14,7 +14,8 @@ db.createCollection("consumos_enriquecidos", {
     $jsonSchema: {
       bsonType: "object",
       required: [
-        "id_vivienda", 
+        "no_contrato",
+		"cod_comercializadora",
         "timestamp", 
         "valor_kwh", 
         "fuente",
@@ -22,13 +23,27 @@ db.createCollection("consumos_enriquecidos", {
       ],
       properties: {
         _id: { bsonType: "objectId" },
+		
+		no_contrato: { 
+          bsonType: "string", 
+          description: "Referencia a la id o numero de contrato o cuenta en la Api externa de la comercializadora" 
+        },
+		cod_comercializadora: { 
+          bsonType: "string", 
+          description: "Referencia de la Comercializadora.cod_comercializadora en PostgreSQL  y que conecta con la Api externa" 
+        },
+		
+		id_cliente: { 
+          bsonType: "int", 
+          description: "Referencia a Cliente.id_cliente en PostgreSQL" 
+        },
         
         id_vivienda: { 
           bsonType: "int", 
           description: "Referencia a Vivienda.id_vivienda en PostgreSQL" 
         },
 		
-		id_medidor: { 
+		serie_medidor: { 
           bsonType: "string", 
           description: "Referencia a la id o serie del contador en la Api externa" 
         },
@@ -164,15 +179,27 @@ db.createCollection("consumos_enriquecidos", {
 // ÍNDICES PARA RENDIMIENTO
 // =====================================================
 
+db.consumos_enriquecidos.createIndex(
+  { 
+    cod_comercializadora: 1, 
+    no_contrato: 1, 
+    timestamp: 1 
+  },
+  { 
+    unique: true,
+    name: "uq_comercializadora_contrato_timestamp"
+  }
+)
+
 // En MongoDB, usar upsert con índice único
 db.consumos_enriquecidos.createIndex(
-  {id_medidor: 1, timestamp: 1},
+  {serie_medidor: 1, timestamp: 1},
   {unique: true, name: "uq_medidor_timestamp"}
 );
 
 // Upsert
 /* db.consumos_enriquecidos.update_one(
-    {"id_medidor": id_medidor, "timestamp": timestamp},
+    {"serie_medidor": serie_medidor, "timestamp": timestamp},
     {"$set": documento},
     upsert=true
 ) */

@@ -104,3 +104,10 @@ docker/backups/
 
 # Overlay temporal que genera k8s/deploy.sh
 k8s/.generated/
+
+# Compilados e IDE
+*.pyc
+**/bin/
+.classpath
+.project
+.settings/

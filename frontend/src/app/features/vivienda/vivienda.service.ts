@@ -15,8 +15,16 @@ export interface ViviendaDto {
   idZona?: number | null;
   /** Mercado de comercialización: con el estrato define la tarifa. */
   codMercado?: string | null;
+  /** Contrato con la comercializadora: con `codComercializadora` identifica los consumos. */
   numeroContrato?: string | null;
+  codComercializadora?: string | null;
   fechaRegistro?: string | null;
+}
+
+/** Comercializadora de energía (catálogo de vivienda-api). */
+export interface ComercializadoraDto {
+  codigo: string;
+  nombre: string;
 }
 
 export interface ViviendaCreatePayload {
@@ -27,6 +35,7 @@ export interface ViviendaCreatePayload {
   idZona?: number | null;
   codMercado?: string | null;
   numeroContrato?: string | null;
+  codComercializadora?: string | null;
 }
 
 export interface ViviendaUpdatePayload extends ViviendaCreatePayload {
@@ -37,9 +46,16 @@ export interface ViviendaUpdatePayload extends ViviendaCreatePayload {
 export class ViviendaService {
   private readonly http = inject(HttpClient);
 
+  private root(): string {
+    return (environment.viviendaApiBaseUrl ?? '').replace(/\/$/, '');
+  }
+
   private baseUrl(): string {
-    const root = (environment.viviendaApiBaseUrl ?? '').replace(/\/$/, '');
-    return `${root}/api/v1/viviendas`;
+    return `${this.root()}/api/v1/viviendas`;
+  }
+
+  comercializadoras(): Observable<ComercializadoraDto[]> {
+    return this.http.get<ComercializadoraDto[]>(`${this.root()}/api/v1/comercializadoras`);
   }
 
   list(): Observable<ViviendaDto[]> {

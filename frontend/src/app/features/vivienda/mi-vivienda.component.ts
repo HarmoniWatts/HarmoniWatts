@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import Keycloak from 'keycloak-js';
-import type { ViviendaDto } from './vivienda.service';
+import type { ComercializadoraDto, ViviendaDto } from './vivienda.service';
 import { ViviendaService } from './vivienda.service';
 import { ViviendaContextService } from './vivienda-context.service';
 import { TarifasService } from '../tarifas/tarifas.service';
@@ -45,6 +46,15 @@ export class MiViviendaComponent implements OnInit {
       .pipe(catchError(() => of([] as CiudadTarifaria[]))),
     { initialValue: [] as CiudadTarifaria[] },
   );
+  /** Comercializadoras activas (vivienda-api): el contrato es único dentro de cada una. */
+  readonly comercializadoras = toSignal(
+    this.api.comercializadoras().pipe(catchError(() => of([] as ComercializadoraDto[]))),
+    { initialValue: [] as ComercializadoraDto[] },
+  );
+  private readonly comercializadoraPorCodigo = computed(
+    () => new Map(this.comercializadoras().map((c) => [c.codigo, c.nombre])),
+  );
+
   private readonly ciudadPorKey = computed(
     () => new Map(this.ciudades().map((c) => [ciudadKey(c.id_zona, c.cod_mercado), c])),
   );
@@ -63,6 +73,7 @@ export class MiViviendaComponent implements OnInit {
   ubicacionNueva = '';
   ciudadNueva = '';
   contratoNuevo = '';
+  comercializadoraNueva = '';
 
   /** Edición */
   editId: number | null = null;
@@ -73,6 +84,7 @@ export class MiViviendaComponent implements OnInit {
   zonaEdit = '';
   ciudadEdit = '';
   contratoEdit = '';
+  comercializadoraEdit = '';
 
   ngOnInit(): void {
     this.reload();
@@ -129,6 +141,10 @@ export class MiViviendaComponent implements OnInit {
       this.error.set('Completa tipo, habitantes, estrato (1–6) y dirección.');
       return;
     }
+    const contrato = this.contratoPayload(this.contratoNuevo, this.comercializadoraNueva);
+    if (!contrato) {
+      return;
+    }
     this.runWithFreshToken(() => {
       this.loading.set(true);
       this.error.set(null);
@@ -139,7 +155,7 @@ export class MiViviendaComponent implements OnInit {
           estrato: this.estratoNuevo!,
           ubicacion: this.ubicacionNueva.trim(),
           ...parseCiudadKey(this.ciudadNueva),
-          numeroContrato: this.contratoNuevo.trim() || null,
+          ...contrato,
         })
         .pipe(
           takeUntilDestroyed(this.destroyRef),
@@ -150,10 +166,11 @@ export class MiViviendaComponent implements OnInit {
             this.ubicacionNueva = '';
             this.ciudadNueva = '';
             this.contratoNuevo = '';
+            this.comercializadoraNueva = '';
             this.estratoNuevo = 3;
             this.reload();
           },
-          error: () => this.error.set('No se pudo registrar la vivienda.'),
+          error: (err: unknown) => this.error.set(mensajeError(err, 'No se pudo registrar la vivienda.')),
         });
     });
   }
@@ -167,6 +184,32 @@ export class MiViviendaComponent implements OnInit {
     this.zonaEdit = v.zonaClimatica ?? '';
     this.ciudadEdit = ciudadKey(v.idZona, v.codMercado);
     this.contratoEdit = v.numeroContrato ?? '';
+    this.comercializadoraEdit = v.codComercializadora ?? '';
+  }
+
+  /**
+   * Contrato y comercializadora van juntos (los consumos se consultan con esa pareja).
+   * Devuelve null y muestra el error si solo viene uno de los dos.
+   */
+  private contratoPayload(
+    numero: string,
+    comercializadora: string,
+  ): { numeroContrato: string | null; codComercializadora: string | null } | null {
+    const numeroContrato = numero.trim() || null;
+    const codComercializadora = comercializadora || null;
+    if ((numeroContrato == null) !== (codComercializadora == null)) {
+      this.error.set(
+        numeroContrato
+          ? 'Elige la comercializadora con la que tienes el contrato.'
+          : 'Escribe el número de contrato de la comercializadora elegida.',
+      );
+      return null;
+    }
+    return { numeroContrato, codComercializadora };
+  }
+
+  comercializadoraLabel(codigo: string | null | undefined): string | null {
+    return codigo ? (this.comercializadoraPorCodigo().get(codigo) ?? codigo) : null;
   }
 
   ciudadOptionLabel(c: CiudadTarifaria): string {
@@ -198,6 +241,10 @@ export class MiViviendaComponent implements OnInit {
     ) {
       return;
     }
+    const contrato = this.contratoPayload(this.contratoEdit, this.comercializadoraEdit);
+    if (!contrato) {
+      return;
+    }
     this.runWithFreshToken(() => {
       this.loading.set(true);
       this.error.set(null);
@@ -209,7 +256,7 @@ export class MiViviendaComponent implements OnInit {
           ubicacion: this.ubicacionEdit.trim(),
           zonaClimatica: this.zonaEdit.trim() || null,
           ...parseCiudadKey(this.ciudadEdit),
-          numeroContrato: this.contratoEdit.trim() || null,
+          ...contrato,
         })
         .pipe(
           takeUntilDestroyed(this.destroyRef),
@@ -220,7 +267,7 @@ export class MiViviendaComponent implements OnInit {
             this.editId = null;
             this.reload();
           },
-          error: () => this.error.set('No se pudo actualizar la vivienda.'),
+          error: (err: unknown) => this.error.set(mensajeError(err, 'No se pudo actualizar la vivienda.')),
         });
     });
   }
@@ -249,4 +296,11 @@ export class MiViviendaComponent implements OnInit {
         });
     });
   }
+}
+
+/** 409: el contrato ya está registrado en otra vivienda. */
+function mensajeError(err: unknown, porDefecto: string): string {
+  return err instanceof HttpErrorResponse && err.status === 409
+    ? 'Ese contrato ya está registrado en otra vivienda.'
+    : porDefecto;
 }

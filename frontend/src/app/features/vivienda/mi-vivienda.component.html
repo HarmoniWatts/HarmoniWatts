@@ -41,6 +41,15 @@
         </select>
       </label>
       <label class="mv-field">
+        <span>Comercializadora</span>
+        <select class="mv-input" [(ngModel)]="comercializadoraNueva">
+          <option value="">— Sin contrato —</option>
+          @for (c of comercializadoras(); track c.codigo) {
+            <option [value]="c.codigo">{{ c.nombre }}</option>
+          }
+        </select>
+      </label>
+      <label class="mv-field">
         <span>Número de contrato <app-info-tip [termino]="g.numeroContrato" [alignLeft]="true" /></span>
         <input class="mv-input" type="text" maxlength="30" [(ngModel)]="contratoNuevo" placeholder="Aparece en tu factura" />
       </label>
@@ -101,6 +110,15 @@
                     </select>
                   </label>
                   <label class="mv-field">
+                    <span>Comercializadora</span>
+                    <select class="mv-input" [(ngModel)]="comercializadoraEdit">
+                      <option value="">— Sin contrato —</option>
+                      @for (c of comercializadoras(); track c.codigo) {
+                        <option [value]="c.codigo">{{ c.nombre }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="mv-field">
                     <span>Número de contrato <app-info-tip [termino]="g.numeroContrato" [alignLeft]="true" /></span>
                     <input class="mv-input" type="text" maxlength="30" [(ngModel)]="contratoEdit" />
                   </label>
@@ -128,7 +146,9 @@
                     {{ v.ubicacion }} · {{ ciudadLabel(v) ?? 'Sin ciudad (necesaria para ver tarifas)' }}
                   </div>
                   @if (v.numeroContrato) {
-                    <div class="mv-line dash-muted">Contrato: {{ v.numeroContrato }}</div>
+                    <div class="mv-line dash-muted">
+                      Contrato: {{ v.numeroContrato }} · {{ comercializadoraLabel(v.codComercializadora) ?? 'Sin comercializadora' }}
+                    </div>
                   }
                   @if (v.zonaClimatica) {
                     <div class="mv-line dash-muted">Zona: {{ v.zonaClimatica }}</div>

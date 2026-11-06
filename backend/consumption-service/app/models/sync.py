@@ -6,6 +6,23 @@ from typing import Optional, List
 # =====================================================
 # SCHEMAS DE REQUEST
 # =====================================================
+
+class SyncContratoRequest(BaseModel):
+    """Request para sincronización manual por contrato."""
+    id_cliente: int = Field(..., description="ID del cliente")
+    fecha_inicio: date = Field(..., description="Fecha inicial (YYYY-MM-DD)")
+    fecha_fin: date = Field(..., description="Fecha final (YYYY-MM-DD)")
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id_cliente": 12345,
+                "fecha_inicio": "2026-07-01",
+                "fecha_fin": "2026-07-20",
+            }
+        }
+    )
+    
 class SyncViviendaRequest(BaseModel):
     """Request para sincronización manual por vivienda."""
     fecha_inicio: date = Field(..., description="Fecha inicial (YYYY-MM-DD)")
@@ -77,6 +94,18 @@ class SyncAutomaticaRequest(BaseModel):
 # =====================================================
 # SCHEMAS DE RESPONSE
 # =====================================================
+
+class SyncContratoResponse(BaseModel):
+    """Respuesta al disparar una sincronización."""
+    id_sincronizacion: str = Field(..., description="ID único de la sincronización")
+    estado: str = Field(..., description="pendiente, en_proceso, completado, error")
+    no_contrato: Optional[str] = None
+    cod_comercializadora: Optional[str] = None
+    id_cliente: Optional[int] = None
+    id_vivienda: Optional[int] = None
+    serie_medidor: Optional[str] = None
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
 
 class SyncViviendaResponse(BaseModel):
     """Respuesta al disparar una sincronización."""

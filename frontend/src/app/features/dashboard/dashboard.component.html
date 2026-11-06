@@ -1,4 +1,4 @@
-﻿      @if (loadError()) {
+      @if (loadError()) {
         <div class="dash-banner dash-banner-error" role="alert">{{ loadError() }}</div>
       }
 
@@ -19,6 +19,13 @@
         <p class="dash-muted dash-tariff-note">{{ tariffNote() }}</p>
       }
 
+      @if (avisoConsumo(); as aviso) {
+        <section class="dash-card dash-empty" role="status">
+          <h2 class="dash-empty-title">Sin consumos para mostrar</h2>
+          <p class="dash-muted">{{ aviso.texto }}</p>
+          <a class="dash-btn-ghost dash-empty-link" routerLink="/mi-vivienda">{{ aviso.enlace }}</a>
+        </section>
+      } @else {
       <div class="dash-kpi-grid">
         <article class="dash-card dash-kpi">
           <div class="dash-kpi-head">
@@ -469,3 +476,4 @@
           </section>
         </div>
       </div>
+      }

@@ -20,7 +20,8 @@ public final class ViviendaDtos {
       @NotBlank @Size(max = 200) String ubicacion,
       @Positive Short idZona,
       @Size(max = 30) String codMercado,
-      @Size(max = 30) String numeroContrato) {}
+      @Size(max = 30) String numeroContrato,
+      @Size(max = 20) String codComercializadora) {}
 
   public record ViviendaUpdateRequest(
       @NotBlank @Size(max = 50) String tipo,
@@ -30,7 +31,8 @@ public final class ViviendaDtos {
       @Size(max = 20) String zonaClimatica,
       @Positive Short idZona,
       @Size(max = 30) String codMercado,
-      @Size(max = 30) String numeroContrato) {}
+      @Size(max = 30) String numeroContrato,
+      @Size(max = 20) String codComercializadora) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record ViviendaResponse(
@@ -43,6 +45,7 @@ public final class ViviendaDtos {
       Short idZona,
       String codMercado,
       String numeroContrato,
+      String codComercializadora,
       String fechaRegistro) {
 
     public static ViviendaResponse from(Vivienda v) {
@@ -56,6 +59,7 @@ public final class ViviendaDtos {
           v.getIdZona(),
           v.getCodMercado(),
           v.getNumeroContrato(),
+          v.getCodComercializadora(),
           v.getFechaRegistro() != null ? v.getFechaRegistro().toString() : null);
     }
   }

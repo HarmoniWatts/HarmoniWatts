@@ -24,7 +24,6 @@ export const environment = {
   /** harmoniwatts-electrodomesticos-api (Spring Boot). */
   electrodomesticosApiBaseUrl: 'http://localhost:8083',
   /** ID de vivienda en los datos mock de Mongo (`BD/datos/harmoniwatts.consumos_enriquecidos.json`). */
-  defaultHouseholdId: '45754113',
   dashboardApi: {
     summaryPath: '/api/v1/dashboard/summary',
     consumptionChartPath: '/api/v1/dashboard/consumption-chart',

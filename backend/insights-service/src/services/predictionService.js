@@ -13,10 +13,10 @@ class PredictionService {
     });
   }
 
-  async getDailyTotal(householdId, date) {
+  async getDailyTotal(contrato, date) {
     try {
       const params = date ? { date } : {};
-      const response = await this.client.get(`/prediction/daily-total/${householdId}`, { params });
+      const response = await this.client.get(`/prediction/daily-total/${encodeURIComponent(contrato.noContrato)}`, { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching prediction total:', error.message);
@@ -25,10 +25,10 @@ class PredictionService {
   }
 
   // Método para obtener series horarias (para el gráfico)
-  async getHourlySeries(householdId, date) {
+  async getHourlySeries(contrato, date) {
     try {
       const params = date ? { date } : {};
-      const response = await this.client.get(`/prediction/daily-series/${householdId}`, { params });
+      const response = await this.client.get(`/prediction/daily-series/${encodeURIComponent(contrato.noContrato)}`, { params });
       
       // Transformar al formato esperado
       return {
@@ -42,8 +42,8 @@ class PredictionService {
   }
 
   // Método para compatibilidad (si existe código que use getDailySeries)
-  async getDailySeries(householdId, date) {
-    return this.getHourlySeries(householdId, date);
+  async getDailySeries(contrato, date) {
+    return this.getHourlySeries(contrato, date);
   }
 }
 

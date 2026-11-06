@@ -40,7 +40,8 @@ class CondicionesExternas(BaseModel):
 class ConsumoEnriquecido(BaseModel):
     """Modelo principal para consumo_enriquecido"""
     id: Optional[ObjectId] = Field(default=None, alias="_id")
-    id_vivienda: int = Field(..., description="ID de la vivienda")
+    no_contrat: str = Field(..., description="Número de contrato")
+    cod_comercializadora: str = Field(..., description="Código de retail")
     id_tarifa_usuario: Optional[int] = None
     timestamp: datetime = Field(..., description="Marca de tiempo del consumo")
     valor_kwh: float = Field(..., ge=0, description="Consumo en kWh")
@@ -59,7 +60,8 @@ class ConsumoTimeSeries(BaseModel):
     """Modelo para la colección alterna de time series"""
     id: Optional[ObjectId] = Field(default=None, alias="_id")
     timestamp: datetime
-    id_vivienda: int
+    no_contrat: str
+    cod_comercializadora: str
     tarifa_aplicada: dict
     valor_kwh: float
     fuente: str = "contador"
@@ -76,7 +78,8 @@ class ConsumoTimeSeries(BaseModel):
 
 class CurrentConsumptionResponse(BaseModel):
     """Respuesta para consumo actual"""
-    id_vivienda: int
+    no_contrat: str
+    cod_comercializadora: str
     current_power_kw: float
     last_update: datetime
     unit: str = "kW"
@@ -84,7 +87,8 @@ class CurrentConsumptionResponse(BaseModel):
 
 class DailyTotalResponse(BaseModel):
     """Respuesta para consumo acumulado del día"""
-    id_vivienda: int
+    no_contrat: str
+    cod_comercializadora: str
     date: str
     total_consumption_kwh: float
     total_cost_cop: float
@@ -96,7 +100,8 @@ class DailyTotalResponse(BaseModel):
 
 class TimeSeriesResponse(BaseModel):
     """Respuesta genérica para series temporales"""
-    id_vivienda: int
+    no_contrat: str
+    cod_comercializadora: str
     granularity: str  # hour, day, month, year
     start_date: str
     end_date: str
@@ -108,7 +113,8 @@ class TimeSeriesResponse(BaseModel):
 
 class ConsumptionSummaryResponse(BaseModel):
     """Resumen completo para dashboard"""
-    id_vivienda: int
+    no_contrat: str
+    cod_comercializadora: str
     date: str
     current_power_kw: float
     daily_total_kwh: float

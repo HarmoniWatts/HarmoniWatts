@@ -9,7 +9,7 @@ class InsightsService {
     this.predictionService = predictionService;
   }
 
-  async getDashboardSummary(householdId, dateStr, timezone = defaultTimezone) {
+  async getDashboardSummary(contrato, dateStr, timezone = defaultTimezone) {
     const targetDate = getDateInTimezone(dateStr, timezone);
     const yesterday = targetDate.clone().subtract(1, 'day');
     const now = getCurrentInTimezone(timezone);
@@ -17,10 +17,10 @@ class InsightsService {
 
     // Fetch data from services
     const [todayConsumption, yesterdayConsumption, predictionTotal, actualSeries] = await Promise.all([
-      this.consumptionService.getDailyTotal(householdId, targetDate.format('YYYY-MM-DD'), timezone),
-      this.consumptionService.getDailyTotal(householdId, yesterday.format('YYYY-MM-DD'), timezone),
-      this.predictionService.getDailyTotal(householdId, targetDate.format('YYYY-MM-DD')),
-      this.consumptionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD'), timezone),
+      this.consumptionService.getDailyTotal(contrato, targetDate.format('YYYY-MM-DD'), timezone),
+      this.consumptionService.getDailyTotal(contrato, yesterday.format('YYYY-MM-DD'), timezone),
+      this.predictionService.getDailyTotal(contrato, targetDate.format('YYYY-MM-DD')),
+      this.consumptionService.getHourlySeries(contrato, targetDate.format('YYYY-MM-DD'), timezone),
     ]);
 
     // Calculate consumption vs yesterday (contrato FastAPI: total_consumption_kwh)
@@ -96,14 +96,14 @@ class InsightsService {
     };
   }
 
-  async getConsumptionChart(householdId, dateStr, timezone = defaultTimezone) {
+  async getConsumptionChart(contrato, dateStr, timezone = defaultTimezone) {
     const targetDate = getDateInTimezone(dateStr, timezone);
     const currentHour = getCurrentHour(timezone);
 
     // Fetch actual and predicted series - Usar getHourlySeries para ambos
     const [actualData, predictedData] = await Promise.all([
-      this.consumptionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD'), timezone),
-      this.predictionService.getHourlySeries(householdId, targetDate.format('YYYY-MM-DD')),
+      this.consumptionService.getHourlySeries(contrato, targetDate.format('YYYY-MM-DD'), timezone),
+      this.predictionService.getHourlySeries(contrato, targetDate.format('YYYY-MM-DD')),
     ]);
     
     // Extraer las series (asumiendo que getHourlySeries retorna { series: [...] })

@@ -16,7 +16,6 @@
 --   * password_hash: valor ficticio NO válido (estos clientes no pueden iniciar sesión).
 --   * cs_kwh_mes no se inserta: lo calcula el trigger trg_cliente_cs por la altura de la zona.
 -- =====================================================================
-
 BEGIN;
 
 
@@ -32,31 +31,49 @@ COMMIT;
 -- ejecutamos esto por seguridad.
 ALTER SEQUENCE cliente_id_cliente_seq RESTART WITH 1;
 
+DO $$ 
+BEGIN 
+    -- 1. Verificar si la columna 'no_contrato' ya existe en la tabla 'cliente'
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'cliente' AND column_name = 'no_contrato'
+    ) THEN
+        -- 2. Agregar la columna 'no_contrato' (ajusta el tipo de dato si es necesario, ej: VARCHAR, INT)
+        ALTER TABLE cliente ADD COLUMN no_contrato VARCHAR(50);
+        
+        -- 3. Crear la restricción única compuesta (llave compuesta)
+        ALTER TABLE cliente ADD CONSTRAINT uq_cliente_cuenta_comercializadora UNIQUE (no_contrato, cod_comercializadora);
+    END IF;
+END $$;
+
+COMMIT;
+
 DO $$
 DECLARE
     v_esperadas CONSTANT INT := 9;
     v_insertadas INT;
 BEGIN
     INSERT INTO cliente
-        (nombre, email, password_hash, cod_tipo_cliente, estrato, cod_nivel,
+        (nombre, no_contrato, email, password_hash, cod_tipo_cliente, estrato, cod_nivel,
          id_zona, cod_mercado, cod_comercializadora)
-    SELECT v.nombre,
+    SELECT v.nombre, v.no_contrato,
            lower(v.nombre) || '@example.com',
            'HASH_DE_PRUEBA_NO_VALIDO',
            v.tipo, v.estrato, v.nivel,
            z.id_zona, v.mercado, 'ENERTOTAL'
     FROM (VALUES
-        --  nombre          tipo  estrato  nivel        mercado       municipio
-        ('MN1860D3B3B7',   'R',  5,       'N1_1',      'BOGOTA',      'Girardot'),          -- Nodo III   · Residencial
-        ('MN9E60ABC91C',   'R',  3,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo II  · Residencial
-        ('MNC391C85C85',   'E',  5,       'N1_1',      'BOGOTA',     'Girardot'),         -- Nodo III · Especial    (estrato original: 5)
-        ('MNE5D6840091',   'C',  2,       'N1_2_1_3',  'CARIBE_MAR', 'Cereté'),           -- Nodo IV  · Comercial   (estrato original: 2)
-        ('MN809B65A6F1',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo V   · Residencial
-        ('MND9A83DC2D2',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo VI  · Residencial
-        ('MN157A243DFE',   'R',  3,       'N1_1',      'CARIBE_MAR', 'Caucasia'),         -- Nodo VII · Residencial
-        ('MN233D2ED722',   'C',  4,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo VIII· Comercial   (estrato original: 4)
-        ('MNDD305C0D60',   'E',  4,       'N1_1',      'CALI',       'Santiago de Cali')  -- Nodo IX  · Especial    (estrato original: 4)
-    ) AS v(nombre, tipo, estrato, nivel, mercado, municipio)
+        --  nombre       contrato   tipo  estrato  nivel        mercado       municipio
+        ('MN1860D3B3B7', '753691',  'R',  5,       'N1_1',      'BOGOTA',      'Girardot'),          -- Nodo III   · Residencial
+        ('MN9E60ABC91C', '713332',  'R',  3,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo II  · Residencial
+        ('MNC391C85C85', '896014',  'E',  5,       'N1_1',      'BOGOTA',     'Girardot'),         -- Nodo III · Especial    (estrato original: 5)
+        ('MNE5D6840091', '350359',  'C',  2,       'N1_2_1_3',  'CARIBE_MAR', 'Cereté'),           -- Nodo IV  · Comercial   (estrato original: 2)
+        ('MN809B65A6F1', '771809',  'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo V   · Residencial
+        ('MND9A83DC2D2', '475090',  'R',  3,       'N1_1',      'CARIBE_MAR', 'Montería'),         -- Nodo VI  · Residencial
+        ('MN157A243DFE', '320306',  'R',  3,       'N1_1',      'CARIBE_MAR', 'Caucasia'),         -- Nodo VII · Residencial
+        ('MN233D2ED722', '97158',   'C',  4,       'N1_1',      'CALI',       'Santiago de Cali'), -- Nodo VIII· Comercial   (estrato original: 4)
+        ('MNDD305C0D60', '73894',   'E',  4,       'N1_1',      'CALI',       'Santiago de Cali')  -- Nodo IX  · Especial    (estrato original: 4)
+    ) AS v(nombre, no_contrato, tipo, estrato, nivel, mercado, municipio)
     JOIN zona_geografica z ON z.municipio = v.municipio;
 
     GET DIAGNOSTICS v_insertadas = ROW_COUNT;
@@ -73,6 +90,5 @@ JOIN zona_geografica z USING (id_zona)
 ORDER BY c.id_cliente;
 
 COMMIT;
-
 -- Limpieza de los datos de prueba:
 --   DELETE FROM cliente WHERE email LIKE '%@example.com';

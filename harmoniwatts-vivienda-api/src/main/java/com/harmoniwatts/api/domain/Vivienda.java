@@ -48,6 +48,13 @@ public class Vivienda {
   @Column(name = "numero_contrato", length = 30)
   private String numeroContrato;
 
+  /**
+   * Comercializadora del contrato. Con numeroContrato identifica los consumos de la vivienda
+   * (consumption-service).
+   */
+  @Column(name = "cod_comercializadora", length = 20)
+  private String codComercializadora;
+
   @Column(name = "fecha_registro", nullable = false)
   private Instant fechaRegistro = Instant.now();
 
@@ -123,12 +130,21 @@ public class Vivienda {
     this.codMercado = codMercado;
   }
 
+
   public String getNumeroContrato() {
     return numeroContrato;
   }
 
   public void setNumeroContrato(String numeroContrato) {
     this.numeroContrato = numeroContrato;
+  }
+
+  public String getCodComercializadora() {
+    return codComercializadora;
+  }
+
+  public void setCodComercializadora(String codComercializadora) {
+    this.codComercializadora = codComercializadora;
   }
 
   public Instant getFechaRegistro() {

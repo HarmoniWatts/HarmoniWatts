@@ -13,6 +13,23 @@ const predictionService = new PredictionService();
 
 const insightsService = new InsightsService(consumptionService, predictionService);
 
+/**
+ * Los consumos se identifican por número de contrato + comercializadora
+ * (query params noContrato y codComercializadora).
+ */
+const MISSING_CONTRACT = {
+  error: 'Bad Request',
+  message: 'noContrato and codComercializadora are required',
+  code: 'MISSING_CONTRACT',
+};
+
+export function contratoDesdeQuery(query) {
+  const noContrato = String(query?.noContrato ?? '').trim();
+  const codComercializadora = String(query?.codComercializadora ?? '').trim().toUpperCase();
+  if (!noContrato || !codComercializadora) return null;
+  return { noContrato, codComercializadora };
+}
+
 class DashboardController {
   /**
    * GET /api/v1/dashboard/summary
@@ -20,21 +37,17 @@ class DashboardController {
    */
   static async getSummary(req, res) {
     try {
-      const { date, householdId } = req.query;
+      const { date } = req.query;
       const timezone = req.query.timezone || defaultTimezone;
       
-      // Validar parámetros requeridos
-      if (!householdId) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'householdId is required',
-          code: 'MISSING_HOUSEHOLD_ID'
-        });
+      const contrato = contratoDesdeQuery(req.query);
+      if (!contrato) {
+        return res.status(400).json(MISSING_CONTRACT);
       }
 
       // Obtener datos del servicio
       const summaryData = await insightsService.getDashboardSummary(
-        householdId,
+        contrato,
         date,
         timezone
       );
@@ -57,21 +70,17 @@ class DashboardController {
    */
   static async getConsumptionChart(req, res) {
     try {
-      const { date, householdId } = req.query;
+      const { date } = req.query;
       const timezone = req.query.timezone || defaultTimezone;
       
-      // Validar parámetros requeridos
-      if (!householdId) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'householdId is required',
-          code: 'MISSING_HOUSEHOLD_ID'
-        });
+      const contrato = contratoDesdeQuery(req.query);
+      if (!contrato) {
+        return res.status(400).json(MISSING_CONTRACT);
       }
 
       // Obtener datos del servicio
       const chartData = await insightsService.getConsumptionChart(
-        householdId,
+        contrato,
         date,
         timezone
       );
@@ -94,14 +103,11 @@ class DashboardController {
    */
   static async getRecommendations(req, res) {
     try {
-      const { date, householdId, limit } = req.query;
+      const { date, limit } = req.query;
       const timezone = req.query.timezone || defaultTimezone;
-      if (!householdId) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'householdId is required',
-          code: 'MISSING_HOUSEHOLD_ID',
-        });
+      const contrato = contratoDesdeQuery(req.query);
+      if (!contrato) {
+        return res.status(400).json(MISSING_CONTRACT);
       }
       const targetDate = getDateInTimezone(date, timezone);
       const lim = Math.min(10, Math.max(1, parseInt(String(limit ?? '3'), 10) || 3));
@@ -143,14 +149,11 @@ class DashboardController {
    */
   static async getAppliancesTop(req, res) {
     try {
-      const { date, householdId, limit } = req.query;
+      const { date, limit } = req.query;
       const timezone = req.query.timezone || defaultTimezone;
-      if (!householdId) {
-        return res.status(400).json({
-          error: 'Bad Request',
-          message: 'householdId is required',
-          code: 'MISSING_HOUSEHOLD_ID',
-        });
+      const contrato = contratoDesdeQuery(req.query);
+      if (!contrato) {
+        return res.status(400).json(MISSING_CONTRACT);
       }
       const targetDate = getDateInTimezone(date, timezone);
       const lim = Math.min(10, Math.max(1, parseInt(String(limit ?? '5'), 10) || 5));

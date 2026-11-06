@@ -93,5 +93,7 @@ export interface DashboardAppliancesTopResponse {
 
 export interface DashboardQueryParams {
   date?: string;
-  householdId?: string;
+  /** Contrato de la vivienda seleccionada con su comercializadora. */
+  noContrato?: string;
+  codComercializadora?: string;
 }

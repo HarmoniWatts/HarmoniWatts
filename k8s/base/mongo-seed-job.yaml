@@ -35,6 +35,7 @@ spec:
                 mongoimport --uri="$URI" --collection=consumos_enriquecidos --file=/seed/consumos.json --jsonArray
                 mongosh "$URI" /seed/shift-timestamps.js
               fi
+              mongosh "$URI" /seed/asignar-contrato-demo.js
               echo "[mongo-seed] Listo."
           volumeMounts:
             - name: seed

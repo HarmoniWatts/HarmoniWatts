@@ -1,5 +1,7 @@
 # app/repositories/consumption_repository.py
 
+from collections import defaultdict
+
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, date, timedelta
 from typing import Optional, Dict, Any, List, Union
@@ -39,17 +41,17 @@ class ConsumptionRepository:
     
     async def get_latest_reading(
         self, 
-        household_id: Union[int, str]
+        no_contrat: Union[int, str],
+        cod_retail: str
     ) -> Optional[Dict[str, Any]]:
         """
         Obtiene la lectura más reciente de consumo
         """
         # Convertir ID al tipo correcto
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
         
         cursor = self.collection.find(
-            {"id_vivienda": household_id}
+            {"no_contrato": no_contrat, "cod_comercializadora": cod_retail}
         ).sort("timestamp", -1).limit(1)
         
         docs = await cursor.to_list(length=1)
@@ -61,7 +63,8 @@ class ConsumptionRepository:
     
     async def get_daily_total(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         target_date: date,
         tz: str,
     ) -> Optional[Dict[str, Any]]:
@@ -69,15 +72,15 @@ class ConsumptionRepository:
         Obtiene el consumo total del día y estadísticas
         Incluye costo total sumando los costos de cada registro
         """
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
 
         start, end_exclusive = utc_range_for_local_calendar_day(target_date, tz)
 
         pipeline = [
             {
                 "$match": {
-                    "id_vivienda": household_id,
+                    "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": start, "$lt": end_exclusive},
                 }
             },
@@ -102,7 +105,8 @@ class ConsumptionRepository:
             if results[0].get("peak_power_kw"):
                 peak_doc = await self.collection.find_one(
                     {
-                        "id_vivienda": household_id,
+                        "no_contrato": no_contrat,
+                        "cod_comercializadora": cod_retail,
                         "timestamp": {"$gte": start, "$lt": end_exclusive},
                         "valor_kwh": results[0]["peak_power_kw"],
                     }
@@ -115,33 +119,44 @@ class ConsumptionRepository:
         
         return None
     
-    async def get_hourly_consumption(
+    async def get_hourly_days_consumption(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         start: datetime,
         end_exclusive: datetime,
         tz: str,
     ) -> List[Dict[str, Any]]:
         """
         Obtiene consumo por hora (0-23 = hora local en `tz`) dentro de
-        [start, end_exclusive). Si la ventana abarca varios días, cada hora
-        acumula el consumo de esa hora en todos los días.
+        [start, end_exclusive). Si la ventana abarca varios días, las
+        horas y consumo se agrupan por día.
         """
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
 
         pipeline = [
             {
                 "$match": {
-                    "id_vivienda": household_id,
+                     "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": start, "$lt": end_exclusive},
                 }
             },
             {
                 "$group": {
                     "_id": {
+                        "date": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$timestamp",
+                                "timezone": "America/Bogota"
+                            }
+                        },
                         "hour": {
-                            "$hour": {"date": "$timestamp", "timezone": tz},
+                            "$hour": {
+                                "date": "$timestamp",
+                                "timezone": "America/Bogota"
+                            }
                         }
                     },
                     "consumption_kwh": {"$sum": "$valor_kwh"},
@@ -149,36 +164,118 @@ class ConsumptionRepository:
                     "tarifa_promedio": {"$avg": PRECIO_LECTURA},
                 }
             },
-            {"$sort": {"_id.hour": 1}}
+            {
+                "$sort": {
+                    "_id.date": 1,
+                    "_id.hour": 1
+                }
+            }
         ]
         
+        logger.info(f"pipeline - {pipeline}\n")
+        print("start =", start)
+        print("end   =", end_exclusive)
         cursor = self.collection.aggregate(pipeline)
-        results = await cursor.to_list(length=24)
-        
-        # Inicializar array de 24 horas
-        hourly = []
-        for hour in range(24):
-            hourly.append({
-                "hour": hour,
-                "consumption_kwh": 0.0,
-                "total_cost": 0.0,
-                "tarifa_promedio": None
-            })
-        
+        results = await cursor.to_list(length=None)
+        logger.info(f"results - {results}")
+        daily_profiles = defaultdict(list)
+
         for result in results:
+            date = result["_id"]["date"]
             hour = result["_id"]["hour"]
-            hourly[hour] = {
+
+            daily_profiles[date].append({
                 "hour": hour,
                 "consumption_kwh": result["consumption_kwh"],
                 "total_cost": result["total_cost"],
                 "tarifa_promedio": result.get("tarifa_promedio")
-            }
-        
-        return hourly
+            })
+
+        # Completar horas faltantes
+        for date in daily_profiles:
+            existing = {item["hour"]: item for item in daily_profiles[date]}
+
+            daily_profiles[date] = [
+                existing.get(hour, {
+                    "hour": hour,
+                    "consumption_kwh": 0.0,
+                    "total_cost": 0.0,
+                    "tarifa_promedio": None
+                })
+                for hour in range(24)
+            ]
+            
+        logger.info(f"daily_profiles - {daily_profiles}")
+
+        return dict(sorted(daily_profiles.items()))
+    
+    
+    async def get_hourly_consumption(
+            self,
+            no_contrat: Union[int, str],
+            cod_retail: str,
+            start: datetime,
+            end_exclusive: datetime,
+            tz: str,
+        ) -> List[Dict[str, Any]]:
+            """
+            Obtiene consumo por hora (0-23 = hora local en `tz`) dentro de
+            [start, end_exclusive). Si la ventana abarca varios días, las
+            horas y consumo se agrupan por día.
+            """
+            no_contrat = str(no_contrat)
+    
+            pipeline = [
+                {
+                    "$match": {
+                        "no_contrato": no_contrat,
+                        "cod_comercializadora": cod_retail,
+                        "timestamp": {"$gte": start, "$lt": end_exclusive},
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "hour": {
+                                "$hour": {"date": "$timestamp", "timezone": tz},
+                            }
+                        },
+                        "consumption_kwh": {"$sum": "$valor_kwh"},
+                        "total_cost": {"$sum": COSTO_LECTURA},
+                        "tarifa_promedio": {"$avg": PRECIO_LECTURA},
+                    }
+                },
+                {"$sort": {"_id.hour": 1}}
+            ]
+            
+            cursor = self.collection.aggregate(pipeline)
+            results = await cursor.to_list(length=24)
+            
+            # Inicializar array de 24 horas
+            hourly = []
+            for hour in range(24):
+                hourly.append({
+                    "hour": hour,
+                    "consumption_kwh": 0.0,
+                    "total_cost": 0.0,
+                    "tarifa_promedio": None
+                })
+            
+            for result in results:
+                hour = result["_id"]["hour"]
+                hourly[hour] = {
+                    "hour": hour,
+                    "consumption_kwh": result["consumption_kwh"],
+                    "total_cost": result["total_cost"],
+                    "tarifa_promedio": result.get("tarifa_promedio")
+                }
+            
+            return hourly
     
     async def get_daily_totals(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         start_date: date,
         end_date: date,
         tz: str,
@@ -187,8 +284,7 @@ class ConsumptionRepository:
         Obtiene consumo total por día en un rango
         Retorna dict con formato: {"2025-04-21": {"kwh": 12.5, "cost": 4500}}
         """
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
 
         range_start, _ = utc_range_for_local_calendar_day(start_date, tz)
         _, range_end_exclusive = utc_range_for_local_calendar_day(end_date, tz)
@@ -196,7 +292,8 @@ class ConsumptionRepository:
         pipeline = [
             {
                 "$match": {
-                    "id_vivienda": household_id,
+                    "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": range_start, "$lt": range_end_exclusive},
                 }
             },
@@ -229,15 +326,15 @@ class ConsumptionRepository:
     
     async def get_monthly_totals(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         year: int,
         tz: str,
     ) -> Dict[int, Dict[str, float]]:
         """
         Obtiene consumo total por mes para un año
         """
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
 
         start_d = date(year, 1, 1)
         end_d = date(year, 12, 31)
@@ -247,7 +344,8 @@ class ConsumptionRepository:
         pipeline = [
             {
                 "$match": {
-                    "id_vivienda": household_id,
+                    "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": start_utc, "$lt": end_exclusive},
                 }
             },
@@ -274,7 +372,8 @@ class ConsumptionRepository:
     
     async def get_consumption_by_date_range(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         start_date: datetime,
         end_date: datetime,
         limit: int = 10000
@@ -282,11 +381,11 @@ class ConsumptionRepository:
         """
         Obtiene registros de consumo en un rango de fechas
         """
-        if settings.HOUSEHOLD_ID_TYPE == "int":
-            household_id = int(household_id)
+        no_contrat = str(no_contrat)
         
         cursor = self.collection.find({
-            "id_vivienda": household_id,
+            "no_contrato": no_contrat,
+            "cod_comercializadora": cod_retail,
             "timestamp": {"$gte": start_date, "$lte": end_date}
         }).sort("timestamp", 1).limit(limit)
         
@@ -294,7 +393,8 @@ class ConsumptionRepository:
     
     async def get_previous_day_total(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         target_date: date,
         tz: str,
     ) -> Optional[float]:
@@ -302,7 +402,7 @@ class ConsumptionRepository:
         Obtiene el consumo total del día anterior
         """
         previous_date = target_date - timedelta(days=1)
-        daily_total = await self.get_daily_total(household_id, previous_date, tz)
+        daily_total = await self.get_daily_total(no_contrat, cod_retail, previous_date, tz)
         
         if daily_total:
             return daily_total["total_consumption_kwh"]
@@ -311,7 +411,8 @@ class ConsumptionRepository:
     
     async def get_week_average(
         self,
-        household_id: Union[int, str],
+        no_contrat: Union[int, str],
+        cod_retail: str,
         target_date: date,
         tz: str,
     ) -> Optional[float]:
@@ -326,7 +427,8 @@ class ConsumptionRepository:
         pipeline = [
             {
                 "$match": {
-                    "id_vivienda": household_id,
+                    "no_contrato": no_contrat,
+                    "cod_comercializadora": cod_retail,
                     "timestamp": {"$gte": range_start, "$lt": range_end_exclusive},
                 }
             },

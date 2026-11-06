@@ -244,6 +244,7 @@ services:
       - ./BD/datos/harmoniwatts.consumos_enriquecidos.json:/seed/consumos.json:ro
       - ./docker/mongo/shift-timestamps.js:/seed/shift-timestamps.js:ro
       - ./docker/mongo/reconcile-contexto.js:/seed/reconcile-contexto.js:ro
+      - ./docker/mongo/asignar-contrato-demo.js:/seed/asignar-contrato-demo.js:ro
       - ./docker/snapshots/mongo:/snapshots/mongo:ro
     entrypoint:
       - bash
@@ -266,6 +267,7 @@ services:
           echo "[harmoniwatts-mongo-seed] Desplazando timestamps y contexto_temporal (UTC)..."
           mongosh "$$URI" /seed/shift-timestamps.js
         fi
+        mongosh "$$URI" /seed/asignar-contrato-demo.js
         echo "[harmoniwatts-mongo-seed] Listo."
     restart: "no"
 
@@ -284,7 +286,6 @@ services:
       MONGODB_DATABASE: harmoniwatts
       ENVIRONMENT: development
       CONSUMPTION_COLLECTION: consumos_enriquecidos
-      HOUSEHOLD_ID_TYPE: int
       DEFAULT_TIMEZONE: America/Bogota
       # Tarifa vigente de cada lectura sincronizada desde INELCA
       TARIFF_SERVICE_URL: http://harmoniwatts-tariff-service:8006

@@ -157,3 +157,4 @@ class InelcaClient:
             "totalPages": data.get("totalPages", 0),
             "perPage": data.get("perPage", 0),
         }
+        

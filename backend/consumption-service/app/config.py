@@ -84,7 +84,6 @@ class Settings(BaseSettings):
     # Colecciones (para adaptarse a tus datos existentes)
     CONSUMPTION_COLLECTION: str = "consumos_enriquecidos"
     USE_ALT_COLLECTION: bool = False
-    HOUSEHOLD_ID_TYPE: str = "int"
     # Día civil y horas del gráfico / agregaciones (debe coincidir con insights-service)
     DEFAULT_TIMEZONE: str = "America/Bogota"
 

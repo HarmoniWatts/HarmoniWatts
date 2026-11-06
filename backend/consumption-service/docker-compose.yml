@@ -12,7 +12,6 @@ services:
       - ENVIRONMENT=development
       - DEBUG=true
       - CONSUMPTION_COLLECTION=consumos_enriquecidos
-      - HOUSEHOLD_ID_TYPE=int
     depends_on:
       mongodb:
         condition: service_healthy
