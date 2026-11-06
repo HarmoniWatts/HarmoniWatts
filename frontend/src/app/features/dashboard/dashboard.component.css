@@ -321,10 +321,9 @@
 /* Filtros (vivienda + fecha + actualizar), compartidos con la página de tarifas */
 .dash-filters {
   display: grid;
-  /* El panel mide lo que su contenido: vivienda con ancho acotado, fecha y Actualizar al lado */
-  width: fit-content;
-  max-width: 100%;
-  grid-template-columns: minmax(18rem, 30rem) auto auto;
+  /* Panel a todo el ancho (como las tarjetas): vivienda con ancho acotado, fecha al
+     lado y "Actualizar" en el borde derecho */
+  grid-template-columns: minmax(18rem, 28rem) auto minmax(0, 1fr) auto;
   align-items: start;
   gap: 0.75rem 1rem;
   margin-bottom: 1.25rem;
@@ -337,6 +336,7 @@
 
 /* Botón alineado con los controles (debajo de las etiquetas) */
 .dash-refresh {
+  grid-column: -2;
   align-self: start;
   margin-top: calc(0.7rem * 1.4 + 0.35rem);
   display: inline-flex;
@@ -401,8 +401,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  /* Esquinas suaves (no píldora) por si el texto ocupa dos líneas */
+  border-radius: 0.5rem;
   border: 1px solid var(--color-border-input);
   background: var(--color-surface-2);
   color: var(--color-text-muted);
@@ -423,11 +424,13 @@
 
 @media (max-width: 899px) {
   .dash-filters {
-    width: auto;
     grid-template-columns: 1fr auto;
   }
   .dash-filters-vivienda {
     grid-column: 1 / -1;
+  }
+  .dash-refresh {
+    grid-column: auto;
   }
 }
 
