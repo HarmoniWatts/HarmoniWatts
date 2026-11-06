@@ -2,22 +2,25 @@
         <div class="dash-banner dash-banner-error" role="alert">{{ loadError() }}</div>
       }
 
-      <div class="dash-toolbar">
-        <app-vivienda-selector />
-        <label class="dash-date-label">
-          <span>Fecha</span>
-          <input
-            class="dash-date-input"
-            type="date"
-            [value]="selectedDate()"
-            (change)="onDateChange(($any($event.target).value))"
-          />
-        </label>
-        <button type="button" class="dash-btn-ghost" (click)="reload()" [disabled]="loading()">Actualizar</button>
-      </div>
-      @if (tariffNote()) {
-        <p class="dash-muted dash-tariff-note">{{ tariffNote() }}</p>
-      }
+      <section class="dash-filters" aria-label="Filtros del dashboard">
+        <app-vivienda-selector class="dash-filters-vivienda">
+          @if (tariffNote()) {
+            <span vsChip class="dash-filters-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+              {{ tariffNote() }}
+            </span>
+          }
+        </app-vivienda-selector>
+        <app-fecha-filtro [fecha]="selectedDate()" [max]="hoy" (fechaChange)="onDateChange($event)" />
+        <button type="button" class="dash-refresh" (click)="reload()" [disabled]="loading()">
+          <svg class="dash-refresh-icon" [class.dash-refresh-spin]="loading()" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.5 15" />
+          </svg>
+          <span>{{ loading() ? 'Actualizando…' : 'Actualizar' }}</span>
+        </button>
+      </section>
 
       @if (avisoConsumo(); as aviso) {
         <section class="dash-card dash-empty" role="status">

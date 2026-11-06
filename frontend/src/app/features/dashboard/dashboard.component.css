@@ -318,28 +318,125 @@
   margin: 0 auto;
 }
 
-.dash-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+/* Filtros (vivienda + fecha + actualizar), compartidos con la página de tarifas */
+.dash-filters {
+  display: grid;
+  /* La vivienda ocupa el espacio libre; fecha y Actualizar quedan a la derecha */
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-elev);
+  box-shadow: var(--shadow-card);
 }
 
-.dash-date-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+/* Botón alineado con los controles (debajo de las etiquetas) */
+.dash-refresh {
+  align-self: start;
+  margin-top: calc(0.7rem * 1.4 + 0.35rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-accent-border);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
 }
 
-.dash-date-input {
-  border-radius: 0.5rem;
+.dash-refresh:hover:not(:disabled) {
+  background: var(--color-accent-soft-hover);
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+}
+
+.dash-refresh:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+}
+
+.dash-refresh:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.dash-refresh-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dash-refresh-spin {
+  animation: dash-spin 0.9s linear infinite;
+}
+
+@keyframes dash-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-refresh-spin {
+    animation: none;
+  }
+}
+
+/* Nota de tarifas: chip informativo junto al del contrato (proyectado en el selector) */
+.dash-filters-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
   border: 1px solid var(--color-border-input);
-  background: var(--color-surface-input);
-  color: var(--color-text);
-  padding: 0.35rem 0.5rem;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.dash-filters-note svg {
+  flex: none;
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+}
+
+@media (max-width: 899px) {
+  .dash-filters {
+    grid-template-columns: 1fr auto;
+  }
+  .dash-filters-vivienda {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 559px) {
+  .dash-filters {
+    grid-template-columns: 1fr;
+    padding: 0.875rem;
+  }
+  .dash-refresh {
+    margin-top: 0;
+    justify-content: center;
+  }
 }
 
 .dash-btn-ghost {
@@ -982,11 +1079,6 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-}
-
-.dash-tariff-note {
-  margin: -0.5rem 0 1rem;
-  font-size: 0.8rem;
 }
 
 /* Sin tarifa publicada: área del gráfico opaca, sin franjas de color */

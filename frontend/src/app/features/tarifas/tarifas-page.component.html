@@ -4,16 +4,20 @@
     <p class="tf-sub">Precio de la energía según la ciudad y el estrato de tu vivienda.</p>
   </header>
 
-  <div class="dash-toolbar">
-    <app-vivienda-selector />
+  <section class="dash-filters" aria-label="Filtros de tarifas">
+    <app-vivienda-selector class="dash-filters-vivienda" />
     @if (ctx.ubicacion()) {
-      <label class="dash-date-label">
-        <span>Fecha</span>
-        <input class="dash-date-input" type="date" [value]="fecha()" (change)="onFechaChange($any($event.target).value)" />
-      </label>
-      <button type="button" class="dash-btn-ghost" (click)="recargar()" [disabled]="loadingTarifa()">Actualizar</button>
+      <app-fecha-filtro [fecha]="fecha()" (fechaChange)="onFechaChange($event)" />
+      <button type="button" class="dash-refresh" (click)="recargar()" [disabled]="loadingTarifa()">
+        <svg class="dash-refresh-icon" [class.dash-refresh-spin]="loadingTarifa()" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.5 15" />
+        </svg>
+        <span>{{ loadingTarifa() ? 'Actualizando…' : 'Actualizar' }}</span>
+      </button>
     }
-  </div>
+  </section>
 
   @if (error()) {
     <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
