@@ -102,7 +102,7 @@ spec:
         - name: electrodomesticos-api
           port: 8083
     - kind: Rule
-      match: Host(`__APP_HOST__`) && PathPrefix(`/api/v1/viviendas`)
+      match: Host(`__APP_HOST__`) && (PathPrefix(`/api/v1/viviendas`) || PathPrefix(`/api/v1/comercializadoras`) || PathPrefix(`/api/v1/clientes`))
       priority: 100
       services:
         - name: vivienda-api

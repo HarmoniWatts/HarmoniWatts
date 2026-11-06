@@ -43,8 +43,6 @@ spec:
               value: development
             - name: CONSUMPTION_COLLECTION
               value: consumos_enriquecidos
-            - name: HOUSEHOLD_ID_TYPE
-              value: int
             - name: DEFAULT_TIMEZONE
               value: America/Bogota
             - name: TARIFF_SERVICE_URL

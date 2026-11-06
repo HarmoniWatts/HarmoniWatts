@@ -82,7 +82,7 @@ kubectl -n "$NS" create configmap postgres-init \
 kubectl -n "$NS" create configmap mongo-seed \
   --from-file=consumos.json="$ROOT/BD/datos/harmoniwatts.consumos_enriquecidos.json" \
   --from-file=shift-timestamps.js="$ROOT/docker/mongo/shift-timestamps.js" \
-  --from-file=reconcile-contexto.js="$ROOT/docker/mongo/reconcile-contexto.js" \
+  --from-file=reconcile-contexto.js="$ROOT/docker/mongo/reconcile-contexto.js"   --from-file=asignar-contrato-demo.js="$ROOT/docker/mongo/asignar-contrato-demo.js" \
   --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts -f -
 
 # Realm: agrega el dominio público al cliente del SPA (redirects, CORS, logout)
@@ -140,6 +140,16 @@ rm -rf "$OVERLAY"
 log "Esperando a que los servicios queden listos"
 kubectl -n "$NS" rollout status statefulset/postgres --timeout=5m
 kubectl -n "$NS" rollout status statefulset/mongodb --timeout=5m
+
+# Migraciones idempotentes de la base harmoniwatts. vivienda-api valida el esquema al
+# arrancar: si falta una columna, el pod reinicia hasta que esto termine.
+for m in migrate-contrato-comercializadora.sql; do
+  if kubectl -n "$NS" exec -i postgres-0 -- sh -c        'psql -v ON_ERROR_STOP=1 -q -U "$POSTGRES_USER" -d harmoniwatts' < "$ROOT/sql/$m"; then
+    echo "Migración aplicada: $m"
+  else
+    echo "::warning::No se pudo aplicar sql/$m (¿la base harmoniwatts aún no tiene el esquema? Ver restore-postgres.sh)"
+  fi
+done
 failed=()
 for d in keycloak harmoni-register vivienda-api electrodomesticos-api consumption-service \
          insights-service tariff-service prediction-service frontend headlamp; do
