@@ -34,8 +34,6 @@ export const environment = {
    * Base URL del insights-service (dashboard). Vacío: se usa `apiBaseUrl`.
    */
   dashboardInsightsBaseUrl: origin as string | undefined,
-  /** Si el usuario tiene varias viviendas, se envía como `householdId` en las peticiones del dashboard. */
-  defaultHouseholdId: undefined as string | undefined,
   /** Rutas versionadas del contrato DASHBOARD-API.md (sustituibles por entorno / despliegue). */
   dashboardApi: {
     summaryPath: '/api/v1/dashboard/summary',

@@ -29,6 +29,9 @@ export class ViviendaContextService {
   /** Ciudad + mercado + estrato de la vivienda activa; null si aún no tiene ciudad. */
   readonly ubicacion = computed<UbicacionTarifaria | null>(() => toUbicacion(this.selected()));
 
+  /** Contrato + comercializadora de la vivienda activa; null si no los tiene. */
+  readonly contrato = computed<ContratoVivienda | null>(() => toContrato(this.selected()));
+
   /** Carga las viviendas del usuario (una vez por sesión salvo `force`). */
   load(force = false): Observable<ViviendaDto[]> {
     if (this.loaded() && !force) {
@@ -70,6 +73,21 @@ export function toUbicacion(v: ViviendaDto | null | undefined): UbicacionTarifar
     return null;
   }
   return { idZona: v.idZona, codMercado: v.codMercado, estrato: v.estrato };
+}
+
+/** Identifica los consumos de una vivienda en consumption-service. */
+export interface ContratoVivienda {
+  noContrato: string;
+  codComercializadora: string;
+}
+
+export function toContrato(v: ViviendaDto | null | undefined): ContratoVivienda | null {
+  const noContrato = v?.numeroContrato?.trim();
+  const codComercializadora = v?.codComercializadora?.trim();
+  if (!noContrato || !codComercializadora) {
+    return null;
+  }
+  return { noContrato, codComercializadora };
 }
 
 function readStoredId(): number | null {

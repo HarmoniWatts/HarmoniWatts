@@ -85,8 +85,8 @@ export class DashboardService {
     if (params.date) {
       p = p.set('date', params.date);
     }
-    if (params.householdId) {
-      p = p.set('householdId', params.householdId);
+    if (params.noContrato && params.codComercializadora) {
+      p = p.set('noContrato', params.noContrato).set('codComercializadora', params.codComercializadora);
     }
     return p;
   }

@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
 import { DashboardService } from './dashboard.service';
 import {
   estimateDailyCostCop,
@@ -58,11 +58,11 @@ export interface ChartViewModel {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ViviendaSelectorComponent, InfoTipComponent],
+  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent {
   private readonly dashboardApi = inject(DashboardService);
   private readonly tarifasApi = inject(TarifasService);
   private readonly viviendaCtx = inject(ViviendaContextService);
@@ -97,11 +97,32 @@ export class DashboardComponent implements OnInit {
    */
   readonly tariffAvailable = signal(false);
 
+  /**
+   * Motivo por el que no se consultan consumos (sin viviendas o sin contrato);
+   * null cuando la vivienda activa tiene contrato + comercializadora.
+   */
+  readonly avisoConsumo = computed<{ texto: string; enlace: string } | null>(() => {
+    if (!this.viviendaCtx.loaded() || this.viviendaCtx.contrato()) {
+      return null;
+    }
+    return this.viviendaCtx.viviendas().length
+      ? {
+          texto: 'Esta vivienda no tiene contrato con una comercializadora, por eso no hay consumos para mostrar.',
+          enlace: 'Agrega el número de contrato y la comercializadora en Mi vivienda',
+        }
+      : {
+          texto: 'Aún no tienes viviendas registradas.',
+          enlace: 'Registra tu vivienda con su contrato para ver tus consumos',
+        };
+  });
+
   constructor() {
-    // Cambiar de vivienda solo recarga las tarifas
+    // Se recarga al cargar las viviendas y al cambiar de vivienda (contrato o ciudad)
     effect(() => {
+      this.viviendaCtx.loaded();
+      this.viviendaCtx.contrato();
       this.viviendaCtx.ubicacion();
-      untracked(() => this.loadTarifa());
+      untracked(() => this.loadAll());
     });
   }
 
@@ -109,10 +130,6 @@ export class DashboardComponent implements OnInit {
   readonly sectionError = signal<{ summary?: boolean; chart?: boolean; reco?: boolean; appliances?: boolean }>({});
 
   readonly actionBusyId = signal<string | null>(null);
-
-  ngOnInit(): void {
-    this.loadAll();
-  }
 
   onDateChange(value: string): void {
     if (value) {
@@ -364,13 +381,26 @@ export class DashboardComponent implements OnInit {
 
   private loadAll(): void {
     this.loadTarifa();
-    this.loading.set(true);
     this.loadError.set(null);
     this.sectionError.set({});
 
+    // Sin vivienda con contrato no hay consumos que pedir: se muestra un aviso, no errores
+    const contrato = this.viviendaCtx.contrato();
+    if (!contrato) {
+      this.insightsSummary = null;
+      this.insightsChart = null;
+      this.recommendations = null;
+      this.appliances = null;
+      this.applyTarifa();
+      this.loading.set(false);
+      return;
+    }
+
+    this.loading.set(true);
     const q = {
       date: this.selectedDate(),
-      householdId: environment.defaultHouseholdId,
+      noContrato: contrato.noContrato,
+      codComercializadora: contrato.codComercializadora,
     };
 
     forkJoin({

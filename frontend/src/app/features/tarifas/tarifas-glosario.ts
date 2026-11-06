@@ -120,7 +120,7 @@ export const GLOSARIO = {
   numeroContrato: {
     titulo: 'Número de contrato',
     texto:
-      'Identificador de tu servicio con la comercializadora (también llamado número de cuenta o NIU). Aparece en la factura de energía.',
+      'Identificador de tu servicio con la comercializadora (también llamado número de cuenta o NIU). Aparece en la factura de energía. Junto con la comercializadora permite traer tus consumos al dashboard.',
   },
   costoEstimado: {
     titulo: 'Costo estimado',
