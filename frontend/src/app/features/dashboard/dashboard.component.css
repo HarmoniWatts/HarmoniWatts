@@ -318,32 +318,31 @@
   margin: 0 auto;
 }
 
-/* Filtros (vivienda + fecha + actualizar), compartidos con la página de tarifas */
+/* Filtros (vivienda + fecha + actualizar), compartidos con la página de tarifas.
+   Fila 1: vivienda (3 partes) · fecha (2 partes) · Actualizar, juntos y proporcionales.
+   Fila 2: chips de estado (contrato, nota de tarifas) a todo el ancho.
+   El selector de vivienda usa display: contents, así su campo y sus chips son
+   celdas de esta grilla. */
 .dash-filters {
   display: grid;
-  /* Panel a todo el ancho (como las tarjetas): vivienda con ancho acotado, fecha al
-     lado y "Actualizar" en el borde derecho */
-  grid-template-columns: minmax(18rem, 28rem) auto minmax(0, 1fr) auto;
-  align-items: start;
+  grid-template-columns: minmax(0, 3fr) minmax(17rem, 2fr) auto;
+  align-items: end;
   gap: 0.75rem 1rem;
   margin-bottom: 1.25rem;
-  padding: 0.9rem 1.25rem;
+  padding: 1rem 1.25rem;
   border-radius: 1rem;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-elev);
   box-shadow: var(--shadow-card);
 }
 
-/* Botón alineado con los controles (debajo de las etiquetas) */
 .dash-refresh {
-  grid-column: -2;
-  align-self: start;
-  margin-top: calc(0.7rem * 1.4 + 0.35rem);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   height: 2.5rem;
-  padding: 0 1rem;
+  padding: 0 1.1rem;
   border-radius: 0.6rem;
   border: 1px solid var(--color-accent-border);
   background: var(--color-accent-soft);
@@ -351,6 +350,7 @@
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
 }
@@ -401,9 +401,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.2rem 0.55rem;
-  /* Esquinas suaves (no píldora) por si el texto ocupa dos líneas */
-  border-radius: 0.5rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
   border: 1px solid var(--color-border-input);
   background: var(--color-surface-2);
   color: var(--color-text-muted);
@@ -422,26 +421,18 @@
   stroke-linecap: round;
 }
 
+/* Tablet: vivienda en su propia fila; fecha y Actualizar debajo */
 @media (max-width: 899px) {
   .dash-filters {
-    grid-template-columns: 1fr auto;
-  }
-  .dash-filters-vivienda {
-    grid-column: 1 / -1;
-  }
-  .dash-refresh {
-    grid-column: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
 
+/* Celular: todo apilado */
 @media (max-width: 559px) {
   .dash-filters {
     grid-template-columns: 1fr;
     padding: 0.875rem;
-  }
-  .dash-refresh {
-    margin-top: 0;
-    justify-content: center;
   }
 }
 

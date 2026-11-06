@@ -79,6 +79,8 @@ export function sumarDias(ymd: string, dias: number): string {
       position: relative;
       display: flex;
       align-items: center;
+      flex: 1 1 auto;
+      min-width: 9.5rem;
     }
     .ff-icon {
       position: absolute;
@@ -92,6 +94,7 @@ export function sumarDias(ymd: string, dias: number): string {
       pointer-events: none;
     }
     .ff-input {
+      width: 100%;
       height: 2.5rem;
       padding: 0 0.6rem 0 2.2rem;
       border-radius: 0.6rem;

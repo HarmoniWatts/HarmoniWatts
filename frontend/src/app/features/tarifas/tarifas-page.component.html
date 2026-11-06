@@ -5,7 +5,7 @@
   </header>
 
   <section class="dash-filters" aria-label="Filtros de tarifas">
-    <app-vivienda-selector class="dash-filters-vivienda" />
+    <app-vivienda-selector />
     @if (ctx.ubicacion()) {
       <app-fecha-filtro [fecha]="fecha()" (fechaChange)="onFechaChange($event)" />
       <button type="button" class="dash-refresh" (click)="recargar()" [disabled]="loadingTarifa()">

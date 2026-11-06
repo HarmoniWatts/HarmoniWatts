@@ -55,11 +55,13 @@ import type { ViviendaDto } from './vivienda.service';
         <ng-content select="[vsChip]" />
       </div>
     } @else if (ctx.loaded()) {
-      <span class="vs-label">Vivienda</span>
-      <a class="vs-empty" routerLink="/mi-vivienda">
-        <svg class="vs-empty-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        No tienes viviendas registradas · Registrar vivienda
-      </a>
+      <div class="vs-field">
+        <span class="vs-label">Vivienda</span>
+        <a class="vs-empty" routerLink="/mi-vivienda">
+          <svg class="vs-empty-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          No tienes viviendas registradas · Registrar vivienda
+        </a>
+      </div>
     }
   `,
   styles: `
@@ -68,6 +70,28 @@ import type { ViviendaDto } from './vivienda.service';
       flex-direction: column;
       gap: 0.35rem;
       min-width: 0;
+    }
+    /* Dentro del panel de filtros el campo y los chips son celdas de su grilla:
+       campo en la fila 1, chips en la fila 2 a todo el ancho */
+    :host-context(.dash-filters) {
+      display: contents;
+    }
+    :host-context(.dash-filters) .vs-chips {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    :host-context(.dash-filters) .vs-chips:empty {
+      display: none;
+    }
+    @media (max-width: 899px) {
+      :host-context(.dash-filters) .vs-field {
+        grid-column: 1 / -1;
+      }
+    }
+    @media (max-width: 559px) {
+      :host-context(.dash-filters) .vs-chips {
+        grid-row: auto;
+      }
     }
     .vs-field {
       display: flex;
