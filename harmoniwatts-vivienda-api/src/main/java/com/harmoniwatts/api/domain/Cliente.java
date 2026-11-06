@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "cliente")
@@ -36,6 +38,8 @@ public class Cliente {
   @Column(length = 20)
   private String telefono;
 
+  /** En BD es CHAR(1) (no VARCHAR): sin esto falla la validación del esquema al arrancar. */
+  @JdbcTypeCode(SqlTypes.CHAR)
   @Column(name = "cod_tipo_cliente", nullable = false, length = 1)
   private String codTipoCliente;
 
