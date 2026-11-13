@@ -157,8 +157,8 @@ async def get_hourly_days_series(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
         granularity="hour",
-        start_date=target_date.isoformat(),
-        end_date=target_date.isoformat(),
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
         days_hourly=series
     )
     
@@ -198,8 +198,8 @@ async def get_hourly_series(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
         granularity="hour",
-        start_date=target_date.isoformat(),
-        end_date=target_date.isoformat(),
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
         labels=[f"{h:02d}:00" for h in range(24)],
         values_kwh=series["consumption_kwh"],
         values_cost=series["costs_cop"]
@@ -252,8 +252,8 @@ async def get_raw_series(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
         granularity="hour",
-        start_date=target_date.isoformat(),
-        end_date=target_date.isoformat(),
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
         data=series
     )
 
