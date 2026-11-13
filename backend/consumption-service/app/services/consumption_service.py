@@ -44,7 +44,6 @@ class ConsumptionService:
         return CurrentConsumptionResponse(
             no_contrat=str(no_contrat),
             cod_comercializadora=cod_retail,
-            cod_comercializadora=cod_retail,
             current_power_kw=latest["valor_kwh"],
             last_update=latest["timestamp"]
         )
