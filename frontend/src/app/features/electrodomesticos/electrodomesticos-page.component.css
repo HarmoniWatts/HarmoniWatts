@@ -146,14 +146,6 @@
   cursor: not-allowed;
 }
 
-.ed-input--time {
-  color-scheme: dark;
-}
-
-[data-theme='light'] .ed-input--time {
-  color-scheme: light;
-}
-
 .ed-form {
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -414,116 +406,6 @@
 
 .ed-vision-analyze {
   padding-top: 0.25rem;
-}
-
-.ed-field-label-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.ed-info-btn {
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 700;
-  font-style: italic;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-
-.ed-info-btn:hover {
-  border-color: var(--color-accent, #2f6fed);
-}
-
-.ed-consumo-help {
-  margin-top: 0.55rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
-  font-size: 0.85rem;
-  line-height: 1.45;
-}
-
-.ed-consumo-help p {
-  margin: 0 0 0.65rem;
-}
-
-.ed-calc-title {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.45rem;
-}
-
-.ed-calc-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
-}
-
-.ed-calc-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-}
-
-.ed-calc-result {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 0.65rem;
-}
-
-@media (max-width: 560px) {
-  .ed-calc-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* HAR-20: botón de calculadora junto al consumo */
-.ed-calc-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  height: 1.7rem;
-  padding: 0 0.6rem 0 0.45rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-accent-border);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.ed-calc-btn svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.ed-calc-btn:hover,
-.ed-calc-btn--on {
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-}
-.ed-calc-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-accent-ring);
 }
 
 /* HAR-20: el editor de horarios ocupa todo el ancho del formulario */
