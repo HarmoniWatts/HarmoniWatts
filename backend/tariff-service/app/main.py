@@ -7,9 +7,11 @@ from app.api.routes import (
     active,
     historical,
     extraction,
-    ubicacion
+    ubicacion,
+    estimation,
 )
 import structlog
+
 
 logger = structlog.get_logger()
 
@@ -147,6 +149,12 @@ app.include_router(
     tags=["Extracción"]
 )
 
+# Rutas de estimación de tarifas
+app.include_router(
+    estimation.router,
+    prefix="/api/v1",
+    tags=["Estimación"]
+)
 
 # =====================================================
 # ROOT

@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 import re
 from pathlib import Path
@@ -141,22 +143,42 @@ class PDFDownloader:
 
         print(f"Parámetros de consulta: {params}")
         print(f"\nURL de la API: {self.base_url}/documents")
+        print(f"\nURL de la API: {self.base_url}/media")
         async with httpx.AsyncClient() as client:
             # Consultar qué PDFs están disponibles en el rango
-            response = await client.get(
-                f"{self.base_url}/documents",
-                params=params,
-                headers=self.headers
-            )
-            response.raise_for_status()
             
-            data = response.json()
-            documentos = data.get("docs")
+            # 1. Lanzar ambas consultas en paralelo dentro del mismo cliente
+            resp_docs, resp_media = await asyncio.gather(
+                client.get(
+                    f"{self.base_url}/documents",
+                    params=params,
+                    headers=self.headers
+                ),
+                client.get(
+                    f"{self.base_url}/media",
+                    params=params,
+                    headers=self.headers
+                )
+            )
+
+            # 2. Verificar que ambas peticiones hayan sido exitosas
+            resp_docs.raise_for_status()
+            resp_media.raise_for_status()
+
+            # 3. Extraer las listas y unirlas
+            docs = resp_docs.json().get("docs", [])
+            media = resp_media.json().get("docs", [])  # Cambia "docs" si /media usa otra clave
+
+            documentos = docs + media
             
             print("\n")
             for doc in documentos:
                 
                 titulo = doc.get('title', '')
+                logger.info(titulo)
+                if not titulo:
+                    logger.warning(f"Documento sin título, se reemplaza con filename: {doc.get('filename', '')}")
+                    titulo = doc.get('filename', '')
                 fecha_doc = self.extraer_fecha(titulo)
                 
                 if fecha_doc is None:

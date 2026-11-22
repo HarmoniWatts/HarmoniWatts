@@ -1,7 +1,9 @@
+from calendar import calendar
+
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
+from sqlalchemy import or_, func, desc
 from typing import Optional, List, Dict, Any
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from loguru import logger
 
@@ -255,6 +257,9 @@ class TarifaRepository:
         Resuelve el ID de configuración horaria aplicable
         según comercializadora + mercado + nivel + fecha.
         """
+        # logger.debug(
+        #     f"Resolviendo configuración horaria: {cod_comercializadora} / {cod_mercado} / {cod_nivel} / {fecha}"
+        # )
         aplicable = (
             self.db.query(ConfiguracionAplicable)
             .filter(
@@ -269,7 +274,7 @@ class TarifaRepository:
             )
             .first()
         )
-        
+        print(f"Configuración horaria resuelta: {aplicable.id_configuracion_horaria if aplicable else None}")
         return aplicable.id_configuracion_horaria if aplicable else None
     
     # =====================================================
@@ -343,6 +348,7 @@ class TarifaRepository:
         creados = []
         
         for v in valores:
+            _item_id_configuracion_horaria = None
             codigo_franja = v.pop('codigo_franja', None)
             
             # Resolver id_franja_horaria
@@ -357,9 +363,11 @@ class TarifaRepository:
                         f"Valor omitido por franja no resuelta: {codigo_franja}"
                     )
                     continue
-                
+            # logger.debug(f"id_franja_horaria: {id_franja_horaria} / valor: {v['valor']} / id_configuracion_horaria: {id_configuracion_horaria}")
             if id_franja_horaria is None and v['valor'] is not None:
-                id_configuracion_horaria = None  # No hay franja, no hay configuración. Es monomia.
+                _item_id_configuracion_horaria = None  # No hay franja, no hay configuración. Es monomia.
+            else:
+                _item_id_configuracion_horaria = id_configuracion_horaria
             
             # Si hay franja, debe haber configuración (constraint ck_tv_config_franja)
             if id_franja_horaria and not id_configuracion_horaria:
@@ -370,7 +378,7 @@ class TarifaRepository:
             
             valor = TarifaValor(
                 id_periodo_tarifario=id_periodo_tarifario,
-                id_configuracion_horaria=id_configuracion_horaria,
+                id_configuracion_horaria=_item_id_configuracion_horaria,
                 id_franja_horaria=id_franja_horaria,
                 valor=v['valor'],
                 unidad=v.get('unidad', 'COP/kWh'),
@@ -468,9 +476,9 @@ class TarifaRepository:
                 id_periodo_tarifario, c['cod_componente']
             )
             if existente:
-                logger.debug(
-                    f"Componente ya existe: {c['cod_componente']}"
-                )
+                # logger.debug(
+                #     f"Componente ya existe: {c['cod_componente']}"
+                # )
                 continue
             
             comp = ComponenteValorMes(
@@ -529,6 +537,9 @@ class TarifaRepository:
         periodo_data = tarifa_tap['periodo']
         valores_nuevos = tarifa_tap.get('valores', [])
         componentes_nuevos = tarifa_tap.get('componentes', [])
+        
+        if tarifa_data['codigo_tarifa'] == 'VALLE_N4_A_ENERTOTAL':
+            logger.debug(f"tarifa_tap: {tarifa_tap}")
         
         try:
             # 1. Buscar o crear la Tarifa
@@ -658,6 +669,157 @@ class TarifaRepository:
             self.db.rollback()
             logger.error(f"Error en upsert_tarifa_completa: {e}")
             raise
+   
+    def upsert_periodo_estimado(
+        self,
+        tarifa_tap: Dict[str, Any],
+        modelos: Dict[str, str] | None = None,
+    ) -> Dict[str, Any]:
+        """
+        Persiste una ESTIMACIÓN como periodo_tarifario BORRADOR.
+        Reglas:
+        - Nunca modifica una PUBLICADA existente.
+        - Si ya hay una estimación (BORRADOR + fecha_calculo + observaciones='ESTIMADA...')
+            para ese mes, la marca SUPERADA y crea nueva versión de estimación.
+        - numero_version = max(version existente para ese mes) + 1.
+        - observaciones = 'ESTIMADA v1 modelos={...}'.
+        """
+        resultado = {
+            "tarifa_creada": False,
+            "periodo_creado": False,
+            "nueva_version": False,
+            "version": None,
+            "valores_creados": 0,
+            "componentes_creados": 0,
+            "publicada_intacta": True,
+        }
+        tarifa_data = tarifa_tap["tarifa"]
+        periodo_data = tarifa_tap["periodo"]
+        valores = tarifa_tap.get("valores", [])
+        componentes = tarifa_tap.get("componentes", [])
+
+
+        try:
+            # 1. Tarifa cabecera (crear si no existe, pero NO tocarla si existe)
+            tarifa = self.get_by_codigo(tarifa_data["codigo_tarifa"])
+            if not tarifa:
+                tarifa = self.crear(tarifa_data)
+                resultado["tarifa_creada"] = True
+
+            # 2. Configuración horaria
+            id_config = self._resolver_id_configuracion(
+                tarifa_data["cod_comercializadora"],
+                tarifa_data["cod_mercado"],
+                tarifa_data["cod_nivel"],
+                periodo_data["fecha_inicio"],
+            )
+            # if id_config:
+            #     logger.info(f"Configuración horaria resuelta: {id_config}")
+            # 3. ¿Existe PUBLICADA para ese mes?  → NO tocarla
+            publicada = self.get_periodo(
+                tarifa.id_tarifa, periodo_data["anio"], periodo_data["mes"], estado="PUBLICADA"
+            )
+            if publicada:
+                logger.info(
+                    "Ya existe PUBLICADA para %s %s-%s v%s; la estimación NO se guardará",
+                    tarifa.codigo_tarifa, periodo_data["anio"], periodo_data["mes"],
+                    publicada.numero_version,
+                )
+                return False
+            # else:
+            #     estimada_borrador = self.get_periodo(
+            #             tarifa.id_tarifa, periodo_data["anio"], periodo_data["mes"], estado="BORRADOR"
+            #         )
+            #     if estimada_borrador:
+            #         logger.info(
+            #             "Ya existe BORRADOR para %s %s-%s v%s; la estimación NO se guardará",
+            #             tarifa.codigo_tarifa, periodo_data["anio"], periodo_data["mes"],
+            #             publicada.numero_version,
+            #         )
+            #         return False
+                
+
+            # 4. ¿Existe estimación previa? → marcarla SUPERADA (solo si es estimación)
+            estimacion_previa = self._get_periodo_estimado(
+                tarifa.id_tarifa, periodo_data["anio"], periodo_data["mes"]
+            )
+            if estimacion_previa:
+                estimacion_previa.estado = "SUPERADA"
+                self.db.flush()
+
+            # 5. Siguiente numero_version (considerando TODAS las versiones del mes)
+            max_v = (
+                self.db.query(func.max(PeriodoTarifario.numero_version))
+                .filter_by(id_tarifa=tarifa.id_tarifa, anio=periodo_data["anio"], mes=periodo_data["mes"])
+                .scalar()
+            ) or 0
+            nueva_version = max_v + 1
+
+            # 6. Forzar convención de estimación
+            periodo_data = {
+                **periodo_data,
+                "id_tarifa": tarifa.id_tarifa,
+                "numero_version": nueva_version,
+                "estado": "BORRADOR",
+                "fecha_calculo": datetime.utcnow(),
+                "fecha_publicacion": None,
+                "observaciones": f"ESTIMADA v1 modelos={modelos or {}}",
+            }
+            if id_config and "id_configuracion_horaria" not in periodo_data:
+                periodo_data["id_configuracion_horaria"] = id_config
+
+            periodo = self.crear_periodo(periodo_data)
+            resultado["periodo_creado"] = True
+            resultado["nueva_version"] = bool(estimacion_previa)
+            resultado["version"] = nueva_version
+
+            # 7. Valores y componentes (igual que upsert_tarifa_completa)
+            if valores and id_config:
+                creados = self.crear_valores_batch(
+                    id_periodo_tarifario=periodo.id_periodo_tarifario,
+                    valores=valores,
+                    cod_comercializadora=tarifa_data["cod_comercializadora"],
+                    id_configuracion_horaria=id_config,
+                )
+                resultado["valores_creados"] = len(creados)
+            elif valores and not id_config:
+                logger.warning(
+                    "Estimación sin franjas: falta configuración horaria para %s/%s",
+                    tarifa_data["cod_mercado"], tarifa_data["cod_nivel"],
+                )
+
+            if componentes:
+                comps = self.crear_componentes_batch(
+                    id_periodo_tarifario=periodo.id_periodo_tarifario,
+                    componentes=componentes,
+                )
+                resultado["componentes_creados"] = len(comps)
+
+            self.db.commit()
+            logger.info("Estimación persistida: %s", resultado)
+            return resultado
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error("Error en upsert_periodo_estimado: %s", e)
+            raise
+
+    def _get_periodo_estimado(self, id_tarifa: int, anio: int, mes: int):
+        """Devuelve el periodo_tarifario BORRADOR con convención ESTIMADA, o None."""
+        return (
+            self.db.query(PeriodoTarifario)
+            .filter(
+                PeriodoTarifario.id_tarifa == id_tarifa,
+                PeriodoTarifario.anio == anio,
+                PeriodoTarifario.mes == mes,
+                PeriodoTarifario.estado == "BORRADOR",
+                PeriodoTarifario.fecha_calculo.isnot(None),
+                PeriodoTarifario.fecha_publicacion.is_(None),
+                PeriodoTarifario.observaciones.like("ESTIMADA%"),
+            )
+            .order_by(PeriodoTarifario.numero_version.desc())
+            .first()
+        )
     
     def _comparar_periodo(
         self,
@@ -676,11 +838,11 @@ class TarifaRepository:
         """
         # 1. Comparar metadata del período
         if periodo_existente.fecha_inicio != periodo_nuevo['fecha_inicio']:
-            logger.debug(f"Diferencia en fecha_inicio: {periodo_existente.fecha_inicio} != {periodo_nuevo['fecha_inicio']}")
+            # logger.debug(f"Diferencia en fecha_inicio: {periodo_existente.fecha_inicio} != {periodo_nuevo['fecha_inicio']}")
             return False
         
         if periodo_existente.fecha_fin != periodo_nuevo['fecha_fin']:
-            logger.debug(f"Diferencia en fecha_fin: {periodo_existente.fecha_fin} != {periodo_nuevo['fecha_fin']}")
+            # logger.debug(f"Diferencia en fecha_fin: {periodo_existente.fecha_fin} != {periodo_nuevo['fecha_fin']}")
             return False
         
         # 2. Comparar valores por franja
@@ -691,7 +853,7 @@ class TarifaRepository:
         if not self._comparar_valores(
             valores_existentes, valores_nuevos, cod_comercializadora
         ):
-            logger.debug(f"Diferencia en valores por franja")
+            # logger.debug(f"Diferencia en valores por franja")
             return False
         
         # 3. Comparar componentes
@@ -700,7 +862,7 @@ class TarifaRepository:
         )
         
         if not self._comparar_componentes(componentes_existentes, componentes_nuevos):
-            logger.debug(f"Diferencia en componentes")
+            # logger.debug(f"Diferencia en componentes")
             return False
         
         # 4. Todo igual
@@ -737,21 +899,21 @@ class TarifaRepository:
         
         # Comparar: misma cantidad de franjas
         if set(mapa_existentes.keys()) != set(mapa_nuevos.keys()):
-            logger.debug(
-                f"Franjas diferentes: "
-                f"existentes={set(mapa_existentes.keys())}, "
-                f"nuevos={set(mapa_nuevos.keys())}"
-            )
+            # logger.debug(
+            #     f"Franjas diferentes: "
+            #     f"existentes={set(mapa_existentes.keys())}, "
+            #     f"nuevos={set(mapa_nuevos.keys())}"
+            # )
             return False
         
         # Comparar valores con tolerancia
         for codigo in mapa_existentes:
             diff = abs(mapa_existentes[codigo] - mapa_nuevos[codigo])
             if diff > tolerancia:
-                logger.debug(
-                    f"Diferencia en franja {codigo}: "
-                    f"{mapa_existentes[codigo]} != {mapa_nuevos[codigo]}"
-                )
+                # logger.debug(
+                #     f"Diferencia en franja {codigo}: "
+                #     f"{mapa_existentes[codigo]} != {mapa_nuevos[codigo]}"
+                # )
                 return False
         
         return True
@@ -778,21 +940,21 @@ class TarifaRepository:
         
         # Misma cantidad
         if set(mapa_existentes.keys()) != set(mapa_nuevos.keys()):
-            logger.debug(
-                f"Componentes diferentes: "
-                f"existentes={set(mapa_existentes.keys())}, "
-                f"nuevos={set(mapa_nuevos.keys())}"
-            )
+            # logger.debug(
+            #     f"Componentes diferentes: "
+            #     f"existentes={set(mapa_existentes.keys())}, "
+            #     f"nuevos={set(mapa_nuevos.keys())}"
+            # )
             return False
         
         # Comparar valores con tolerancia
         for codigo in mapa_existentes:
             diff = abs(mapa_existentes[codigo] - mapa_nuevos[codigo])
             if diff > tolerancia:
-                logger.debug(
-                    f"Diferencia en componente {codigo}: "
-                    f"{mapa_existentes[codigo]} != {mapa_nuevos[codigo]}"
-                )
+                # logger.debug(
+                #     f"Diferencia en componente {codigo}: "
+                #     f"{mapa_existentes[codigo]} != {mapa_nuevos[codigo]}"
+                # )
                 return False
         
         return True
@@ -930,6 +1092,92 @@ class TarifaRepository:
             'componentes': componentes,
         }
         
+    def get_tarifa_estimada_completa(
+        self,
+        id_cliente: int,
+        fecha: date,
+        cod_tipo_tarifa: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Igual que get_tarifa_vigente_completa, pero busca el periodo BORRADOR-ESTIMADA
+        del mes de `fecha` en lugar de la PUBLICADA.
+        """
+        cliente = self.db.query(Cliente).filter(Cliente.id_cliente == id_cliente).first()
+        if not cliente:
+            return None
+
+        tarifa = self.get_tarifa_por_clasificacion(
+            cod_comercializadora=cliente.cod_comercializadora,
+            cod_mercado=cliente.cod_mercado,
+            cod_nivel=cliente.cod_nivel,
+            cod_tipo_tarifa=cod_tipo_tarifa,
+        )
+        if not tarifa:
+            return None
+
+        periodo = self.get_periodo_estimado(tarifa.id_tarifa, fecha)
+        if not periodo:
+            return None
+
+        precios = self.get_precios_por_hora_desde_vista(periodo.id_periodo_tarifario)
+        componentes = self.get_componentes_by_periodo(periodo.id_periodo_tarifario)
+
+        cod_configuracion_horaria = None
+        if periodo.id_configuracion_horaria:
+            configuracion = self.get_configuracion_horaria(periodo.id_configuracion_horaria)
+            cod_configuracion_horaria = configuracion.codigo
+
+        valores_hora = [p for p in precios if p.hora is not None]
+        monomias = [p for p in precios if p.hora is None]
+
+        valores = [
+            {
+                "hora": p.hora,
+                "codigo_franja": p.franja,
+                "tipo_hora": p.tipo_hora,
+                "valor": float(p.valor),
+                "unidad": p.unidad or "COP/kWh",
+            }
+            for p in valores_hora
+        ]
+
+        monomia = None
+        if monomias:
+            m = monomias[0]
+            monomia = {"valor": float(m.valor), "unidad": m.unidad or "COP/kWh", "tipo": "CU"}
+
+        return {
+            "id_cliente": id_cliente,
+            "tarifa": tarifa,
+            "periodo": periodo,
+            "cod_configuracion_horaria": cod_configuracion_horaria,
+            "monomia": monomia,
+            "valores": valores,
+            "componentes": componentes,
+        }
+        
+    def get_periodo_estimado(self, id_tarifa: int, fecha: date):
+        """
+        Devuelve el periodo_tarifario BORRADOR con convención ESTIMADA para el mes de `fecha`,
+        o None si no existe.
+        Convención: estado='BORRADOR' AND fecha_calculo IS NOT NULL
+                    AND fecha_publicacion IS NULL AND observaciones LIKE 'ESTIMADA%'
+        """
+        return (
+            self.db.query(PeriodoTarifario)
+            .filter(
+                PeriodoTarifario.id_tarifa == id_tarifa,
+                PeriodoTarifario.anio == fecha.year,
+                PeriodoTarifario.mes == fecha.month,
+                PeriodoTarifario.estado == "BORRADOR",
+                PeriodoTarifario.fecha_calculo.isnot(None),
+                PeriodoTarifario.fecha_publicacion.is_(None),
+                PeriodoTarifario.observaciones.like("ESTIMADA%"),
+            )
+            .order_by(PeriodoTarifario.numero_version.desc())
+            .first()
+        )
+    
     
     def get_precios_dia(
         self,

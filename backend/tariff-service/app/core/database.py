@@ -3,10 +3,15 @@ from typing import Generator
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from sqlalchemy.pool import QueuePool
+import structlog
 from app.config import settings
 import logging
 
-logger = logging.getLogger(__name__)
+
+
+import structlog
+
+logger = structlog.get_logger()
 
 # Base declarativa para modelos ORM
 Base = declarative_base()
@@ -66,7 +71,7 @@ class PostgreSQLManager:
         @event.listens_for(cls.engine, "connect")
         def on_connect(dbapi_conn, connection_record):
             """Se ejecuta al establecer una nueva conexión"""
-            logger.debug("new_connection_established")
+            # logger.debug("new_connection_established")
             # Configurar timezone de sesión
             with dbapi_conn.cursor() as cursor:
                 cursor.execute("SET timezone = 'America/Bogota'")
@@ -74,12 +79,12 @@ class PostgreSQLManager:
         @event.listens_for(cls.engine, "checkout")
         def on_checkout(dbapi_conn, connection_record, connection_proxy):
             """Se ejecuta al tomar una conexión del pool"""
-            logger.debug("connection_checked_out")
+            # logger.debug("connection_checked_out")
         
         @event.listens_for(cls.engine, "checkin")
         def on_checkin(dbapi_conn, connection_record):
             """Se ejecuta al devolver una conexión al pool"""
-            logger.debug("connection_checked_in")
+            # logger.debug("connection_checked_in")
     
     @classmethod
     def create_tables(cls):

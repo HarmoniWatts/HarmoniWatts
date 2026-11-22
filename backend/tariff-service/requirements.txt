@@ -25,3 +25,13 @@ structlog==24.1.0
 # Utilidades
 python-dotenv==1.0.0
 python-dateutil==2.8.2
+
+
+#modelos
+lightgbm>=4.0        # para Dm
+statsmodels>=0.14    # para Cfmj (ARIMA)
+joblib>=1.3          # para guardar modelos
+
+#Datos exogenos
+pydataxml==0.3.19
+pydataxm==0.3.19
