@@ -44,6 +44,7 @@ class ConsumptionService:
         return CurrentConsumptionResponse(
             no_contrat=str(no_contrat),
             cod_comercializadora=cod_retail,
+            serie_medidor=latest["serie_medidor"],
             current_power_kw=latest["valor_kwh"],
             last_update=latest["timestamp"]
         )
@@ -95,6 +96,7 @@ class ConsumptionService:
         return DailyTotalResponse(
             no_contrat=str(no_contrat),
             cod_comercializadora=cod_retail,
+            serie_medidor=daily_stats["serie_medidor"],
             date=target_date.isoformat(),
             total_consumption_kwh=daily_stats["total_consumption_kwh"],
             total_cost_cop=daily_stats["total_cost_cop"],
@@ -115,7 +117,7 @@ class ConsumptionService:
         Retorna series horarias de consumo y costo para [start, end_exclusive)
         """
         tz = tz or settings.DEFAULT_TIMEZONE
-        hourly_days_data = await self.repository.get_hourly_days_consumption(
+        hourly_days_data, serie_medidor = await self.repository.get_hourly_days_consumption(
             no_contrat, cod_retail, start, end_exclusive, tz
         )
         # logger.info(f"Hourly days data - {hourly_days_data}")
@@ -143,7 +145,7 @@ class ConsumptionService:
                 "values_cost": costs
             }
 
-        return days_data
+        return days_data, serie_medidor
         
     async def get_hourly_series(
         self, 
@@ -157,7 +159,7 @@ class ConsumptionService:
         Retorna series horarias de consumo y costo para un día completo (24 horas) en el rango [start, end_exclusive)
         """
         tz = tz or settings.DEFAULT_TIMEZONE
-        hourly_data = await self.repository.get_hourly_consumption(
+        hourly_data, serie_medidor = await self.repository.get_hourly_consumption(
             no_contrat, cod_retail, start, end_exclusive, tz
         )
         
@@ -172,7 +174,7 @@ class ConsumptionService:
         return {
             "consumption_kwh": consumption,
             "costs_cop": costs
-        }
+        }, serie_medidor
         
         
     async def get_raw_series(
@@ -192,7 +194,7 @@ class ConsumptionService:
         )
 
     
-        return data_series["raw_data"]
+        return data_series["serie_medidor"], data_series["raw_data"]
     
     async def get_daily_series(
         self, 

@@ -149,13 +149,14 @@ async def get_hourly_days_series(
 
         
     
-    series = await service.get_hourly_days_series(no_contrat, cod_retail, start_date, end_date)
+    series, serie_medidor = await service.get_hourly_days_series(no_contrat, cod_retail, start_date, end_date)
     
     # logger.info(f"Hourly days series - {series}")
     
     return TimeDaysSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
+        serie_medidor=serie_medidor,
         granularity="hour",
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
@@ -192,11 +193,12 @@ async def get_hourly_series(
 
         
     
-    series = await service.get_hourly_series(no_contrat, cod_retail, start_date, end_date)
+    series, serie_medidor = await service.get_hourly_series(no_contrat, cod_retail, start_date, end_date)
     
     return TimeSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
+        serie_medidor=serie_medidor,
         granularity="hour",
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
@@ -246,11 +248,12 @@ async def get_raw_series(
 
         
     
-    series = await service.get_raw_series(no_contrat, cod_retail, start_date, end_date)
+    serie_medidor, series= await service.get_raw_series(no_contrat, cod_retail, start_date, end_date)
     # logger.info(f"Raw series - {series}")
     return RawSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
+        serie_medidor=serie_medidor,
         granularity="hour",
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),

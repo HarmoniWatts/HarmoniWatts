@@ -80,6 +80,7 @@ class CurrentConsumptionResponse(BaseModel):
     """Respuesta para consumo actual"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     current_power_kw: float
     last_update: datetime
     unit: str = "kW"
@@ -89,6 +90,7 @@ class DailyTotalResponse(BaseModel):
     """Respuesta para consumo acumulado del día"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     date: str
     total_consumption_kwh: float
     total_cost_cop: float
@@ -102,6 +104,7 @@ class TimeSeriesResponse(BaseModel):
     """Respuesta genérica para series temporales"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     granularity: str  # hour, day, month, year
     start_date: str
     end_date: str
@@ -119,6 +122,7 @@ class TimeDaysSeriesResponse(BaseModel):
     """Respuesta genérica para series temporales"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     granularity: str  # hour, day, month, year
     start_date: str
     end_date: str
@@ -128,6 +132,7 @@ class RawSeriesResponse(BaseModel):
     """Respuesta genérica para series temporales"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     granularity: str  # hour, day, month, year
     start_date: str
     end_date: str
@@ -137,6 +142,7 @@ class ConsumptionSummaryResponse(BaseModel):
     """Resumen completo para dashboard"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     date: str
     current_power_kw: float
     daily_total_kwh: float

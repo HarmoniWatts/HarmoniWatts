@@ -87,8 +87,8 @@ class ConsumptionRepository:
             {
                 "$group": {
                     "_id": None,
+                    "serie_medidor": {"$last": "$serie_medidor"},
                     "total_consumption_kwh": {"$sum": "$valor_kwh"},
-                    
                     "total_cost_cop": {"$sum": COSTO_LECTURA},
                     "average_power_kw": {"$avg": "$valor_kwh"},
                     "peak_power_kw": {"$max": "$valor_kwh"},
@@ -159,6 +159,7 @@ class ConsumptionRepository:
                             }
                         }
                     },
+                    "serie_medidor": {"$last": "$serie_medidor"},
                     "consumption_kwh": {"$sum": "$valor_kwh"},
                     "total_cost": {"$sum": COSTO_LECTURA},
                     "tarifa_promedio": {"$avg": PRECIO_LECTURA},
@@ -177,6 +178,8 @@ class ConsumptionRepository:
         results = await cursor.to_list(length=None)
         # logger.info(f"results - {results}")
         daily_profiles = defaultdict(list)
+        
+        serie_medidor = results[-1]["serie_medidor"]
 
         for result in results:
             date = result["_id"]["date"]
@@ -205,7 +208,7 @@ class ConsumptionRepository:
             
         # logger.info(f"daily_profiles - {daily_profiles}")
 
-        return dict(sorted(daily_profiles.items()))
+        return dict(sorted(daily_profiles.items())), serie_medidor
     
     
     async def get_hourly_consumption(
@@ -238,6 +241,7 @@ class ConsumptionRepository:
                                 "$hour": {"date": "$timestamp", "timezone": tz},
                             }
                         },
+                        "serie_medidor": {"$last": "$serie_medidor"},
                         "consumption_kwh": {"$sum": "$valor_kwh"},
                         "total_cost": {"$sum": COSTO_LECTURA},
                         "tarifa_promedio": {"$avg": PRECIO_LECTURA},
@@ -248,6 +252,7 @@ class ConsumptionRepository:
             
             cursor = self.collection.aggregate(pipeline)
             results = await cursor.to_list(length=24)
+            serie_medidor = results[-1]["serie_medidor"]
             
             # Inicializar array de 24 horas
             hourly = []
@@ -268,7 +273,7 @@ class ConsumptionRepository:
                     "tarifa_promedio": result.get("tarifa_promedio")
                 }
             
-            return hourly
+            return hourly, serie_medidor
         
     async def get_raw_series_consumption(
         self,
@@ -305,7 +310,7 @@ class ConsumptionRepository:
         
         return {
                 "serie_medidor": meter_no,
-                "raw_data": [{"timestamp": item["timestamp"], "kwh": item["kwh"]} for item in results]
+                "raw_data": [{"meter_no": item["serie_medidor"], "timestamp": item["timestamp"], "kwh": item["kwh"]} for item in results]
             }
         
 
