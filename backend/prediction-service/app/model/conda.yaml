@@ -1,0 +1,14 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.13.5
+- pip<=25.1
+- pip:
+  - mlflow==3.17.2
+  - pandas==2.2.3
+  - numpy==2.1.3
+  - tslearn==0.10.0
+  - torch==2.15.0
+  - holidays==0.107
+  - joblib
+name: mlflow-env

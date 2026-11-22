@@ -1,0 +1,44 @@
+artifact_path: file:C:/Users/USUARIO/Documents/Maestria/Trabajo Integrador/pruebas-concepto/Pronostico_Clusters_MLflow_v2/mlruns/1/models/m-3e2f1aeb0c37439dae8212fd1ec9acf5/artifacts
+flavors:
+  python_function:
+    artifacts:
+      cluster_model:
+        path: artifacts/cluster_model.joblib
+        uri: prod_artifacts/cluster_model.joblib
+      meta:
+        path: artifacts/meta.json
+        uri: prod_artifacts/meta.json
+      states:
+        path: artifacts/states.pt
+        uri: prod_artifacts/states.pt
+    cloudpickle_version: 3.0.0
+    code: code
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.13.5
+    streamable: false
+is_signature_from_type_hint: false
+mlflow_version: 3.17.2
+model_id: m-3e2f1aeb0c37439dae8212fd1ec9acf5
+model_size_bytes: 9705148
+model_uuid: m-3e2f1aeb0c37439dae8212fd1ec9acf5
+prompts: null
+run_id: cec932eaf7854168a3408e6e86ad0222
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "string", "name": "METER_NO", "required": true}, {"type": "datetime",
+    "name": "DATE_TIME", "required": true}, {"type": "double", "name": "kwh", "required":
+    true}]'
+  outputs: '[{"type": "string", "name": "METER_NO", "required": true}, {"type": "datetime",
+    "name": "DATE_TIME", "required": true}, {"type": "double", "name": "forecast_kwh",
+    "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-11-01 03:20:25.750767'
