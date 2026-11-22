@@ -90,6 +90,7 @@ class TarifaResolverHTTP(TarifaResolverPort):
             "id_tarifa": tarifa.get("id_tarifa"),
             "cod_tipo_tarifa": tarifa.get("cod_tipo_tarifa"),
             "periodo": periodo.get("id_periodo_tarifario"),
+            "estado": periodo.get("estado"),
             "configuracion_horaria": configuracion_horaria, 
             "franja_aplicada": franja.get("codigo_franja") if franja else None,
             "tipo_hora": franja.get("tipo_hora") if franja else None,

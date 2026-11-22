@@ -100,6 +100,8 @@ class SyncService:
         # Cache de tarifas por (id_cliente, fecha) para evitar consultas repetidas
         tarifa_cache: Dict[str, Optional[Dict]] = {}
         
+        meter_no = None  # Inicializar meter_no para registrar en historial
+        
         async for lectura in self.client_retail.iter_meter_readings(
             no_account=str(no_contrato), fecha_inicio=fecha_inicio, fecha_fin=fecha_fin
         ):
