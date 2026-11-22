@@ -17,11 +17,16 @@ final class VisionTextFallback {
   private static final Pattern KWH_DIA =
       Pattern.compile(
           "(\\d+(?:[.,]\\d+)?)\\s*kWh\\s*/\\s*(día|dia|day)", Pattern.CASE_INSENSITIVE);
+  /** 1200 W / 1.200 vatios / 1,5 kW (sin confundir con kWh). */
+  private static final Pattern WATTS =
+      Pattern.compile(
+          "(\\d+(?:[.,]\\d+)?)\\s*(kW|W|vatios|watts?)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE);
+  private static final Pattern MILES = Pattern.compile("\\d{1,3}\\.\\d{3}");
   private static final Pattern KWH_PLAIN =
       Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*kWh\\b", Pattern.CASE_INSENSITIVE);
   private static final Pattern LINE_FIELD =
       Pattern.compile(
-          "^(Marca|Modelo|Tipo|ConsumoKwhDia|Consumo|PotenciaW|Potencia|Confianza)\\s*[:=]\\s*(.+)$",
+          "^(Marca|Modelo|Tipo|ConsumoKwhMes|ConsumoKwhDia|Consumo|PotenciaW|Potencia|Confianza)\\s*[:=]\\s*(.+)$",
           Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
   private static final Pattern MARCA_ES =
       Pattern.compile(
@@ -45,19 +50,21 @@ final class VisionTextFallback {
     String marca = detectMarca(upper, text);
     String modelo = detectModelo(text);
     String tipo = detectTipo(upper, tipoCodigos);
-    Double consumo = estimateConsumoKwhDia(text);
-    if (marca == null && modelo == null && tipo == null && consumo == null) {
+    Double potencia = detectPotenciaW(text);
+    Double consumoMes = estimateConsumoKwhMes(text);
+    if (marca == null && modelo == null && tipo == null && potencia == null && consumoMes == null) {
       throw new VisionAdapterException(VisionClientMessages.ANALYSIS_FAILED);
     }
     double confianza = (marca != null && modelo != null) ? 0.65 : 0.45;
-    return new VisionRawResult(marca, modelo, tipo, consumo, confianza, "etiqueta_ocr");
+    return new VisionRawResult(marca, modelo, tipo, potencia, consumoMes, confianza, "etiqueta_ocr");
   }
 
   private static VisionRawResult tryStructuredLines(String text, List<String> tipoCodigos) {
     String marca = null;
     String modelo = null;
     String tipo = null;
-    Double consumo = null;
+    Double potencia = null;
+    Double consumoMes = null;
     Double confianza = null;
     String pendingKey = null;
 
@@ -74,7 +81,8 @@ final class VisionTextFallback {
           marca = applyMarca(pendingKey, value, marca);
           modelo = applyModelo(pendingKey, value, modelo);
           tipo = applyTipo(pendingKey, value, tipoCodigos, tipo);
-          consumo = applyConsumo(pendingKey, value, consumo);
+          potencia = applyPotencia(pendingKey, value, potencia);
+          consumoMes = applyConsumoMes(pendingKey, value, consumoMes);
           confianza = applyConfianza(pendingKey, value, confianza);
           pendingKey = null;
         }
@@ -85,7 +93,8 @@ final class VisionTextFallback {
         marca = applyMarca(pendingKey, value, marca);
         modelo = applyModelo(pendingKey, value, modelo);
         tipo = applyTipo(pendingKey, value, tipoCodigos, tipo);
-        consumo = applyConsumo(pendingKey, value, consumo);
+        potencia = applyPotencia(pendingKey, value, potencia);
+        consumoMes = applyConsumoMes(pendingKey, value, consumoMes);
         confianza = applyConfianza(pendingKey, value, confianza);
         pendingKey = null;
       }
@@ -101,7 +110,8 @@ final class VisionTextFallback {
       marca = applyMarca(key, value, marca);
       modelo = applyModelo(key, value, modelo);
       tipo = applyTipo(key, value, tipoCodigos, tipo);
-      consumo = applyConsumo(key, value, consumo);
+      potencia = applyPotencia(key, value, potencia);
+      consumoMes = applyConsumoMes(key, value, consumoMes);
       confianza = applyConfianza(key, value, confianza);
     }
     if (marca == null) {
@@ -116,14 +126,17 @@ final class VisionTextFallback {
         modelo = modeloEs.group(1).trim();
       }
     }
-    if (consumo == null) {
-      consumo = estimateConsumoKwhDia(text);
+    if (potencia == null) {
+      potencia = detectPotenciaW(text);
     }
-    if (marca == null && modelo == null && tipo == null && consumo == null) {
+    if (consumoMes == null) {
+      consumoMes = estimateConsumoKwhMes(text);
+    }
+    if (marca == null && modelo == null && tipo == null && potencia == null && consumoMes == null) {
       return null;
     }
     double conf = confianza != null ? Math.max(0, Math.min(1, confianza)) : 0.55;
-    return new VisionRawResult(marca, modelo, tipo, consumo, conf, "etiqueta_ocr");
+    return new VisionRawResult(marca, modelo, tipo, potencia, consumoMes, conf, "etiqueta_ocr");
   }
 
   private static String mapTipoToCodigo(String value, List<String> tipoCodigos) {
@@ -149,11 +162,23 @@ final class VisionTextFallback {
     return "tipo".equals(key) ? mapTipoToCodigo(value, tipoCodigos) : current;
   }
 
-  private static Double applyConsumo(String key, String value, Double current) {
-    if ("consumokwhdia".equals(key) || "consumo".equals(key)) {
-      return parseDoubleSafe(value);
+  private static Double applyPotencia(String key, String value, Double current) {
+    if ("potenciaw".equals(key) || "potencia".equals(key)) {
+      Double w = detectPotenciaW(value);
+      return w != null ? w : parseDoubleSafe(value);
     }
-    // Potencia en W sola → no convertir sin horas
+    return current;
+  }
+
+  private static Double applyConsumoMes(String key, String value, Double current) {
+    if ("consumokwhmes".equals(key) || "consumo".equals(key)) {
+      Double mes = estimateConsumoKwhMes(value);
+      return mes != null ? mes : parseDoubleSafe(value);
+    }
+    if ("consumokwhdia".equals(key)) {
+      Double dia = parseDoubleSafe(value);
+      return dia != null ? round4(dia * 30) : current;
+    }
     return current;
   }
 
@@ -284,34 +309,52 @@ final class VisionTextFallback {
     return preferred;
   }
 
-  /**
-   * kWh/mes → /30; kWh/día → tal cual; solo W → null (sin horas).
-   */
-  private static Double estimateConsumoKwhDia(String text) {
+  /** kWh/mes de la etiqueta: /mes tal cual; /año ÷ 12; /día × 30; sin unidad ≥ 30 → mensual. */
+  static Double estimateConsumoKwhMes(String text) {
     Matcher mes = KWH_MES.matcher(text);
     if (mes.find()) {
       String unit = mes.group(2).toLowerCase(Locale.ROOT);
       double val = Double.parseDouble(mes.group(1).replace(',', '.'));
       if (unit.startsWith("año") || unit.startsWith("year")) {
-        return round4(val / 365.0);
+        return round4(val / 12.0);
       }
-      return round4(val / 30.0);
+      return round4(val);
     }
     Matcher dia = KWH_DIA.matcher(text);
     if (dia.find()) {
-      return round4(Double.parseDouble(dia.group(1).replace(',', '.')));
+      return round4(Double.parseDouble(dia.group(1).replace(',', '.')) * 30);
     }
     Matcher plain = KWH_PLAIN.matcher(text);
     if (plain.find()) {
       double val = Double.parseDouble(plain.group(1).replace(',', '.'));
-      // Valores grandes suelen ser mensuales sin "/mes" explícito
-      if (val >= 30) {
-        return round4(val / 30.0);
-      }
-      return round4(val);
+      // Valores grandes suelen ser mensuales sin "/mes" explícito; pequeños, diarios
+      return round4(val >= 30 ? val : val * 30);
     }
-    // Solo watts sin horas → no estimar
     return null;
+  }
+
+  /** Mayor potencia en W que aparezca en el texto (kW × 1000). */
+  static Double detectPotenciaW(String text) {
+    Matcher m = WATTS.matcher(text);
+    Double max = null;
+    while (m.find()) {
+      String num = m.group(1);
+      // "1.200" (separador de miles) vs "1,5" (decimal)
+      num = MILES.matcher(num).matches() ? num.replace(".", "") : num.replace(',', '.');
+      double v;
+      try {
+        v = Double.parseDouble(num);
+      } catch (NumberFormatException e) {
+        continue;
+      }
+      if (m.group(2).equalsIgnoreCase("kW")) {
+        v *= 1000;
+      }
+      if (v > 0 && (max == null || v > max)) {
+        max = v;
+      }
+    }
+    return max;
   }
 
   private static Double round4(double v) {

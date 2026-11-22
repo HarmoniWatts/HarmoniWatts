@@ -142,8 +142,8 @@ kubectl -n "$NS" rollout status statefulset/postgres --timeout=5m
 kubectl -n "$NS" rollout status statefulset/mongodb --timeout=5m
 
 # Migraciones idempotentes de la base harmoniwatts. vivienda-api valida el esquema al
-# arrancar: si falta una columna, el pod reinicia hasta que esto termine.
-for m in migrate-contrato-comercializadora.sql; do
+# arrancar (igual que electrodomesticos-api): si falta una columna, el pod reinicia hasta que esto termine.
+for m in migrate-contrato-comercializadora.sql migrate-electrodomestico-horarios.sql; do
   if kubectl -n "$NS" exec -i postgres-0 -- sh -c        'psql -v ON_ERROR_STOP=1 -q -U "$POSTGRES_USER" -d harmoniwatts' < "$ROOT/sql/$m"; then
     echo "Migración aplicada: $m"
   else
