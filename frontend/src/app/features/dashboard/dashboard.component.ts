@@ -14,6 +14,7 @@ import {
 import type { TarifaUbicacionResponse } from '../tarifas/tarifas.models';
 import { TarifasService } from '../tarifas/tarifas.service';
 import { ViviendaContextService } from '../vivienda/vivienda-context.service';
+import { FechaFiltroComponent, fechaLocalYmd } from '../../shared/components/fecha-filtro';
 import { ViviendaSelectorComponent } from '../vivienda/vivienda-selector.component';
 import { InfoTipComponent } from '../../shared/components/info-tip';
 import { GLOSARIO } from '../tarifas/tarifas-glosario';
@@ -58,7 +59,7 @@ export interface ChartViewModel {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, InfoTipComponent],
+  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -73,6 +74,8 @@ export class DashboardComponent {
 
   readonly loading = signal(true);
   readonly selectedDate = signal(this.todayYmd());
+  /** Límite del selector de fecha: no hay consumos futuros. */
+  readonly hoy = fechaLocalYmd();
   /** Solo el día actual tiene "ahora": cursor, hora resaltada y franja vigente. */
   readonly isToday = computed(() => this.selectedDate() === this.todayYmd());
   /** Hora de referencia para la tarifa de un día que no es hoy. */

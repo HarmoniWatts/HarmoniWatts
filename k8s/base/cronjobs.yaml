@@ -1,0 +1,95 @@
+# Tareas programadas (HAR-13). Los scripts están en k8s/base/cron/ y llegan al
+# pod por el ConfigMap "cron-scripts" (configMapGenerator en kustomization.yaml).
+#
+# Horarios en hora de Colombia. La VM se apaga sola cada noche: las ejecuciones
+# que caigan con la VM apagada no se recuperan, y la siguiente vuelve a pedir el
+# rango completo (consumos: ayer y hoy; tarifas: desde el mes anterior).
+#
+# Ejecutar a mano:
+#   kubectl -n harmoniwatts create job --from=cronjob/sincronizar-consumos sync-manual
+#   kubectl -n harmoniwatts create job --from=cronjob/actualizar-tarifas tarifas-manual
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sincronizar-consumos
+spec:
+  schedule: "5 * * * *"            # cada hora, al minuto 5
+  timeZone: America/Bogota
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3000
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels: { app: sincronizar-consumos }
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+            - name: sincronizar
+              image: postgres:15-alpine
+              command: ["sh", "/scripts/sincronizar-consumos.sh"]
+              env:
+                - { name: PGHOST, value: postgres }
+                - { name: PGDATABASE, value: harmoniwatts }
+                - name: PGUSER
+                  valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_USER } }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_PASSWORD } }
+                - { name: CONSUMPTION_URL, value: "http://harmoniwatts-consumption-service:8001" }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 64Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+          volumes:
+            - name: scripts
+              configMap: { name: cron-scripts }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: actualizar-tarifas
+spec:
+  schedule: "0 6 * * 1"            # lunes a las 6:00
+  timeZone: America/Bogota
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata:
+          labels: { app: actualizar-tarifas }
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+            - name: actualizar
+              image: postgres:15-alpine
+              command: ["sh", "/scripts/actualizar-tarifas.sh"]
+              env:
+                - { name: PGHOST, value: postgres }
+                - { name: PGDATABASE, value: harmoniwatts }
+                - name: PGUSER
+                  valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_USER } }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: harmoniwatts-secrets, key: POSTGRES_PASSWORD } }
+                - { name: TARIFF_URL, value: "http://harmoniwatts-tariff-service:8006" }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 64Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+          volumes:
+            - name: scripts
+              configMap: { name: cron-scripts }

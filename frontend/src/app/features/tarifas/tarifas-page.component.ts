@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { ViviendaContextService } from '../vivienda/vivienda-context.service';
+import { FechaFiltroComponent } from '../../shared/components/fecha-filtro';
 import { ViviendaSelectorComponent } from '../vivienda/vivienda-selector.component';
 import { InfoTipComponent, type InfoTipTermino } from '../../shared/components/info-tip';
 import { GLOSARIO } from './tarifas-glosario';
@@ -47,7 +48,7 @@ export interface PriceChartVm {
 @Component({
   selector: 'app-tarifas-page',
   standalone: true,
-  imports: [CommonModule, ViviendaSelectorComponent, InfoTipComponent],
+  imports: [CommonModule, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent],
   templateUrl: './tarifas-page.component.html',
   styleUrl: './tarifas-page.component.css',
 })

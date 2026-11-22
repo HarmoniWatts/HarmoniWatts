@@ -9,7 +9,9 @@ from typing import Optional, List
 
 class SyncContratoRequest(BaseModel):
     """Request para sincronización manual por contrato."""
-    id_cliente: int = Field(..., description="ID del cliente")
+    id_cliente: Optional[int] = Field(
+        None, description="ID del cliente (opcional: sin él no se resuelve la tarifa de cada lectura)"
+    )
     fecha_inicio: date = Field(..., description="Fecha inicial (YYYY-MM-DD)")
     fecha_fin: date = Field(..., description="Fecha final (YYYY-MM-DD)")
     

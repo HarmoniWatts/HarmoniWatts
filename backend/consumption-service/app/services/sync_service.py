@@ -99,6 +99,8 @@ class SyncService:
         
         # Cache de tarifas por (id_cliente, fecha) para evitar consultas repetidas
         tarifa_cache: Dict[str, Optional[Dict]] = {}
+        # Se toma de las lecturas; queda vacío si la comercializadora no devuelve ninguna
+        meter_no = ""
         
         meter_no = None  # Inicializar meter_no para registrar en historial
         
