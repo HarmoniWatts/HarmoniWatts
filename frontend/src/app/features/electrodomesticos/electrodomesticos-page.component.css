@@ -489,3 +489,55 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* HAR-20: botón de calculadora junto al consumo */
+.ed-calc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.7rem;
+  padding: 0 0.6rem 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-accent-border);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ed-calc-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ed-calc-btn:hover,
+.ed-calc-btn--on {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+.ed-calc-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+}
+
+/* HAR-20: el editor de horarios ocupa todo el ancho del formulario */
+.ed-field--horario {
+  grid-column: 1 / -1;
+}
+
+/* HAR-20: dato de consumo tomado de la foto */
+.ed-vision-ok {
+  padding: 0.65rem 0.85rem;
+  margin: 0 0 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+  font-size: 0.9rem;
+}

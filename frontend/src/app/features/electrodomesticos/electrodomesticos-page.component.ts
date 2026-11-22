@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,9 +7,17 @@ import { finalize } from 'rxjs/operators';
 import Keycloak from 'keycloak-js';
 import type { ViviendaDto } from '../vivienda/vivienda.service';
 import { ViviendaService } from '../vivienda/vivienda.service';
+import { DIAS_CORTOS, duracionHoras, sum } from './gestion/estimacion.util';
+import { FRANJA_DEFECTO, HorarioEditorComponent } from './horario-editor/horario-editor.component';
+import {
+  potenciaDesdeEtiqueta,
+  PotenciaInputComponent,
+  TIPOS_CON_COMPRESOR,
+} from './potencia-input/potencia-input.component';
 import type {
   CatalogosResponse,
   ElectrodomesticoDto,
+  HorarioUso,
   MarcaCatalogoItem,
   TipoCatalogoItem,
   VisionAnalysisResponse,
@@ -21,7 +29,7 @@ const TIPO_OTRO = 'OTRO';
 @Component({
   selector: 'app-electrodomesticos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, HorarioEditorComponent, PotenciaInputComponent],
   templateUrl: './electrodomesticos-page.component.html',
   styleUrl: './electrodomesticos-page.component.css',
 })
@@ -36,6 +44,8 @@ export class ElectrodomesticosPageComponent implements OnInit {
   readonly visionLoading = signal(false);
   readonly visionError = signal<string | null>(null);
   readonly visionAdvertencia = signal<string | null>(null);
+  /** Qué dato de consumo se tomó de la foto y cómo se convirtió. */
+  readonly visionNota = signal<string | null>(null);
   readonly visionPreviewUrl = signal<string | null>(null);
   readonly cameraActive = signal(false);
   readonly viviendas = signal<ViviendaDto[]>([]);
@@ -44,23 +54,25 @@ export class ElectrodomesticosPageComponent implements OnInit {
 
   selectedViviendaId: number | null = null;
   editingId: number | null = null;
+  /** Datos de estimación (HAR-20) que este formulario no edita pero debe conservar al guardar. */
+  private editingExtras: Pick<ElectrodomesticoDto, 'consumoAjustadoKwhMes'> = {};
 
   idTipoPredefinido: number | null = null;
   idMarcaPredefinida: number | null = null;
   marcaOtro = '';
   nombre = '';
-  /** Consumo promedio diario en kWh (indicador para dashboard). */
-  consumoKwhDia: number | null = null;
-  usoSemanal: number | null = 3;
-  /** Valor para input type=time (HH:mm); se envía como horarioHabitual al API. */
-  horarioHabitual = '';
+  /** Franjas de uso semanales; vacío = siempre encendido (HAR-20). */
+  readonly horarios = signal<HorarioUso[]>([{ ...FRANJA_DEFECTO }]);
+  /** Potencia en W: único dato de consumo que se pide (HAR-20). */
+  readonly potenciaW = signal<number | null>(null);
+  /** Horas de uso por semana según el horario (168 = siempre encendido). */
+  readonly horasSemana = computed(() => {
+    const hs = this.horarios();
+    return hs.length ? sum(hs.map(duracionHoras)) : 168;
+  });
   esDesplazable = false;
   activo = true;
 
-  /** Calculadora auxiliar: W × horas/día ÷ 1000 → kWh/día */
-  calcPotenciaW: number | null = null;
-  calcHorasDia: number | null = null;
-  readonly showCalcInfo = signal(false);
 
   private mediaStream: MediaStream | null = null;
   private pendingVisionFile: File | null = null;
@@ -191,49 +203,49 @@ export class ElectrodomesticosPageComponent implements OnInit {
 
   resetForm(): void {
     this.editingId = null;
+    this.editingExtras = {};
     this.idTipoPredefinido = this.tipos()[0]?.id ?? null;
     this.idMarcaPredefinida = null;
     this.marcaOtro = '';
     this.nombre = '';
-    this.consumoKwhDia = null;
-    this.usoSemanal = 3;
-    this.horarioHabitual = '';
+    this.potenciaW.set(null);
+    this.horarios.set([{ ...FRANJA_DEFECTO }]);
     this.esDesplazable = false;
     this.activo = true;
-    this.calcPotenciaW = null;
-    this.calcHorasDia = null;
-    this.showCalcInfo.set(false);
     this.clearVisionState();
   }
 
-  toggleCalcInfo(): void {
-    this.showCalcInfo.update((v) => !v);
+  /** W que dan `kwhDia` en promedio con el horario actual. */
+  private wattsDesdeKwhDia(kwhDia: number | null | undefined): number | null {
+    if (!kwhDia || kwhDia <= 0) return null;
+    return Math.round((kwhDia * 1000 * 7) / this.horasSemana());
   }
 
-  /** kWh/día = W × horas/día / 1000 */
-  get calcResultadoKwhDia(): number | null {
-    if (
-      this.calcPotenciaW == null ||
-      this.calcHorasDia == null ||
-      this.calcPotenciaW <= 0 ||
-      this.calcHorasDia <= 0
-    ) {
-      return null;
-    }
-    return Math.round(((this.calcPotenciaW * this.calcHorasDia) / 1000) * 10000) / 10000;
+  /** El horario sigue siendo la franja inicial (el usuario no lo ha tocado). */
+  private horarioPorDefecto(): boolean {
+    const hs = this.horarios();
+    return (
+      hs.length === 1 &&
+      hs[0]!.diaSemana === FRANJA_DEFECTO.diaSemana &&
+      hs[0]!.horaInicio === FRANJA_DEFECTO.horaInicio &&
+      hs[0]!.horaFin === FRANJA_DEFECTO.horaFin
+    );
   }
 
-  aplicarCalculoKwh(): void {
-    const r = this.calcResultadoKwhDia;
-    if (r == null) {
-      return;
-    }
-    this.consumoKwhDia = r;
+  /** Texto corto del horario para la tabla. */
+  resumenHorario(row: ElectrodomesticoDto): string {
+    const hs = row.horarios ?? [];
+    if (!hs.length) return 'Siempre encendido';
+    const dias = [...new Set(hs.map((h) => h.diaSemana))].sort((a, b) => a - b);
+    const horas = sum(hs.map(duracionHoras));
+    const diasTxt = dias.length === 7 ? 'Todos los días' : dias.map((d) => DIAS_CORTOS[d - 1]).join(', ');
+    return `${diasTxt} · ${horas.toLocaleString('es-CO', { maximumFractionDigits: 1 })} h/sem`;
   }
 
   clearVisionState(): void {
     this.visionError.set(null);
     this.visionAdvertencia.set(null);
+    this.visionNota.set(null);
     this.pendingVisionFile = null;
     this.revokePreview();
     this.stopCamera();
@@ -366,8 +378,26 @@ export class ElectrodomesticosPageComponent implements OnInit {
     } else if (res.modeloDetectado && !this.esTipoOtro()) {
       // modelo como referencia en nombre si el tipo no es OTRO (no obligatorio guardar)
     }
-    if (res.consumoKwhDiaEstimado != null && res.consumoKwhDiaEstimado > 0) {
-      this.consumoKwhDia = res.consumoKwhDiaEstimado;
+    // Neveras y congeladores están siempre encendidos: si el horario sigue en el valor por defecto, se ajusta
+    const tipo = this.tipoSeleccionado()?.codigo ?? null;
+    if ((tipo === 'NEVERA' || tipo === 'CONGELADOR') && this.horarioPorDefecto()) {
+      this.horarios.set([]);
+    }
+    const sugerida = potenciaDesdeEtiqueta(
+      res.potenciaWDetectada,
+      res.consumoKwhMesDetectado,
+      tipo,
+      this.horasSemana(),
+    );
+    this.visionNota.set(null);
+    if (sugerida) {
+      this.potenciaW.set(sugerida.w);
+      this.visionNota.set(
+        sugerida.origen === 'etiqueta'
+          ? `Leímos ${res.consumoKwhMesDetectado} kWh/mes en la etiqueta: equivale a ${sugerida.w} W con tu horario (${Math.round(this.horasSemana())} h/semana).` +
+              (TIPOS_CON_COMPRESOR.includes(tipo ?? '') ? ' En aparatos con compresor es más preciso que la potencia de la placa.' : '')
+          : `Leímos ${sugerida.w} W en la placa del aparato.`,
+      );
     }
     if (res.bajaConfianza && res.advertencia) {
       this.visionAdvertencia.set(res.advertencia);
@@ -387,13 +417,14 @@ export class ElectrodomesticosPageComponent implements OnInit {
 
   startEdit(row: ElectrodomesticoDto): void {
     this.editingId = row.id;
+    this.editingExtras = { consumoAjustadoKwhMes: row.consumoAjustadoKwhMes ?? null };
     this.idTipoPredefinido = row.idTipoPredefinido;
     this.idMarcaPredefinida = row.idMarcaPredefinida;
     this.marcaOtro = row.marcaOtro ?? '';
     this.nombre = row.nombre;
-    this.consumoKwhDia = row.consumoKwhDia;
-    this.usoSemanal = row.usoSemanal;
-    this.horarioHabitual = this.toTimeInputValue(row.horarioHabitual);
+    this.horarios.set((row.horarios ?? []).map((h) => ({ ...h })));
+    // Registros anteriores a HAR-20 solo tienen kWh/día: se convierten a W con su horario
+    this.potenciaW.set(row.potenciaW ?? this.wattsDesdeKwhDia(row.consumoKwhDia));
     this.esDesplazable = !!row.esDesplazable;
     this.activo = row.activo !== false;
   }
@@ -407,12 +438,13 @@ export class ElectrodomesticosPageComponent implements OnInit {
       this.error.set('Selecciona una vivienda.');
       return;
     }
-    if (this.idTipoPredefinido == null || this.consumoKwhDia == null || this.usoSemanal == null) {
-      this.error.set('Completa tipo, consumo (kWh/día) y uso semanal.');
+    const potenciaW = this.potenciaW();
+    if (this.idTipoPredefinido == null) {
+      this.error.set('Selecciona el tipo de electrodoméstico.');
       return;
     }
-    if (this.consumoKwhDia <= 0) {
-      this.error.set('El consumo diario (kWh/día) debe ser mayor que 0.');
+    if (potenciaW == null || potenciaW <= 0) {
+      this.error.set('Indica la potencia en watts (W). Si tu etiqueta dice kWh/mes, usa la calculadora.');
       return;
     }
     if (this.esTipoOtro() && !this.nombre.trim()) {
@@ -424,15 +456,26 @@ export class ElectrodomesticosPageComponent implements OnInit {
       return;
     }
 
+    const horarios = this.horarios();
+    if (horarios.some((h) => !h.horaInicio || !h.horaFin)) {
+      this.error.set('Completa la hora de inicio y fin de cada franja del horario.');
+      return;
+    }
+    // Columnas legadas: veces por semana = días con uso; horario = inicio de la primera franja
+    const diasConUso = horarios.length ? new Set(horarios.map((h) => h.diaSemana)).size : 7;
+
     const base = {
       idTipoPredefinido: this.idTipoPredefinido,
       idMarcaPredefinida: this.idMarcaPredefinida,
       marcaOtro: this.marcaOtro.trim() || null,
       nombre: this.nombre.trim() || null,
-      consumoKwhDia: this.consumoKwhDia,
-      usoSemanal: this.usoSemanal,
-      horarioHabitual: this.horarioHabitual.trim() || null,
+      // El backend lo recalcula con potencia × horario; se envía por compatibilidad
+      consumoKwhDia: Math.max(0.0001, Math.round(((potenciaW * this.horasSemana()) / 7 / 1000) * 10000) / 10000),
+      usoSemanal: diasConUso,
+      horarioHabitual: horarios[0]?.horaInicio ?? null,
       esDesplazable: this.esDesplazable,
+      potenciaW,
+      horarios,
     };
 
     this.runWithFreshToken(() => {
@@ -455,7 +498,11 @@ export class ElectrodomesticosPageComponent implements OnInit {
           });
       } else {
         this.electroApi
-          .update(vid, this.editingId, { ...base, activo: this.activo })
+          .update(vid, this.editingId, {
+            ...base,
+            consumoAjustadoKwhMes: this.editingExtras.consumoAjustadoKwhMes ?? null,
+            activo: this.activo,
+          })
           .pipe(
             takeUntilDestroyed(this.destroyRef),
             finalize(() => this.loading.set(false)),
@@ -500,17 +547,4 @@ export class ElectrodomesticosPageComponent implements OnInit {
     });
   }
 
-  /** API devuelve `HH:mm:ss`; input type=time usa `HH:mm`. */
-  private toTimeInputValue(raw: string | null | undefined): string {
-    if (!raw?.trim()) {
-      return '';
-    }
-    const p = raw.trim().split(':');
-    if (p.length < 2) {
-      return '';
-    }
-    const h = p[0]!.padStart(2, '0');
-    const m = p[1]!.padStart(2, '0').slice(0, 2);
-    return `${h}:${m}`;
-  }
 }
