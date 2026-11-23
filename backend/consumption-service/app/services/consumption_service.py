@@ -127,8 +127,8 @@ class ConsumptionService:
         }
         # logger.info(f"Hourly days data - {data_sorted}")
         days_data = {}
-        for date, values in data_sorted.items():
-            # logger.info(f"Processing day - {date}: {values}")
+        for dia, values in data_sorted.items():
+            # logger.info(f"Processing day - {dia}: {values}")
             labels=[f"{h:02d}:00" for h in range(24)]
             consumption = [0.0] * 24
             costs = [0.0] * 24
@@ -138,8 +138,8 @@ class ConsumptionService:
                     labels[hour] = f"{hour:02d}:00"
                     consumption[hour] = item["consumption_kwh"]
                     costs[hour] = item["total_cost"]
-            logger.info(f"Processed day - {date}: labels={labels}")
-            days_data[date] = {
+            logger.info(f"Processed day - {dia}: labels={labels}")
+            days_data[dia] = {
                 "labels": labels,
                 "values_kwh": consumption,
                 "values_cost": costs
