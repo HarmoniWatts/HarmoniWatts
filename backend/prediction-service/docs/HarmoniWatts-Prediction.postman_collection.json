@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "HarmoniWatts Prediction Service",
+    "description": "Endpoints de prediction-service (HAR-108). Local: baseUrl = http://localhost:8000. El pronóstico necesita al menos 504 h de historia horaria del medidor en consumption-service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "default" },
+    { "key": "noContrato", "value": "713332", "type": "default" },
+    { "key": "codRetail", "value": "ENERTOTAL", "type": "default" },
+    { "key": "meterNo", "value": "MN5966C365E3", "type": "default" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Ready (modelo y MongoDB)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/ready", "host": ["{{baseUrl}}"], "path": ["ready"] }
+      }
+    },
+    {
+      "name": "Estado del modelo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/prediction/model/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "prediction", "model", "status"]
+        }
+      }
+    },
+    {
+      "name": "predecir_contract",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "description": "Pronóstico horario del medidor asociado a un contrato. horizonte: 24–168 h. persistir=false no guarda en MongoDB.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/prediction/contrato/{{noContrato}}/{{codRetail}}?horizonte=168&persistir=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "prediction", "contrato", "{{noContrato}}", "{{codRetail}}"],
+          "query": [
+            { "key": "horizonte", "value": "168" },
+            { "key": "persistir", "value": "false" },
+            { "key": "id_cliente", "value": "", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "predecir_meter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "description": "Pronóstico horario de un medidor por su número (METER_NO).",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/prediction/{{meterNo}}?horizonte=24&persistir=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "prediction", "{{meterNo}}"],
+          "query": [
+            { "key": "horizonte", "value": "24" },
+            { "key": "persistir", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "predecir_batch",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "description": "Hasta 100 medidores por petición.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"meters\": [\"{{meterNo}}\"],\n  \"horizonte\": 24,\n  \"persistir\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/prediction/batch",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "prediction", "batch"]
+        }
+      }
+    }
+  ]
+}
