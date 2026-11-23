@@ -40,7 +40,7 @@ spec:
             - name: CONSUMPTION_SERVICE_URL
               value: http://harmoniwatts-consumption-service:8001
             - name: PREDICTION_SERVICE_URL
-              value: http://harmoniwatts-consumption-service:8001
+              value: http://harmoniwatts-prediction-service:8000
             - name: DEFAULT_TIMEZONE
               value: America/Bogota
           readinessProbe:

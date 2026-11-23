@@ -318,7 +318,7 @@ services:
       NODE_ENV: production
       PORT: "7001"
       CONSUMPTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
-      PREDICTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
+      PREDICTION_SERVICE_URL: http://harmoniwatts-prediction-service:8000
       DEFAULT_TIMEZONE: America/Bogota
     ports:
       - "${HW_INSIGHTS_SERVICE_PORT:-7001}:7001"
