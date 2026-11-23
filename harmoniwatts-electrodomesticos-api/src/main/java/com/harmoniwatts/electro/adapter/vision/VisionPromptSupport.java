@@ -23,9 +23,10 @@ final class VisionPromptSupport {
       Pattern.compile("\"modelo_detectado\"\\s*:\\s*\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
   private static final Pattern TIPO =
       Pattern.compile("\"tipo_sugerido\"\\s*:\\s*\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
-  private static final Pattern CONSUMO =
-      Pattern.compile(
-          "\"consumo_kwh_dia\"\\s*:\\s*([\\d.]+|null)", Pattern.CASE_INSENSITIVE);
+  private static final Pattern POTENCIA =
+      Pattern.compile("\"potencia_w\"\\s*:\\s*([\\d.]+|null)", Pattern.CASE_INSENSITIVE);
+  private static final Pattern CONSUMO_MES =
+      Pattern.compile("\"consumo_kwh_mes\"\\s*:\\s*([\\d.]+|null)", Pattern.CASE_INSENSITIVE);
   private static final Pattern CONFIANZA =
       Pattern.compile("\"confianza\"\\s*:\\s*([\\d.]+|null)", Pattern.CASE_INSENSITIVE);
   private static final Pattern FUENTE =
@@ -39,20 +40,21 @@ final class VisionPromptSupport {
   static String buildPrompt(List<String> tipoCodigos, List<String> marcaNombres) {
     String tipos = String.join(", ", tipoCodigos);
     return """
-        Observa la imagen adjunta (etiqueta RETIQ, etiqueta energética o frontal del electrodoméstico).
-        Extrae marca, modelo, tipo y el consumo energético promedio DIARIO en kWh leyendo el texto visible.
+        Observa la imagen adjunta (placa de datos, etiqueta energética RETIQ o frontal del electrodoméstico).
+        Extrae marca, modelo, tipo y los datos de consumo eléctrico LEYENDO el texto visible.
 
-        Unidades y conversión (obligatorio):
-        - Si la etiqueta muestra kWh/mes (o kWh/month): consumo_kwh_dia = (kWh/mes) / 30.
-        - Si ya muestra kWh/día (o kWh/day): usa ese valor en consumo_kwh_dia.
-        - Si solo muestra potencia en W (watts) y NO indica horas de uso: deja consumo_kwh_dia en null
-          (no inventes horas; el usuario calculará W × horas_día / 1000 en la app).
-        - Si muestra W y también horas de uso: consumo_kwh_dia = (W × horas) / 1000.
+        Datos de consumo (copia el número tal como aparece; NO calcules con horas de uso):
+        - potencia_w: potencia nominal en vatios (W, watts, vatios). Si aparece en kW, multiplica por 1000.
+          Si hay varias (p. ej. lavado y secado), usa la mayor. Si solo hay voltaje y corriente
+          (V y A), potencia_w = V × A.
+        - consumo_kwh_mes: consumo de energía en kWh/mes de la etiqueta energética. Si la etiqueta lo
+          da por año, divide entre 12; si lo da por día, multiplica por 30.
+        Puede haber uno, ambos o ninguno. Las horas de uso las indica el usuario en la app.
 
         Devuelve un objeto JSON con: marca_detectada, modelo_detectado, tipo_sugerido,
-        consumo_kwh_dia, confianza, fuente_consumo.
+        potencia_w, consumo_kwh_mes, confianza, fuente_consumo.
         tipo_sugerido debe ser uno de: %s
-        fuente_consumo: etiqueta_kwh_mes | etiqueta_kwh_dia | etiqueta_w_con_horas | null
+        fuente_consumo: placa_w | etiqueta_kwh_mes | ambos | null
         Usa null si no puedes leer un campo. No inventes datos.
         """
         .formatted(tipos);
@@ -78,17 +80,18 @@ final class VisionPromptSupport {
       throw new VisionAdapterException(VisionClientMessages.ECHO_EXAMPLE);
     }
     // Priorizar JSON: el fallback de texto libre no debe “ganar” sobre un JSON válido
-    // (antes se perdían consumo_kwh_dia y confianza del modelo).
+    // (antes se perdían los datos de consumo y la confianza del modelo).
     if (looksLikeJson(raw)) {
       return parseJson(raw, tipoCodigos);
     }
     VisionRawResult structured = VisionTextFallback.parseFreeText(raw, tipoCodigos);
     log.info(
-        "Texto/líneas parseadas: marca={}, modelo={}, tipo={}, kWh/día={}, confianza={}",
+        "Texto/líneas parseadas: marca={}, modelo={}, tipo={}, W={}, kWh/mes={}, confianza={}",
         structured.marcaDetectada(),
         structured.modeloDetectado(),
         structured.tipoSugerido(),
-        structured.consumoKwhDiaEstimado(),
+        structured.potenciaW(),
+        structured.consumoKwhMes(),
         structured.confianza());
     return structured;
   }
@@ -97,7 +100,8 @@ final class VisionPromptSupport {
     String t = raw.trim();
     return t.startsWith("{")
         || t.contains("\"marca_detectada\"")
-        || t.contains("\"consumo_kwh_dia\"")
+        || t.contains("\"potencia_w\"")
+        || t.contains("\"consumo_kwh_mes\"")
         || t.contains("```json");
   }
 
@@ -106,11 +110,12 @@ final class VisionPromptSupport {
     try {
       VisionRawResult parsed = fromJsonNode(MAPPER.readTree(json));
       log.info(
-          "JSON parseado de visión IA: marca={}, modelo={}, tipo={}, kWh/día={}, confianza={}",
+          "JSON parseado de visión IA: marca={}, modelo={}, tipo={}, W={}, kWh/mes={}, confianza={}",
           parsed.marcaDetectada(),
           parsed.modeloDetectado(),
           parsed.tipoSugerido(),
-          parsed.consumoKwhDiaEstimado(),
+          parsed.potenciaW(),
+          parsed.consumoKwhMes(),
           parsed.confianza());
       return parsed;
     } catch (Exception first) {
@@ -165,7 +170,8 @@ final class VisionPromptSupport {
     String marca = textOrNull(node, "marca_detectada");
     String modelo = textOrNull(node, "modelo_detectado");
     String tipo = textOrNull(node, "tipo_sugerido");
-    Double consumo = doubleOrNull(node, "consumo_kwh_dia");
+    Double potencia = positiveOrNull(doubleOrNull(node, "potencia_w"));
+    Double consumoMes = positiveOrNull(doubleOrNull(node, "consumo_kwh_mes"));
     double confianza = doubleOrDefault(node, "confianza", 0.5);
     String fuente = textOrNull(node, "fuente_consumo");
     if (fuente == null) {
@@ -174,23 +180,28 @@ final class VisionPromptSupport {
     if (fuente == null) {
       fuente = "inferencia";
     }
-    return new VisionRawResult(marca, modelo, tipo, consumo, confianza, fuente);
+    return new VisionRawResult(marca, modelo, tipo, potencia, consumoMes, confianza, fuente);
+  }
+
+  private static Double positiveOrNull(Double v) {
+    return v != null && v > 0 ? v : null;
   }
 
   private static VisionRawResult parseWithRegex(String json) {
     String marca = groupOrNull(MARCA, json);
     String modelo = groupOrNull(MODELO, json);
     String tipo = groupOrNull(TIPO, json);
-    Double consumo = doubleGroupOrNull(CONSUMO, json);
+    Double potencia = positiveOrNull(doubleGroupOrNull(POTENCIA, json));
+    Double consumoMes = positiveOrNull(doubleGroupOrNull(CONSUMO_MES, json));
     double confianza = doubleGroupOrDefault(CONFIANZA, json, 0.5);
     String fuente = groupOrNull(FUENTE, json);
     if (fuente == null) {
       fuente = "inferencia";
     }
-    if (marca == null && modelo == null && tipo == null && consumo == null) {
+    if (marca == null && modelo == null && tipo == null && potencia == null && consumoMes == null) {
       throw new VisionAdapterException("No se encontraron campos reconocibles en la respuesta");
     }
-    return new VisionRawResult(marca, modelo, tipo, consumo, confianza, fuente);
+    return new VisionRawResult(marca, modelo, tipo, potencia, consumoMes, confianza, fuente);
   }
 
   /** Corrige JSON casi válido que suelen devolver modelos pequeños (0. , .82, etc.). */

@@ -106,6 +106,8 @@ CREATE TABLE Electrodomestico (
     uso_semanal INTEGER,
     horario_habitual TIME,
     activo BOOLEAN DEFAULT TRUE,
+    potencia_w NUMERIC(10,2),
+    consumo_ajustado_kwh_mes NUMERIC(10,3),
     CONSTRAINT fk_electro_vivienda FOREIGN KEY (id_vivienda) REFERENCES Vivienda(id_vivienda) ON DELETE CASCADE
 );
 
@@ -123,6 +125,20 @@ CREATE INDEX idx_electro_vivienda ON Electrodomestico(id_vivienda);
 CREATE INDEX idx_electro_activo ON Electrodomestico(activo);
 CREATE INDEX idx_electro_tipo_pre ON Electrodomestico(id_tipo_predefinido);
 CREATE INDEX idx_electro_marca_pre ON Electrodomestico(id_marca_predefinida);
+
+-- =====================================================
+-- TABLA: ELECTRODOMESTICO_HORARIO (HAR-20)
+-- =====================================================
+CREATE TABLE electrodomestico_horario (
+    id_horario BIGSERIAL PRIMARY KEY,
+    id_electro BIGINT NOT NULL REFERENCES Electrodomestico(id_electro) ON DELETE CASCADE,
+    dia_semana SMALLINT NOT NULL CHECK (dia_semana BETWEEN 1 AND 7),
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL
+);
+
+COMMENT ON TABLE electrodomestico_horario IS 'Franjas de uso por día (1=lunes…7=domingo); hora_fin <= hora_inicio cruza medianoche';
+CREATE INDEX idx_electro_horario_electro ON electrodomestico_horario(id_electro);
 
 -- =====================================================
 -- TABLA: PREFERENCIACONFORT

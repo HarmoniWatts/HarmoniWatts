@@ -19,6 +19,8 @@ import { ViviendaSelectorComponent } from '../vivienda/vivienda-selector.compone
 import { InfoTipComponent } from '../../shared/components/info-tip';
 import { GLOSARIO } from '../tarifas/tarifas-glosario';
 import { smoothPathLine } from './dashboard-chart.util';
+import { ElectrodomesticosService } from '../electrodomesticos/electrodomesticos.service';
+import type { EstimacionViviendaResponse } from '../electrodomesticos/electrodomesticos.service';
 import type {
   DashboardAppliancesTopResponse,
   DashboardConsumptionChartResponse,
@@ -64,6 +66,7 @@ export interface ChartViewModel {
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent {
+  private readonly electroApi = inject(ElectrodomesticosService);
   private readonly dashboardApi = inject(DashboardService);
   private readonly tarifasApi = inject(TarifasService);
   private readonly viviendaCtx = inject(ViviendaContextService);
@@ -123,6 +126,7 @@ export class DashboardComponent {
     // Se recarga al cargar las viviendas y al cambiar de vivienda (contrato o ciudad)
     effect(() => {
       this.viviendaCtx.loaded();
+      this.viviendaCtx.selected()?.id; // el top de electrodomésticos es por vivienda
       this.viviendaCtx.contrato();
       this.viviendaCtx.ubicacion();
       untracked(() => this.loadAll());
@@ -197,16 +201,16 @@ export class DashboardComponent {
 
   applianceIconKind(category: string): 'heat' | 'washer' | 'hvac' | 'fridge' | 'light' | 'other' {
     const c = category.toUpperCase();
-    if (c.includes('WATER') || c.includes('HEATER') || c.includes('CALENT')) {
+    if (c.includes('WATER') || c.includes('HEATER') || c.includes('CALENT') || c.includes('TERMO')) {
       return 'heat';
     }
-    if (c.includes('WASHER') || c.includes('LAVAD')) {
+    if (c.includes('WASHER') || c.includes('LAVA') || c.includes('SECADORA')) {
       return 'washer';
     }
-    if (c.includes('AIR') || c.includes('HVAC') || c.includes('AC')) {
+    if (c.includes('AIR') || c.includes('HVAC')) {
       return 'hvac';
     }
-    if (c.includes('FRIDGE') || c.includes('REFR') || c.includes('NEVER')) {
+    if (c.includes('FRIDGE') || c.includes('REFR') || c.includes('NEVER') || c.includes('CONGELADOR')) {
       return 'fridge';
     }
     if (c.includes('LIGHT') || c.includes('LAMP')) {
@@ -386,6 +390,7 @@ export class DashboardComponent {
     this.loadTarifa();
     this.loadError.set(null);
     this.sectionError.set({});
+    this.loadAppliances();
 
     // Sin vivienda con contrato no hay consumos que pedir: se muestra un aviso, no errores
     const contrato = this.viviendaCtx.contrato();
@@ -393,7 +398,6 @@ export class DashboardComponent {
       this.insightsSummary = null;
       this.insightsChart = null;
       this.recommendations = null;
-      this.appliances = null;
       this.applyTarifa();
       this.loading.set(false);
       return;
@@ -425,25 +429,18 @@ export class DashboardComponent {
           return of(null);
         }),
       ),
-      appliances: this.dashboardApi.getAppliancesTop({ ...q, limit: 5 }).pipe(
-        catchError(() => {
-          this.sectionError.update((e) => ({ ...e, appliances: true }));
-          return of(null);
-        }),
-      ),
     })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false)),
       )
       .subscribe({
-        next: ({ summary, chart, recommendations, appliances }) => {
+        next: ({ summary, chart, recommendations }) => {
           this.insightsSummary = summary;
           this.insightsChart = chart;
           this.recommendations = recommendations;
-          this.appliances = appliances;
           this.applyTarifa();
-          const allFailed = !summary && !chart && !recommendations && !appliances;
+          const allFailed = !summary && !chart && !recommendations;
           if (allFailed) {
             this.loadError.set('No se pudo cargar el dashboard. Revisa la API o la URL base.');
           }
@@ -451,6 +448,25 @@ export class DashboardComponent {
         error: () => {
           this.loadError.set('Error inesperado al cargar el dashboard.');
         },
+      });
+  }
+
+  /**
+   * Top de electrodomésticos de la vivienda activa según la estimación de HAR-20
+   * (potencia × horario). No depende del contrato: basta con tener electrodomésticos.
+   */
+  private loadAppliances(): void {
+    const vivienda = this.viviendaCtx.selected();
+    this.appliances = null;
+    if (!vivienda) {
+      return;
+    }
+    this.electroApi
+      .estimacion(vivienda.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (est) => (this.appliances = toAppliancesTop(est, 5)),
+        error: () => this.sectionError.update((e) => ({ ...e, appliances: true })),
       });
   }
 
@@ -588,4 +604,22 @@ export class DashboardComponent {
     }
     return String(Math.round(value));
   }
+}
+
+/** Estimación de HAR-20 → formato del bloque «Electrodomésticos de mayor consumo». */
+export function toAppliancesTop(est: EstimacionViviendaResponse, limit: number): DashboardAppliancesTopResponse {
+  return {
+    date: '',
+    metric: 'SHARE_OF_MONTH',
+    items: est.electrodomesticos
+      .filter((e) => e.activo && e.kwhMes > 0)
+      .slice(0, limit)
+      .map((e) => ({
+        id: String(e.id),
+        name: e.nombre,
+        category: e.tipoCodigo,
+        sharePercent: e.porcentaje,
+        consumptionKwh: e.kwhMes,
+      })),
+  };
 }

@@ -1,0 +1,366 @@
+<div class="eg-page">
+  <header class="eg-head">
+    <div>
+      <h1 class="eg-title">Mis electrodomésticos</h1>
+      <p class="eg-sub">Cuánto consume cada aparato de tu hogar, cuándo lo usas y cuánto te cuesta al mes.</p>
+    </div>
+    <a class="eg-btn eg-btn-primary" routerLink="/cuenta/electrodomesticos">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+      Registrar electrodoméstico
+    </a>
+  </header>
+
+  <section class="dash-filters eg-filters" aria-label="Vivienda">
+    <app-vivienda-selector />
+    <span></span>
+    <button type="button" class="dash-refresh" (click)="recargar()" [disabled]="loading()">
+      <svg class="dash-refresh-icon" [class.dash-refresh-spin]="loading()" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="23 4 23 10 17 10" />
+        <polyline points="1 20 1 14 7 14" />
+        <path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.5 15" />
+      </svg>
+      <span>{{ loading() ? 'Calculando…' : 'Actualizar' }}</span>
+    </button>
+  </section>
+
+  @if (error()) {
+    <div class="dash-banner dash-banner-error" role="alert">{{ error() }}</div>
+  }
+
+  @if (estimacion(); as est) {
+    @if (!rows().length) {
+      <section class="dash-card eg-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" /><line x1="5" y1="10" x2="19" y2="10" /><line x1="8" y1="6" x2="8" y2="7" /><line x1="8" y1="13" x2="8" y2="15" /></svg>
+        <h2>Aún no tienes electrodomésticos en esta vivienda</h2>
+        <p>Regístralos (puedes usar una foto de la etiqueta) y aquí verás cuánto consume cada uno.</p>
+        <a class="eg-btn eg-btn-primary" routerLink="/cuenta/electrodomesticos">Registrar el primero</a>
+      </section>
+    } @else {
+      <!-- KPIs -->
+      @if (kpis(); as k) {
+        <div class="eg-kpis">
+          <div class="dash-card eg-kpi">
+            <span class="eg-kpi-label">Consumo estimado</span>
+            <span class="eg-kpi-value">{{ fmt(k.totalKwhMes, 1) }} <small>kWh/mes</small></span>
+            <span class="eg-kpi-sub">{{ fmt(k.totalKwhDia, 2) }} kWh al día en promedio</span>
+          </div>
+          <div class="dash-card eg-kpi">
+            <span class="eg-kpi-label">Costo estimado</span>
+            <span class="eg-kpi-value">{{ cop(k.costoTotal) }} <small>/mes</small></span>
+            <span class="eg-kpi-sub">
+              @if (k.costoTotal != null) {
+                Con la tarifa horaria de {{ periodoTarifa() }}
+              } @else if (ctx.ubicacion()) {
+                No hay tarifa publicada para tu ciudad
+              } @else {
+                Configura la ciudad de tu vivienda para ver el costo
+              }
+            </span>
+          </div>
+          <div class="dash-card eg-kpi">
+            <span class="eg-kpi-label">Mayor consumidor</span>
+            @if (k.top; as t) {
+              <span class="eg-kpi-value eg-kpi-value-text">
+                <i class="eg-dot" [style.background]="t.color"></i>{{ t.nombre }}
+              </span>
+              <span class="eg-kpi-sub">{{ fmt(t.porcentaje, 1) }} % del total · {{ fmt(t.kwhMes, 1) }} kWh/mes</span>
+            } @else {
+              <span class="eg-kpi-value">—</span>
+            }
+          </div>
+          <div class="dash-card eg-kpi">
+            <span class="eg-kpi-label">Optimizables <app-info-tip [termino]="tips['optimizable']" [alignLeft]="true" /></span>
+            <span class="eg-kpi-value">{{ k.optimizables }} <small>de {{ k.optimizables + k.noOptimizables }}</small></span>
+            <span class="eg-kpi-sub">{{ fmt(k.pctOptimizable, 0) }} % de tu consumo se puede mover de horario</span>
+          </div>
+        </div>
+      }
+
+      <div class="eg-grid">
+        <!-- RANKING -->
+        <section class="dash-card eg-ranking">
+          <h2 class="dash-section-title">Ranking por consumo <app-info-tip [termino]="tips['ranking']" /></h2>
+          <ol class="eg-rank-list">
+            @for (r of rows(); track r.id) {
+              <li>
+                <button
+                  type="button"
+                  class="eg-rank-item"
+                  [class.eg-rank-item-active]="r.id === selectedId()"
+                  [class.eg-rank-item-off]="!r.activo"
+                  (click)="seleccionar(r.id)"
+                  (mouseenter)="hoverId.set(r.id)"
+                  (mouseleave)="hoverId.set(null)"
+                  [attr.aria-pressed]="r.id === selectedId()"
+                >
+                  <span class="eg-rank-pos">{{ r.activo ? r.ranking : '–' }}</span>
+                  <span class="eg-rank-body">
+                    <span class="eg-rank-top">
+                      <span class="eg-rank-name"><i class="eg-dot" [style.background]="r.color"></i>{{ r.nombre }}</span>
+                      <span class="eg-rank-kwh">{{ fmt(r.kwhMes, 1) }} <small>kWh/mes</small></span>
+                    </span>
+                    <span class="eg-rank-bar">
+                      <span
+                        class="eg-rank-bar-fill"
+                        [style.width.%]="maxKwhMes() > 0 ? (r.kwhMes / maxKwhMes()) * 100 : 0"
+                        [style.background]="r.color"
+                      ></span>
+                    </span>
+                    <span class="eg-rank-meta">
+                      @if (!r.activo) {
+                        <span class="eg-tag">Inactivo</span>
+                      } @else if (r.optimizable) {
+                        <span class="eg-tag eg-tag-ok">Optimizable</span>
+                      } @else {
+                        <span class="eg-tag">No optimizable</span>
+                      }
+                      @if (r.fuente === 'AJUSTE_USUARIO') {
+                        <span class="eg-tag eg-tag-accent">Ajustado</span>
+                      } @else if (r.fuente === 'PROMEDIO_DIARIO') {
+                        <span class="eg-tag" title="Sin franjas: su consumo diario se reparte en las 24 h">Siempre encendido</span>
+                      }
+                      @if (r.activo) {
+                        <span class="eg-rank-pct">{{ fmt(r.porcentaje, 1) }} %</span>
+                      }
+                      @if (r.costoMes != null && r.activo) {
+                        <span class="eg-rank-cop">{{ cop(r.costoMes) }}</span>
+                      }
+                    </span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ol>
+        </section>
+
+        <!-- DONA -->
+        <section class="dash-card eg-donut-card">
+          <h2 class="dash-section-title">Distribución del consumo</h2>
+          @if (donut().length) {
+            <div class="eg-donut-wrap">
+              <svg class="eg-donut" viewBox="-110 -110 220 220" role="img" aria-label="Distribución del consumo por electrodoméstico">
+                @for (s of donut(); track s.label) {
+                  <path
+                    [attr.d]="s.path"
+                    [attr.fill]="s.color"
+                    class="eg-slice"
+                    [class.eg-slice-dim]="(selectedId() ?? hoverId()) != null && (selectedId() ?? hoverId()) !== s.id"
+                    (click)="seleccionar(s.id)"
+                    (mouseenter)="hoverId.set(s.id)"
+                    (mouseleave)="hoverId.set(null)"
+                  >
+                    <title>{{ s.label }}: {{ fmt(s.value, 1) }} kWh/mes ({{ fmt(s.pct, 1) }} %)</title>
+                  </path>
+                }
+                <text class="eg-donut-total" y="-2" text-anchor="middle">{{ fmt(est.totalKwhMes, 0) }}</text>
+                <text class="eg-donut-unit" y="18" text-anchor="middle">kWh/mes</text>
+              </svg>
+              <ul class="eg-legend">
+                @for (s of donut(); track s.label) {
+                  <li>
+                    <button type="button" class="eg-legend-item" (click)="seleccionar(s.id)" [disabled]="s.id == null">
+                      <i class="eg-dot" [style.background]="s.color"></i>
+                      <span class="eg-legend-label">{{ s.label }}</span>
+                      <span class="eg-legend-pct">{{ fmt(s.pct, 1) }} %</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+          } @else {
+            <p class="dash-muted">Sin consumo estimado todavía.</p>
+          }
+        </section>
+      </div>
+
+      <!-- PERFIL POR HORA -->
+      <section class="dash-card eg-perfil">
+        <div class="eg-perfil-head">
+          <h2 class="dash-section-title">Consumo diario por hora <app-info-tip [termino]="tips['perfil']" /></h2>
+          <div class="eg-days" role="tablist" aria-label="Día de la semana">
+            @for (d of diasCortos; track $index) {
+              <button
+                type="button"
+                role="tab"
+                class="eg-day"
+                [class.eg-day-active]="$index === diaPerfil()"
+                [attr.aria-selected]="$index === diaPerfil()"
+                (click)="diaPerfil.set($index)"
+              >{{ d }}</button>
+            }
+          </div>
+        </div>
+        <p class="eg-perfil-sub">
+          {{ diasLargos[diaPerfil()] }}: <strong>{{ fmt(perfilVm().totalDia, 2) }} kWh</strong> estimados
+          @if (tarifa()) {
+            <span class="eg-band-legend">
+              <i class="eg-band-sw eg-band-valle"></i>Valle
+              <i class="eg-band-sw eg-band-media"></i>Media
+              <i class="eg-band-sw eg-band-pico"></i>Pico
+            </span>
+          }
+        </p>
+        <div class="eg-chart-wrap">
+          <svg class="eg-chart" [attr.viewBox]="'0 0 ' + ch.w + ' ' + ch.h" preserveAspectRatio="none" role="img" aria-label="Consumo por hora del día">
+            @for (b of perfilVm().bandas; track $index) {
+              @if (b.tipo) {
+                <rect [attr.x]="b.x" [attr.y]="ch.top" [attr.width]="b.w" [attr.height]="perfilVm().plotBottom - ch.top" [attr.class]="'eg-band ' + bandaClase(b.tipo)" />
+              }
+            }
+            @for (t of perfilVm().yTicks; track $index) {
+              <line class="eg-grid-line" [attr.x1]="ch.left" [attr.x2]="ch.w - ch.right" [attr.y1]="t.y" [attr.y2]="t.y" />
+            }
+            @for (b of perfilVm().bars; track $index) {
+              <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" [attr.fill]="b.color" [class.eg-bar-dim]="b.dim" class="eg-bar">
+                <title>{{ b.title }}</title>
+              </rect>
+            }
+          </svg>
+          <!-- Etiquetas en HTML: el SVG se estira (preserveAspectRatio=none) y deformaría el texto -->
+          <div class="eg-axis-layer" aria-hidden="true">
+            @for (t of perfilVm().yTicks; track $index) {
+              <span class="eg-axis-y" [style.right.%]="100 - ((ch.left - 6) / ch.w) * 100" [style.top.%]="(t.y / ch.h) * 100">{{ t.label }}</span>
+            }
+            @for (l of perfilVm().xLabels; track $index) {
+              <span class="eg-axis-x" [style.left.%]="(l.x / ch.w) * 100">{{ l.label }}</span>
+            }
+          </div>
+          <span class="eg-axis-unit">kWh</span>
+        </div>
+      </section>
+
+      <!-- DETALLE -->
+      @if (selected(); as s) {
+        <section class="dash-card eg-detail" aria-live="polite">
+          <header class="eg-detail-head">
+            <div>
+              <h2 class="eg-detail-title"><i class="eg-dot eg-dot-lg" [style.background]="s.color"></i>{{ s.nombre }}</h2>
+              <p class="eg-detail-sub">
+                {{ s.tipoNombre }} · Estimado con: <strong>{{ fuenteLabel[s.fuente] }}</strong>
+                <app-info-tip [termino]="tips['estimacion']" />
+              </p>
+            </div>
+            <button type="button" class="eg-icon-btn" (click)="cerrarDetalle()" aria-label="Cerrar detalle">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
+            </button>
+          </header>
+
+          <div class="eg-detail-stats">
+            <div><span>Al mes</span><strong>{{ fmt(s.kwhMes, 2) }} kWh</strong></div>
+            <div><span>Al día</span><strong>{{ fmt(s.kwhDia, 3) }} kWh</strong></div>
+            <div><span>Uso semanal</span><strong>{{ fmt(s.horasSemana, 1) }} h</strong></div>
+            <div><span>Costo mensual</span><strong>{{ cop(s.costoMes) }}</strong></div>
+            @if (s.fraccionPico != null) {
+              <div [class.eg-stat-warn]="s.optimizable && s.fraccionPico > 0.2">
+                <span>En hora pico</span><strong>{{ fmt(s.fraccionPico * 100, 0) }} %</strong>
+              </div>
+            }
+          </div>
+          @if (s.optimizable && s.fraccionPico != null && s.fraccionPico > 0.2) {
+            <p class="eg-hint">
+              Este electrodoméstico es desplazable y {{ fmt(s.fraccionPico * 100, 0) }} % de su consumo cae en hora pico.
+              Moverlo a horas valle reduciría su costo.
+            </p>
+          }
+
+          <!-- Tendencia -->
+          @if (tendenciaVm(); as t) {
+            <h3 class="eg-h3">Tendencia últimos 30 días</h3>
+            <div class="eg-chart-wrap">
+              <svg class="eg-chart eg-chart-sm" [attr.viewBox]="'0 0 ' + tr.w + ' ' + tr.h" preserveAspectRatio="none" role="img" aria-label="Tendencia de consumo de los últimos 30 días">
+                @for (y of t.yTicks; track $index) {
+                  <line class="eg-grid-line" [attr.x1]="tr.left" [attr.x2]="tr.w - tr.right" [attr.y1]="y.y" [attr.y2]="y.y" />
+                }
+                @for (b of t.bars; track $index) {
+                  <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" [attr.fill]="s.color" [class.eg-bar-finde]="b.finde" class="eg-bar">
+                    <title>{{ b.title }}</title>
+                  </rect>
+                }
+                <line class="eg-avg-line" [attr.x1]="tr.left" [attr.x2]="tr.w - tr.right" [attr.y1]="t.promedioY" [attr.y2]="t.promedioY" />
+              </svg>
+              <div class="eg-axis-layer" aria-hidden="true">
+                @for (y of t.yTicks; track $index) {
+                  <span class="eg-axis-y" [style.right.%]="100 - ((tr.left - 6) / tr.w) * 100" [style.top.%]="(y.y / tr.h) * 100">{{ y.label }}</span>
+                }
+                @for (l of t.xLabels; track $index) {
+                  <span class="eg-axis-x" [style.left.%]="(l.x / tr.w) * 100">{{ l.label }}</span>
+                }
+              </div>
+            </div>
+            <p class="eg-trend-foot">
+              Promedio {{ fmt(t.promedio, 3) }} kWh/día (línea punteada) · {{ fmt(t.total30, 2) }} kWh en 30 días
+            </p>
+            <div class="eg-week">
+              @for (d of t.porDia; track d.dia) {
+                <span class="eg-week-day"><small>{{ d.dia }}</small>{{ fmt(d.kwh, 2) }}</span>
+              }
+            </div>
+          }
+
+          <!-- Editor -->
+          @if (borrador(); as b) {
+            <form class="eg-editor" (ngSubmit)="guardar()">
+              <h3 class="eg-h3">Datos y horarios de uso</h3>
+              <div class="eg-horarios">
+                <span class="eg-label">Horario habitual</span>
+                <app-horario-editor name="gest" [horarios]="b.horarios" (horariosChange)="patch({ horarios: $event })" />
+              </div>
+
+              <div class="eg-fields">
+                <app-potencia-input
+                  name="gest"
+                  [potenciaW]="b.potenciaW"
+                  (potenciaWChange)="patch({ potenciaW: $event })"
+                  [horasSemana]="horasSemanaBorrador()"
+                  [tipoCodigo]="s.tipoCodigo"
+                />
+                <div class="eg-field eg-switches">
+                  <label class="eg-switch">
+                    <input type="checkbox" name="esDesplazable" [ngModel]="b.esDesplazable" (ngModelChange)="patch({ esDesplazable: $event })" />
+                    <span>Optimizable (puedo cambiar su horario)</span>
+                  </label>
+                  <label class="eg-switch">
+                    <input type="checkbox" name="activo" [ngModel]="b.activo" (ngModelChange)="patch({ activo: $event })" />
+                    <span>Activo (cuenta en el consumo)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="eg-ajuste">
+                <label class="eg-switch">
+                  <input type="checkbox" name="usarAjuste" [ngModel]="b.usarAjuste" (ngModelChange)="patch({ usarAjuste: $event, consumoAjustadoKwhMes: $event ? (b.consumoAjustadoKwhMes ?? s.kwhMesCalculado) : b.consumoAjustadoKwhMes })" />
+                  <span>Ajustar consumo: tengo un dato más preciso (medidor, enchufe inteligente, factura)</span>
+                </label>
+                @if (b.usarAjuste) {
+                  <label class="eg-field eg-field-inline">
+                    <input class="eg-input" type="number" min="0" step="0.1" name="ajuste" [ngModel]="b.consumoAjustadoKwhMes" (ngModelChange)="patch({ consumoAjustadoKwhMes: $event })" />
+                    <span>kWh/mes · el cálculo daba {{ fmt(s.kwhMesCalculado, 2) }}</span>
+                  </label>
+                }
+              </div>
+
+              @if (preview(); as p) {
+                <p class="eg-preview">
+                  Con estos datos: <strong>{{ fmt(p.kwhMes, 2) }} kWh/mes</strong> ({{ p.fuente }})
+                </p>
+              }
+              @if (okMsg()) {
+                <p class="eg-ok" role="status">{{ okMsg() }}</p>
+              }
+              <div class="eg-editor-actions">
+                <button type="button" class="eg-btn eg-btn-danger" (click)="eliminar()" [disabled]="saving()">Eliminar</button>
+                <span class="eg-spacer"></span>
+                <button type="button" class="eg-btn eg-btn-ghost" (click)="descartar()" [disabled]="saving()">Descartar</button>
+                <button type="submit" class="eg-btn eg-btn-primary" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar cambios' }}</button>
+              </div>
+            </form>
+          }
+        </section>
+      } @else {
+        <p class="eg-pick">Selecciona un electrodoméstico del ranking o del gráfico para ver su tendencia y editar sus horarios.</p>
+      }
+    }
+  } @else if (loading()) {
+    <section class="dash-card eg-empty"><p class="dash-muted">Calculando estimaciones…</p></section>
+  }
+</div>

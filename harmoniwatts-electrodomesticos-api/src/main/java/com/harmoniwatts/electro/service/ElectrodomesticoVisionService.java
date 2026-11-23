@@ -72,11 +72,12 @@ public class ElectrodomesticoVisionService {
     }
 
     log.info(
-        "Visión IA cruda: marca={}, modelo={}, tipo={}, kWh/día={}, confianza={}, fuente={}",
+        "Visión IA cruda: marca={}, modelo={}, tipo={}, W={}, kWh/mes={}, confianza={}, fuente={}",
         raw.marcaDetectada(),
         raw.modeloDetectado(),
         raw.tipoSugerido(),
-        raw.consumoKwhDiaEstimado(),
+        raw.potenciaW(),
+        raw.consumoKwhMes(),
         raw.confianza(),
         raw.fuenteConsumo());
 
@@ -109,27 +110,27 @@ public class ElectrodomesticoVisionService {
     String advertencia = null;
     if (bajaConfianza) {
       advertencia =
-          "La confianza del análisis es baja. Revisa marca, tipo y consumo (kWh/día) antes de guardar.";
+          "La confianza del análisis es baja. Revisa marca, tipo y potencia antes de guardar.";
     }
-    if (raw.consumoKwhDiaEstimado() == null) {
+    if (raw.potenciaW() == null && raw.consumoKwhMes() == null) {
       String hint =
-          "No se pudo obtener kWh/día (p. ej. solo hay watts). Usa la calculadora: W × horas/día ÷ 1000.";
+          "No se pudo leer la potencia (W) ni el consumo (kWh/mes). Búscalos en la placa del aparato o usa el valor típico.";
       advertencia = advertencia == null ? hint : advertencia + " " + hint;
     }
 
     log.info(
-        "Visión IA mapeada a catálogo: idTipo={}, tipoCodigo={}, idMarca={}, marcaOtro={}, kWh/día={}",
+        "Visión IA mapeada a catálogo: idTipo={}, tipoCodigo={}, idMarca={}, marcaOtro={}",
         idTipo,
         tipoCodigo,
         marcaMatch.idMarcaPredefinida(),
-        marcaMatch.marcaOtro(),
-        raw.consumoKwhDiaEstimado());
+        marcaMatch.marcaOtro());
 
     return new VisionAnalysisResponse(
         raw.marcaDetectada(),
         raw.modeloDetectado(),
         tipoCodigo,
-        raw.consumoKwhDiaEstimado(),
+        raw.potenciaW(),
+        raw.consumoKwhMes(),
         raw.confianza(),
         raw.fuenteConsumo(),
         idTipo,

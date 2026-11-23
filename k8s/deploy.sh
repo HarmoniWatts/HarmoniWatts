@@ -136,14 +136,23 @@ mkdir -p "$OVERLAY"
 kubectl kustomize "$OVERLAY" | sed "s|__APP_HOST__|${APP_HOST}|g" | kubectl apply -f -
 rm -rf "$OVERLAY"
 
+# Los pods leen harmoniwatts-secrets como variables de entorno: Kubernetes no los reinicia
+# si solo cambia el secreto (p. ej. al agregar GEMINI_API_KEY sin cambiar de imagen).
+# Se anota la huella del secreto en la plantilla: solo hay rollout cuando cambia.
+SECRETS_SUM="$(kubectl -n "$NS" get secret harmoniwatts-secrets -o jsonpath='{.data}' | sha256sum | cut -c1-16)"
+for d in electrodomesticos-api harmoni-register keycloak tariff-service vivienda-api; do
+  kubectl -n "$NS" patch deployment "$d" --type merge -p \
+    "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"harmoniwatts/secrets-checksum\":\"${SECRETS_SUM}\"}}}}}"
+done
+
 # -----------------------------------------------------------------------------
 log "Esperando a que los servicios queden listos"
 kubectl -n "$NS" rollout status statefulset/postgres --timeout=5m
 kubectl -n "$NS" rollout status statefulset/mongodb --timeout=5m
 
 # Migraciones idempotentes de la base harmoniwatts. vivienda-api valida el esquema al
-# arrancar: si falta una columna, el pod reinicia hasta que esto termine.
-for m in migrate-contrato-comercializadora.sql; do
+# arrancar (igual que electrodomesticos-api): si falta una columna, el pod reinicia hasta que esto termine.
+for m in migrate-contrato-comercializadora.sql migrate-electrodomestico-horarios.sql; do
   if kubectl -n "$NS" exec -i postgres-0 -- sh -c        'psql -v ON_ERROR_STOP=1 -q -U "$POSTGRES_USER" -d harmoniwatts' < "$ROOT/sql/$m"; then
     echo "Migración aplicada: $m"
   else
