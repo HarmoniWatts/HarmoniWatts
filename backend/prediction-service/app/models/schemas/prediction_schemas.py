@@ -70,3 +70,39 @@ class ModelStatusResponse(BaseModel):
     cargado: bool
     horizonte_horas: int
     min_history_horas: int
+
+
+# ---------------------------------------------------------------- HAR-25
+class PuntoHistorico(BaseModel):
+    timestamp: str
+    real_kwh: float
+    estimado_kwh: float
+
+
+class PuntoFuturo(BaseModel):
+    timestamp: str
+    estimado_kwh: float
+    inferior_kwh: float
+    superior_kwh: float
+
+
+class Confianza(BaseModel):
+    nivel: str  # alto | medio | bajo
+    error_diario_pct: Optional[float] = None
+    error_horario_pct: Optional[float] = None
+    dias_evaluados: int
+    horas_evaluadas: int
+    metodo: str
+
+
+class PronosticoResponse(BaseModel):
+    no_contrato: str
+    cod_comercializadora: str
+    meter_no: str
+    generado_en: str
+    ultima_lectura: str
+    modelo: ModeloInfo
+    historico: List[PuntoHistorico]
+    futuro: List[PuntoFuturo]
+    confianza: Confianza
+    metadatos: dict
