@@ -7,11 +7,23 @@ import { getDateInTimezone, formatDate, formatISO } from '../utils/dateUtils.js'
 import ConsumptionService from '../services/consumptionService.js';
 import PredictionService from '../services/predictionService.js';
 import InsightsService from '../services/insightsService.js';
+import TariffService from '../services/tariffService.js';
+import AlertsService from '../services/alertsService.js';
 
 const consumptionService = new ConsumptionService();
 const predictionService = new PredictionService();
 
 const insightsService = new InsightsService(consumptionService, predictionService);
+const alertsService = new AlertsService(consumptionService, new TariffService());
+
+/** Ubicación tarifaria de la vivienda (idZona, codMercado, estrato) o null si falta algún dato. */
+export function ubicacionDesdeQuery(query) {
+  const idZona = parseInt(String(query?.idZona ?? ''), 10);
+  const codMercado = String(query?.codMercado ?? '').trim();
+  const estrato = parseInt(String(query?.estrato ?? ''), 10);
+  if (!Number.isFinite(idZona) || !codMercado || !Number.isFinite(estrato)) return null;
+  return { idZona, codMercado, estrato };
+}
 
 /**
  * Los consumos se identifican por número de contrato + comercializadora
@@ -208,6 +220,30 @@ class DashboardController {
     }
   }
 
+  /**
+   * GET /api/v1/dashboard/alerts (HAR-21)
+   * Alertas de franja de alto precio (requiere ubicación) y de consumo sobre lo habitual
+   * (requiere contrato), con severidad LOW / MEDIUM / HIGH.
+   */
+  static async getAlerts(req, res) {
+    try {
+      const contrato = contratoDesdeQuery(req.query);
+      const ubicacion = ubicacionDesdeQuery(req.query);
+      if (!contrato && !ubicacion) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Se requiere el contrato (noContrato, codComercializadora) o la ubicación (idZona, codMercado, estrato)',
+          code: 'MISSING_PARAMS',
+        });
+      }
+      const at = typeof req.query.at === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(req.query.at) ? req.query.at : null;
+      const data = await alertsService.getAlerts(contrato, ubicacion, req.query.timezone || defaultTimezone, at);
+      res.status(200).json(data);
+    } catch (error) {
+      DashboardController.handleError(error, res);
+    }
+  }
+
   static handleError(error, res) {
     console.error('DashboardController Error:', error);
     
@@ -249,6 +285,7 @@ export const {
   getRecommendations,
   getAppliancesTop,
   getPrediction,
+  getAlerts,
   postRecommendationApply,
   postRecommendationDismiss,
 } = DashboardController;

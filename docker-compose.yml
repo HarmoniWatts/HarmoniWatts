@@ -319,6 +319,8 @@ services:
       PORT: "7001"
       CONSUMPTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
       PREDICTION_SERVICE_URL: http://harmoniwatts-prediction-service:8000
+      # Tarifa real de la vivienda para las alertas de franja (HAR-21)
+      TARIFF_SERVICE_URL: http://harmoniwatts-tariff-service:8006
       DEFAULT_TIMEZONE: America/Bogota
     ports:
       - "${HW_INSIGHTS_SERVICE_PORT:-7001}:7001"
