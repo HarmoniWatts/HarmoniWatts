@@ -66,6 +66,8 @@ jobs:
           printf '%s\n' "$KUBECONFIG_CONTENT" > "$RUNNER_TEMP/kubeconfig"
           chmod 600 "$RUNNER_TEMP/kubeconfig"
           echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+          # GITHUB_ENV solo aplica a los pasos siguientes: en este paso hay que exportarla
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
           for i in $(seq 1 30); do
             if kubectl get nodes >/dev/null 2>&1; then exit 0; fi
             echo "Esperando la API de Kubernetes ($i/30)..."; sleep 10
