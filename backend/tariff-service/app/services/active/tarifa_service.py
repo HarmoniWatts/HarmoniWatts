@@ -4,7 +4,7 @@ from datetime import date
 from email.policy import default
 from typing import Optional, Dict, Any
 from loguru import logger
-from matplotlib.dates import relativedelta
+from dateutil.relativedelta import relativedelta
 
 from app.repositories.postgres.tarifa_repository import TarifaRepository
 from app.repositories.postgres.cliente_repository import ClienteRepository
