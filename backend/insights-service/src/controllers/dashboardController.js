@@ -182,6 +182,32 @@ class DashboardController {
   /**
    * Manejo centralizado de errores
    */
+  /**
+   * GET /api/v1/dashboard/prediction (HAR-25)
+   * Predicción del modelo vs consumo real de los últimos días, próximos días y confianza.
+   */
+  static async getPrediction(req, res) {
+    try {
+      const contrato = contratoDesdeQuery(req.query);
+      if (!contrato) {
+        return res.status(400).json(MISSING_CONTRACT);
+      }
+      const dias = (v, def) => Math.min(7, Math.max(0, parseInt(String(v ?? def), 10) || def));
+      const data = await insightsService.getPrediction(contrato, {
+        diasPasados: dias(req.query.diasPasados, 7),
+        diasFuturos: Math.max(1, dias(req.query.diasFuturos, 7)),
+      });
+      res.status(200).json(data);
+    } catch (error) {
+      console.error('Prediction Error:', error.message);
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'El servicio de predicción no está disponible',
+        code: 'PREDICTION_UNAVAILABLE',
+      });
+    }
+  }
+
   static handleError(error, res) {
     console.error('DashboardController Error:', error);
     
@@ -222,6 +248,7 @@ export const {
   getConsumptionChart,
   getRecommendations,
   getAppliancesTop,
+  getPrediction,
   postRecommendationApply,
   postRecommendationDismiss,
 } = DashboardController;

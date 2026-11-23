@@ -5,6 +5,7 @@ import {
   getConsumptionChart,
   getRecommendations,
   getAppliancesTop,
+  getPrediction,
   postRecommendationApply,
   postRecommendationDismiss,
 } from '../controllers/dashboardController.js';
@@ -100,6 +101,41 @@ router.get('/dashboard/summary', getSummary);
  *         description: Servicio no disponible
  */
 router.get('/dashboard/consumption-chart', getConsumptionChart);
+
+/**
+ * @swagger
+ * /dashboard/prediction:
+ *   get:
+ *     summary: Predicción de consumo vs real y próximos días (HAR-25)
+ *     description: >
+ *       Predicción del modelo (prediction-service) comparada con el consumo real de los últimos
+ *       días, pronóstico horario de los próximos días con rango y nivel de confianza.
+ *       Sin historia suficiente responde available=false.
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: noContrato
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: codComercializadora
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: diasPasados
+ *         schema: { type: integer, minimum: 0, maximum: 7, default: 7 }
+ *       - in: query
+ *         name: diasFuturos
+ *         schema: { type: integer, minimum: 1, maximum: 7, default: 7 }
+ *     responses:
+ *       200:
+ *         description: Pronóstico y confianza (o available=false si falta historia)
+ *       400:
+ *         description: Falta el contrato
+ *       503:
+ *         description: prediction-service no disponible
+ */
+router.get('/dashboard/prediction', getPrediction);
 
 router.get('/dashboard/recommendations', getRecommendations);
 

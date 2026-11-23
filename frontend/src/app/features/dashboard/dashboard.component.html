@@ -326,6 +326,13 @@
             }
           </section>
 
+          <!-- HAR-25: predicción del modelo vs real, próximos días y confianza -->
+          <app-prediccion-card
+            [noContrato]="contratoActivo()?.noContrato ?? null"
+            [codComercializadora]="contratoActivo()?.codComercializadora ?? null"
+            [ubicacion]="ubicacionActiva()"
+          />
+
           <section class="dash-card dash-reco-card">
             <h2 class="dash-section-title">Recomendaciones IA</h2>
             @if (recommendations?.items?.length) {

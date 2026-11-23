@@ -10,6 +10,7 @@ from app.models.schemas.prediction_schemas import (
     BatchPrediccionRequest,
     BatchPrediccionResponse,
     ModelStatusResponse,
+    PronosticoResponse,
 )
 from app.core.exceptions import InsufficientHistoryError, ModelNotLoadedError
 from app.config import settings
@@ -54,6 +55,29 @@ async def predecir_contrat(
         raise HTTPException(503, str(e))
     except Exception as e:
         logger.error(f"Error inesperado: {e}")
+        raise HTTPException(500, "Error interno del servicio")
+
+
+# =====================================================
+# GET /prediction/contrato/{no_contrato}/{cod_retail}/pronostico  (HAR-25)
+# =====================================================
+@router.get("/contrato/{no_contrato}/{cod_retail}/pronostico", response_model=PronosticoResponse)
+async def pronostico_contrato(
+    no_contrato: str,
+    cod_retail: str,
+    dias_pasados: int = Query(7, ge=0, le=7, description="Días pasados con predicción vs real"),
+    dias_futuros: int = Query(7, ge=1, le=7, description="Días a pronosticar"),
+    service: PredictionService = Depends(get_prediction_service),
+):
+    """Predicción vs consumo real de los últimos días, pronóstico de los próximos y su confianza."""
+    try:
+        return await service.pronostico_contrato(no_contrato, cod_retail, dias_pasados, dias_futuros)
+    except InsufficientHistoryError as e:
+        raise HTTPException(404, str(e))
+    except ModelNotLoadedError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        logger.exception(f"Error inesperado en pronóstico: {e}")
         raise HTTPException(500, "Error interno del servicio")
 
 

@@ -6,6 +6,7 @@ import type {
   DashboardApiEndpoints,
   DashboardAppliancesTopResponse,
   DashboardConsumptionChartResponse,
+  DashboardPredictionResponse,
   DashboardQueryParams,
   DashboardRecommendationsResponse,
   DashboardSummaryResponse,
@@ -64,6 +65,13 @@ export class DashboardService {
     }
     return this.http.get<DashboardAppliancesTopResponse>(this.url(this.endpoints().appliancesTopPath), {
       params: httpParams,
+    });
+  }
+
+  /** Predicción vs real y próximos días con su confianza (HAR-25). */
+  getPrediction(params: DashboardQueryParams): Observable<DashboardPredictionResponse> {
+    return this.http.get<DashboardPredictionResponse>(this.url('/api/v1/dashboard/prediction'), {
+      params: this.toParams(params),
     });
   }
 

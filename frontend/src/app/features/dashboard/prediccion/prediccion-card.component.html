@@ -1,0 +1,185 @@
+<section class="pc-card" aria-labelledby="pc-title">
+  <header class="pc-head">
+    <div class="pc-title-wrap">
+      <h2 id="pc-title" class="pc-title">Predicción de consumo</h2>
+      <p class="pc-sub">Lo que predijo el modelo frente a tu consumo real, y lo que espera para los próximos días.</p>
+    </div>
+    @if (confianza(); as c) {
+      <div class="pc-conf {{ c.clase }}" role="status">
+        <span class="pc-conf-dot" aria-hidden="true"></span>
+        <span class="pc-conf-txt">
+          <strong>Confianza {{ c.nivel.toLowerCase() }}</strong>
+          <small>{{ c.detalle }}</small>
+        </span>
+        <app-info-tip [termino]="tipConfianza" [alignLeft]="true" />
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="pc-msg">Calculando la predicción…</p>
+  } @else if (error()) {
+    <p class="pc-msg pc-msg-err">
+      {{ error() }}
+      <button type="button" class="pc-link" (click)="recargar()">Reintentar</button>
+    </p>
+  } @else if (data(); as d) {
+    @if (!d.available) {
+      <p class="pc-msg">
+        Aún no podemos predecir tu consumo: el modelo necesita al menos 3 semanas de lecturas por hora.
+        <small>{{ d.message }}</small>
+      </p>
+    } @else {
+      <div class="pc-toolbar">
+        <div class="pc-tabs" role="tablist" aria-label="Vista de la predicción">
+          <button type="button" role="tab" class="pc-tab" [class.pc-tab-on]="vista() === 'dia'" [attr.aria-selected]="vista() === 'dia'" (click)="setVista('dia')">Por día</button>
+          <button type="button" role="tab" class="pc-tab" [class.pc-tab-on]="vista() === 'hora'" [attr.aria-selected]="vista() === 'hora'" (click)="setVista('hora')">Por hora</button>
+          <button type="button" role="tab" class="pc-tab" [class.pc-tab-on]="vista() === 'franja'" [attr.aria-selected]="vista() === 'franja'" (click)="setVista('franja')">Por franja</button>
+        </div>
+        <ul class="pc-legend">
+          @if (vista() === 'franja') {
+            @for (f of franjas; track f) {
+              <li><i class="pc-sw" [style.background]="franjaColor[f]"></i>{{ franjaLabel[f] }}</li>
+            }
+            <li><i class="pc-sw pc-sw-dot"></i>Real</li>
+          } @else {
+            <li><i class="pc-sw pc-sw-real"></i>Consumo real</li>
+            <li><i class="pc-sw pc-sw-pred"></i>Predicción</li>
+            <li><i class="pc-sw pc-sw-band"></i>Rango probable</li>
+          }
+        </ul>
+      </div>
+      @if (vista() === 'franja') {
+        <p class="pc-note">
+          @if (periodoTarifa(); as p) {
+            Franjas según la tarifa de {{ p }}.
+          } @else {
+            Sin tarifa publicada para tu ciudad: todo el consumo se muestra como franja media.
+          }
+        </p>
+      }
+
+      <div class="pc-chart" (mouseleave)="hover.set(null)">
+        <svg class="pc-svg" [attr.viewBox]="'0 0 ' + g.w + ' ' + g.h" preserveAspectRatio="none" role="img"
+          aria-label="Predicción de consumo frente al consumo real">
+          @if (vista() === 'hora') {
+            @if (vmHoras(); as v) {
+              @for (t of v.yTicks; track $index) {
+                <line class="pc-grid" [attr.x1]="g.left" [attr.x2]="g.w - g.right" [attr.y1]="t.y" [attr.y2]="t.y" />
+              }
+              @if (v.banda) {
+                <path class="pc-band" [attr.d]="v.banda" />
+              }
+              <path class="pc-line-real" [attr.d]="v.real" />
+              <path class="pc-line-pred" [attr.d]="v.pred" />
+              @if (v.ahoraX != null) {
+                <line class="pc-now" [attr.x1]="v.ahoraX" [attr.x2]="v.ahoraX" [attr.y1]="g.top" [attr.y2]="g.h - g.bottom" />
+              }
+              @if (hover() != null) {
+                <line class="pc-cursor" [attr.x1]="v.x(hover()!)" [attr.x2]="v.x(hover()!)" [attr.y1]="g.top" [attr.y2]="g.h - g.bottom" />
+              }
+              @for (h of horas(); track h.ts; let i = $index) {
+                <rect class="pc-hit" [attr.x]="v.x(i) - v.slotW / 2" [attr.y]="g.top" [attr.width]="v.slotW" [attr.height]="g.h - g.top - g.bottom"
+                  (mouseenter)="hover.set(i)" (click)="hover.set(i)" />
+              }
+            }
+          } @else {
+            @if (vmDias(); as v) {
+              @for (t of v.yTicks; track $index) {
+                <line class="pc-grid" [attr.x1]="g.left" [attr.x2]="g.w - g.right" [attr.y1]="t.y" [attr.y2]="t.y" />
+              }
+              @if (v.separadorX != null) {
+                <line class="pc-now" [attr.x1]="v.separadorX" [attr.x2]="v.separadorX" [attr.y1]="g.top" [attr.y2]="g.h - g.bottom" />
+              }
+              @for (c of v.col; track c.d.dia; let i = $index) {
+                @if (hover() === i) {
+                  <rect class="pc-hover-col" [attr.x]="c.x0" [attr.y]="g.top" [attr.width]="c.slot" [attr.height]="g.h - g.top - g.bottom" />
+                }
+                @if (vista() === 'dia') {
+                  @if (c.real; as r) {
+                    <rect class="pc-bar-real" [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.w" [attr.height]="r.h" rx="2" />
+                  }
+                  <rect class="pc-bar-pred" [class.pc-bar-futuro]="c.d.futuro" [attr.x]="c.pred.x" [attr.y]="c.pred.y"
+                    [attr.width]="c.pred.w" [attr.height]="c.pred.h" rx="2" />
+                  @if (c.rango; as rg) {
+                    <line class="pc-whisker" [attr.x1]="c.pred.x + c.pred.w / 2" [attr.x2]="c.pred.x + c.pred.w / 2" [attr.y1]="rg.y1" [attr.y2]="rg.y2" />
+                    <line class="pc-whisker" [attr.x1]="c.pred.x + c.pred.w * 0.2" [attr.x2]="c.pred.x + c.pred.w * 0.8" [attr.y1]="rg.y1" [attr.y2]="rg.y1" />
+                    <line class="pc-whisker" [attr.x1]="c.pred.x + c.pred.w * 0.2" [attr.x2]="c.pred.x + c.pred.w * 0.8" [attr.y1]="rg.y2" [attr.y2]="rg.y2" />
+                  }
+                } @else {
+                  @for (p of c.pila; track p.f) {
+                    <rect [attr.x]="c.pilaX" [attr.y]="p.y" [attr.width]="c.pilaW" [attr.height]="p.h" [attr.fill]="franjaColor[p.f]"
+                      [class.pc-pila-futuro]="c.d.futuro" />
+                  }
+                  @if (c.realMarca != null && c.d.horasReales === 24) {
+                    <line class="pc-real-mark" [attr.x1]="c.pilaX - 3" [attr.x2]="c.pilaX + c.pilaW + 3" [attr.y1]="c.realMarca" [attr.y2]="c.realMarca" />
+                  }
+                }
+                <rect class="pc-hit" [attr.x]="c.x0" [attr.y]="g.top" [attr.width]="c.slot" [attr.height]="g.h - g.top - g.bottom"
+                  (mouseenter)="hover.set(i)" (click)="hover.set(i)" />
+              }
+            }
+          }
+        </svg>
+
+        <!-- Etiquetas en HTML: el SVG se estira y deformaría el texto -->
+        <div class="pc-axis" aria-hidden="true">
+          @if (vista() === 'hora') {
+            @if (vmHoras(); as v) {
+              @for (t of v.yTicks; track $index) {
+                <span class="pc-ay" [style.top.%]="(t.y / g.h) * 100">{{ t.label }}</span>
+              }
+              @for (l of v.xLabels; track $index; let i = $index) {
+                <span class="pc-ax" [class.pc-ax-alt]="i % 2 === 1" [style.left.%]="(l.x / g.w) * 100">{{ l.label }}</span>
+              }
+              @if (v.ahoraX != null) {
+                <span class="pc-now-lbl" [style.left.%]="(v.ahoraX / g.w) * 100">Ahora</span>
+              }
+            }
+          } @else {
+            @if (vmDias(); as v) {
+              @for (t of v.yTicks; track $index) {
+                <span class="pc-ay" [style.top.%]="(t.y / g.h) * 100">{{ t.label }}</span>
+              }
+              @for (c of v.col; track c.d.dia; let i = $index) {
+                <span class="pc-ax" [class.pc-ax-fut]="c.d.futuro" [class.pc-ax-alt]="i % 2 === 1" [style.left.%]="(c.cx / g.w) * 100">{{ c.label }}</span>
+              }
+              @if (v.separadorX != null) {
+                <span class="pc-now-lbl" [style.left.%]="(v.separadorX / g.w) * 100">Próximos días</span>
+              }
+            }
+          }
+          <span class="pc-unit">kWh</span>
+        </div>
+
+        @if (tooltip(); as t) {
+          <div class="pc-tip" [class.pc-tip-left]="t.xPct > 60" [style.left.%]="t.xPct" role="tooltip">
+            <strong>{{ t.titulo }}</strong>
+            @for (f of t.filas; track f.k) {
+              <span class="pc-tip-row"><i class="pc-tip-k {{ f.clase ?? '' }}">{{ f.k }}</i><b>{{ f.v }}</b></span>
+            }
+          </div>
+        }
+      </div>
+
+      @if (totales(); as r) {
+        <div class="pc-summary">
+          @if (r.dias) {
+            <div>
+              <span>Últimos {{ r.dias }} días</span>
+              <strong>{{ fmt(r.pasadoReal, 1) }} kWh reales</strong>
+              <small>el modelo predijo {{ fmt(r.pasadoPred, 1) }} kWh</small>
+            </div>
+          }
+          @if (r.diasFuturos) {
+            <div>
+              <span>Próximos {{ r.diasFuturos }} días</span>
+              <strong>≈ {{ fmt(r.futuroPred, 1) }} kWh</strong>
+              <small>rango probable {{ fmt(r.futuroInf, 0) }} – {{ fmt(r.futuroSup, 0) }} kWh</small>
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+</section>

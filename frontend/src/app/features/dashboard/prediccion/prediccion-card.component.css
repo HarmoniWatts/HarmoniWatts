@@ -1,0 +1,408 @@
+:host {
+  display: block;
+}
+
+/* Mismo aspecto que .dash-card (los estilos del dashboard no llegan a este componente) */
+.pc-card {
+  border-radius: 1rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-elev);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem;
+  color: var(--color-text);
+}
+
+.pc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.9rem;
+}
+.pc-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-strong);
+}
+.pc-sub {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- confianza ---------- */
+.pc-conf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+}
+.pc-conf-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pc-conf-txt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.pc-conf-txt strong {
+  font-size: 0.85rem;
+}
+.pc-conf-txt small {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.pc-conf-alta {
+  color: var(--color-success-text);
+  background: var(--color-success-soft);
+  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+}
+.pc-conf-media {
+  color: var(--color-warning-text);
+  background: var(--color-warning-soft);
+  border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
+}
+.pc-conf-baja {
+  color: var(--color-danger-text);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+}
+
+/* ---------- barra de vistas y leyenda ---------- */
+.pc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.pc-tabs {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 0.65rem;
+  background: var(--color-surface-2);
+}
+.pc-tab {
+  padding: 0.32rem 0.75rem;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pc-tab:hover {
+  color: var(--color-text-strong);
+}
+.pc-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+}
+.pc-tab-on {
+  background: var(--color-surface-elev);
+  color: var(--color-text-strong);
+  box-shadow: var(--shadow-card);
+}
+.pc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.pc-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pc-sw {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.55rem;
+  border-radius: 0.15rem;
+}
+.pc-sw-real {
+  background: var(--color-chart-real);
+}
+.pc-sw-pred {
+  height: 0;
+  border-top: 2px dashed #a78bfa;
+  border-radius: 0;
+}
+.pc-sw-band {
+  background: color-mix(in srgb, #a78bfa 30%, transparent);
+}
+.pc-sw-dot {
+  height: 2px;
+  background: var(--color-text-strong);
+}
+.pc-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+/* ---------- gráfico ---------- */
+.pc-chart {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+}
+/* Gráfico angosto (celular): una etiqueta de día sí y otra no */
+@container (max-width: 560px) {
+  .pc-ax-alt {
+    display: none;
+  }
+}
+.pc-svg {
+  display: block;
+  width: 100%;
+  height: 15rem;
+}
+.pc-grid {
+  stroke: var(--color-chart-grid);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.pc-now {
+  stroke: var(--color-chart-current);
+  stroke-width: 1.25;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+.pc-cursor {
+  stroke: var(--color-text-subtle);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.pc-line-real {
+  fill: none;
+  stroke: var(--color-chart-real);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.pc-line-pred {
+  fill: none;
+  stroke: #a78bfa;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+.pc-band {
+  fill: color-mix(in srgb, #a78bfa 22%, transparent);
+  stroke: none;
+}
+.pc-bar-real {
+  fill: var(--color-chart-real);
+}
+.pc-bar-pred {
+  fill: color-mix(in srgb, #a78bfa 45%, transparent);
+  stroke: #a78bfa;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.pc-bar-futuro {
+  fill: color-mix(in srgb, #a78bfa 25%, transparent);
+  stroke-dasharray: 3 2;
+}
+.pc-whisker {
+  stroke: #a78bfa;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.pc-pila-futuro {
+  opacity: 0.6;
+}
+.pc-real-mark {
+  stroke: var(--color-text-strong);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.pc-hover-col {
+  fill: var(--color-surface-2);
+}
+.pc-hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+/* Etiquetas de ejes en HTML */
+.pc-axis {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pc-ay,
+.pc-ax,
+.pc-unit,
+.pc-now-lbl {
+  position: absolute;
+  font-size: 0.7rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-chart-axis);
+  font-variant-numeric: tabular-nums;
+}
+.pc-ay {
+  right: calc(100% - 2.6rem);
+  transform: translateY(-50%);
+}
+.pc-ax {
+  bottom: 0.3rem;
+  transform: translateX(-50%);
+}
+.pc-ax-fut {
+  color: #a78bfa;
+}
+.pc-unit {
+  top: -0.15rem;
+  left: 0;
+}
+.pc-now-lbl {
+  top: 0.1rem;
+  padding-left: 0.3rem;
+  color: var(--color-text-muted);
+}
+
+/* Tooltip */
+.pc-tip {
+  position: absolute;
+  top: 0.75rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 12rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-elev-strong, var(--color-surface-elev));
+  box-shadow: var(--shadow-card);
+  font-size: 0.78rem;
+  pointer-events: none;
+  transform: translateX(0.6rem);
+}
+.pc-tip-left {
+  transform: translateX(calc(-100% - 0.6rem));
+}
+.pc-tip strong {
+  margin-bottom: 0.15rem;
+  color: var(--color-text-strong);
+}
+.pc-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pc-tip-k {
+  font-style: normal;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+.pc-tip-row b {
+  white-space: nowrap;
+}
+.pc-tip-row b {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-strong);
+}
+.pc-k-real::before,
+.pc-k-pred::before,
+.pc-k-valle::before,
+.pc-k-media::before,
+.pc-k-punta::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+}
+.pc-k-real::before {
+  background: var(--color-chart-real);
+}
+.pc-k-pred::before {
+  background: #a78bfa;
+}
+.pc-k-valle::before {
+  background: #1d8f52;
+}
+.pc-k-media::before {
+  background: #d97706;
+}
+.pc-k-punta::before {
+  background: #c53030;
+}
+
+/* ---------- resumen y mensajes ---------- */
+.pc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+.pc-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface-2);
+}
+.pc-summary span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.pc-summary strong {
+  font-size: 1.05rem;
+  color: var(--color-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+.pc-summary small {
+  font-size: 0.78rem;
+  color: var(--color-text-subtle);
+}
+.pc-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.pc-msg small {
+  color: var(--color-text-subtle);
+}
+.pc-msg-err {
+  color: var(--color-danger-text);
+}
+.pc-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

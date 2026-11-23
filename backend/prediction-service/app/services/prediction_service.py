@@ -9,6 +9,7 @@ from app.core.exceptions import InsufficientHistoryError, ModelNotLoadedError
 from app.services.model_loader import ModelLoader
 from app.services.consumption_client import ConsumptionClient
 from app.repositories.prediction_repository import PredictionRepository
+from app.services import pronostico as pron
 
 
 class PredictionService:
@@ -120,6 +121,45 @@ class PredictionService:
                 "id_prediccion": doc_id,
             }
     
+    async def pronostico_contrato(
+        self,
+        no_contrato: str,
+        cod_retail: str,
+        dias_pasados: int = 7,
+        dias_futuros: int = 7,
+    ) -> Dict[str, Any]:
+        """Predicción vs real de los últimos días (backtest), próximos días y confianza (HAR-25)."""
+        inicio = time.time()
+        min_h = settings.MIN_HISTORY_H
+        horas_pasadas = dias_pasados * 24
+        # Historia previa al backtest + horas evaluadas, con 15 % de margen por huecos
+        horas_solicitadas = int((min_h + horas_pasadas) * 1.15)
+
+        meter_no, historia = await self.consumption_client.get_historia_horaria_contrato(
+            no_contrato, cod_retail, horas=horas_solicitadas
+        )
+        if len(historia) < min_h:
+            raise InsufficientHistoryError(no_contrato, len(historia))
+
+        model = ModelLoader.get_model()
+        resultado = pron.pronosticar(
+            historia.reset_index(drop=True),
+            predecir=model.predict,
+            min_historia=min_h,
+            horas_pasadas=horas_pasadas,
+            horas_futuras=dias_futuros * 24,
+        )
+        return {
+            "no_contrato": str(no_contrato),
+            "cod_comercializadora": cod_retail,
+            "meter_no": meter_no,
+            "generado_en": pd.Timestamp.utcnow().isoformat(),
+            "ultima_lectura": historia["DATE_TIME"].iloc[-1].isoformat(),
+            "modelo": {"nombre": "CentralFTForecaster", "version": ModelLoader.get_version()},
+            **resultado,
+            "metadatos": {"duracion_ms": int((time.time() - inicio) * 1000), "horas_historia": len(historia)},
+        }
+
     async def predecir_medidor(
         self,
         meter_no: str,

@@ -19,6 +19,7 @@ import { ViviendaSelectorComponent } from '../vivienda/vivienda-selector.compone
 import { InfoTipComponent } from '../../shared/components/info-tip';
 import { GLOSARIO } from '../tarifas/tarifas-glosario';
 import { smoothPathLine } from './dashboard-chart.util';
+import { PrediccionCardComponent } from './prediccion/prediccion-card.component';
 import { ElectrodomesticosService } from '../electrodomesticos/electrodomesticos.service';
 import type { EstimacionViviendaResponse } from '../electrodomesticos/electrodomesticos.service';
 import type {
@@ -43,7 +44,7 @@ export interface ChartViewModel {
   maxKwh: number;
   hours: number[];
   actual: number[];
-  predicted: number[] | null;
+  predicted: (number | null)[] | null;
   predictionUnavailable: boolean;
   /** Hora actual y su posición; null si la fecha consultada no es hoy (sin cursor "ahora"). */
   currentHour: number | null;
@@ -61,7 +62,7 @@ export interface ChartViewModel {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent],
+  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent, PrediccionCardComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -70,6 +71,9 @@ export class DashboardComponent {
   private readonly dashboardApi = inject(DashboardService);
   private readonly tarifasApi = inject(TarifasService);
   private readonly viviendaCtx = inject(ViviendaContextService);
+  /** Contrato y ubicación de la vivienda activa (tarjeta de predicción, HAR-25). */
+  readonly contratoActivo = computed(() => this.viviendaCtx.contrato());
+  readonly ubicacionActiva = computed(() => this.viviendaCtx.ubicacion());
   private readonly destroyRef = inject(DestroyRef);
 
   /** Textos de los botones informativos. */
@@ -477,7 +481,7 @@ export class DashboardComponent {
     const predictionUnavailable = chart.predictionUnavailable === true || predicted === null;
 
     // Eje Y solo desde el insumo (series horarias en kWh, agregado de valor_kwh en backend)
-    const seriesValues = [...actual, ...(predicted ?? [])].filter((v) => Number.isFinite(v));
+    const seriesValues = [...actual, ...(predicted ?? [])].filter((v): v is number => Number.isFinite(v));
     const maxFromData = seriesValues.length ? Math.max(0, ...seriesValues) : 0;
     const maxKwh =
       maxFromData > 0 ? this.niceCeilKwh(maxFromData * 1.06) : this.chartEmptyAxisMaxKwh();
@@ -510,7 +514,9 @@ export class DashboardComponent {
       for (let idx = 0; idx < n; idx++) {
         const hodRaw = hours[idx];
         const hod = typeof hodRaw === 'number' ? hodRaw : idx;
-        const v = predicted[Math.min(idx, predicted.length - 1)] ?? 0;
+        const v = predicted[Math.min(idx, predicted.length - 1)];
+        // Horas sin predicción del modelo: no se dibujan (antes se rellenaban con 0)
+        if (v == null) continue;
         predPoints.push({ x: xForClockHour(hod), y: yForKwh(v) });
       }
     }

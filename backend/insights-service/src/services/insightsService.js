@@ -2,6 +2,7 @@ import { getDateInTimezone, getCurrentInTimezone, formatISO, formatDate, getCurr
 import { getTariffByHour, calculateEstimatedCost, getNextHighTariffWindow, calculateSavings } from '../utils/tariffUtils.js';
 import { defaultTimezone, tariffBands as _tariffBands } from '../config/index.js';
 import { maxKwhScaleFromHourlySeries } from '../utils/chartScale.js';
+import { seriePrediccionDelDia, toDashboardPrediction } from '../utils/prediccion.js';
 
 class InsightsService {
   constructor(consumptionService, predictionService) {
@@ -100,37 +101,19 @@ class InsightsService {
     const targetDate = getDateInTimezone(dateStr, timezone);
     const currentHour = getCurrentHour(timezone);
 
-    // Fetch actual and predicted series - Usar getHourlySeries para ambos
-    const [actualData, predictedData] = await Promise.all([
-      this.consumptionService.getHourlySeries(contrato, targetDate.format('YYYY-MM-DD'), timezone),
-      this.predictionService.getHourlySeries(contrato, targetDate.format('YYYY-MM-DD')),
+    // Consumo real del día y pronóstico del modelo (prediction-service, HAR-25)
+    const fecha = targetDate.format('YYYY-MM-DD');
+    const [actualData, pronostico] = await Promise.all([
+      this.consumptionService.getHourlySeries(contrato, fecha, timezone),
+      this.predictionService.getPronosticoSeguro(contrato),
     ]);
-    
-    // Extraer las series (asumiendo que getHourlySeries retorna { series: [...] })
+
     const actualKwh = actualData?.series || new Array(24).fill(0);
-    //const predictedKwh = predictedData?.series || null;
-    
-    //fallback para generar predictedKwh si no viene del servicio (para pruebas)
-    function gaussianNoise(min, max) {
-    // Genera ruido con distribución normal aproximada usando Box-Muller
-    let u = 0, v = 0;
-    while(u === 0) u = Math.random(); // evitar 0
-    while(v === 0) v = Math.random();
-    let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-
-    // Escalar a rango [min, max]
-    num = Math.abs(num); // solo positivo
-    return min + (num % (max - min));
-  }
-
-  const predictedKwh = predictedData?.series || actualKwh.map(v => {
-    const noise = gaussianNoise(0.01, 0.02); // ruido entre 10 y 20 Wh
-    return Math.round((v + noise) * 1000) / 1000; // mantener hasta 3 decimales
-  });
-  //// Fin de fallback
+    // Predicción del modelo para las horas de ese día (null donde no hay); ya no se simula
+    const predictedKwh = seriePrediccionDelDia(pronostico, fecha);
 
     // Eje Y: solo a partir del insumo (serie horaria = agregado de valor_kwh por hora)
-    const maxKwhScale = maxKwhScaleFromHourlySeries(actualKwh, predictedKwh, 1.08);
+    const maxKwhScale = maxKwhScaleFromHourlySeries(actualKwh, (predictedKwh ?? []).filter((v) => v != null), 1.08);
 
     // Prepare tariff bands for the chart (solo las bandas del día)
     const tariffBands = _tariffBands.map(band => ({
@@ -154,7 +137,7 @@ class InsightsService {
 
     // Agregar predictedKwh solo si está disponible
     if (predictedKwh) {
-      response.predictedKwh = predictedKwh.map(v => Math.round(v * 1000) / 1000); // Redondear a 3 decimales
+      response.predictedKwh = predictedKwh;
     } else {
       response.predictedKwh = null;
       response.predictionUnavailable = true;
@@ -163,6 +146,26 @@ class InsightsService {
     return response;
   }
 
+
+  /**
+   * Predicción vs real de los últimos días, próximos días y confianza (HAR-25).
+   * Si el contrato no tiene historia suficiente responde available=false con el motivo.
+   */
+  async getPrediction(contrato, { diasPasados = 7, diasFuturos = 7 } = {}) {
+    try {
+      const p = await this.predictionService.getPronostico(contrato, { diasPasados, diasFuturos });
+      return toDashboardPrediction(p);
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return {
+          available: false,
+          reason: 'INSUFFICIENT_HISTORY',
+          message: error.response.data?.detail ?? 'Historia de consumo insuficiente para predecir',
+        };
+      }
+      throw error;
+    }
+  }
 
   formatTimeHint(minutesDiff) {
     if (minutesDiff <= 0) return "Ahora";
