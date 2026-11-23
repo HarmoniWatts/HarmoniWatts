@@ -139,3 +139,36 @@ export interface DashboardPredictionResponse {
   history?: PredictionHistoryPoint[];
   forecast?: PredictionForecastPoint[];
 }
+
+// ---------------------------------------------------------------- HAR-21: alertas
+export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+export type AlertType = 'TARIFF_PEAK' | 'TARIFF_PEAK_SOON' | 'CONSUMPTION_HOUR' | 'CONSUMPTION_DAY';
+
+export interface DashboardAlert {
+  /** Estable para la misma situación: sirve para marcarla como leída. */
+  id: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  /** Hora local 'YYYY-MM-DDTHH:mm[:ss]'. */
+  timestamp: string;
+  data?: Record<string, unknown>;
+}
+
+export interface DashboardAlertsResponse {
+  generatedAt: string;
+  timezone: string;
+  alerts: DashboardAlert[];
+  sources: { tariff: string; consumption: string };
+}
+
+export interface AlertsQueryParams {
+  noContrato?: string;
+  codComercializadora?: string;
+  idZona?: number;
+  codMercado?: string;
+  estrato?: number;
+  /** Hora simulada 'YYYY-MM-DDTHH:mm' (solo pruebas en desarrollo). */
+  at?: string;
+}

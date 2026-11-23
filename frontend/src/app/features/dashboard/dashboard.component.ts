@@ -20,6 +20,7 @@ import { InfoTipComponent } from '../../shared/components/info-tip';
 import { GLOSARIO } from '../tarifas/tarifas-glosario';
 import { smoothPathLine } from './dashboard-chart.util';
 import { PrediccionCardComponent } from './prediccion/prediccion-card.component';
+import { UltimasNotificacionesComponent } from '../notificaciones/ultimas-notificaciones.component';
 import { ElectrodomesticosService } from '../electrodomesticos/electrodomesticos.service';
 import type { EstimacionViviendaResponse } from '../electrodomesticos/electrodomesticos.service';
 import type {
@@ -62,7 +63,7 @@ export interface ChartViewModel {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent, PrediccionCardComponent],
+  imports: [CommonModule, RouterLink, ViviendaSelectorComponent, FechaFiltroComponent, InfoTipComponent, PrediccionCardComponent, UltimasNotificacionesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
