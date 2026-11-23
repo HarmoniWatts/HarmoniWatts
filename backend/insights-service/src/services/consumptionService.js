@@ -18,6 +18,22 @@ class ConsumptionService {
     });
   }
 
+  /**
+   * Lecturas horarias de las últimas `hours` horas (timestamps en UTC sin zona).
+   * GET /api/v1/consumption/series/raws/{no_contrato}/{cod}?hours=  → [] si no hay lecturas (404).
+   */
+  async getRawSeries(contrato, hours) {
+    try {
+      const response = await this.client.get(`/api/v1/consumption/series/raws/${cuentaPath(contrato)}`, {
+        params: { hours },
+      });
+      return response.data?.data ?? [];
+    } catch (error) {
+      if (error.response?.status === 404) return [];
+      throw error;
+    }
+  }
+
   // GET /api/v1/consumption/current/{no_contrato}/{cod_comercializadora}
   async getCurrentConsumption(contrato) {
     try {

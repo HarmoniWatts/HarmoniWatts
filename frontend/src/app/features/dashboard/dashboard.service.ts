@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type {
   DashboardApiEndpoints,
+  AlertsQueryParams,
+  DashboardAlertsResponse,
   DashboardAppliancesTopResponse,
   DashboardConsumptionChartResponse,
   DashboardPredictionResponse,
@@ -73,6 +75,21 @@ export class DashboardService {
     return this.http.get<DashboardPredictionResponse>(this.url('/api/v1/dashboard/prediction'), {
       params: this.toParams(params),
     });
+  }
+
+  /** Alertas de franja de alto precio y consumo sobre lo habitual (HAR-21). */
+  getAlerts(q: AlertsQueryParams): Observable<DashboardAlertsResponse> {
+    let p = new HttpParams();
+    if (q.noContrato && q.codComercializadora) {
+      p = p.set('noContrato', q.noContrato).set('codComercializadora', q.codComercializadora);
+    }
+    if (q.idZona != null && q.codMercado && q.estrato != null) {
+      p = p.set('idZona', String(q.idZona)).set('codMercado', q.codMercado).set('estrato', String(q.estrato));
+    }
+    if (q.at) {
+      p = p.set('at', q.at);
+    }
+    return this.http.get<DashboardAlertsResponse>(this.url('/api/v1/dashboard/alerts'), { params: p });
   }
 
   applyRecommendation(id: string): Observable<unknown> {

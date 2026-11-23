@@ -7,6 +7,8 @@ dotenv.config();
 export const port = process.env.PORT || 7001;
 export const consumptionServiceUrl = process.env.CONSUMPTION_SERVICE_URL || 'http://localhost:8001';
 export const predictionServiceUrl = process.env.PREDICTION_SERVICE_URL || 'http://localhost:3003';
+/** tariff-service: tarifa real de la vivienda para las alertas de franja (HAR-21). */
+export const tariffServiceUrl = process.env.TARIFF_SERVICE_URL || 'http://localhost:8006';
 export const defaultTimezone = process.env.DEFAULT_TIMEZONE || 'America/Bogota';
 export const tariffBands = [
     { type: 'VALLE', label: 'Valle', startHour: 0, endHour: 6, price: 280 },
@@ -21,6 +23,7 @@ export default {
     port,
     consumptionServiceUrl,
     predictionServiceUrl,
+    tariffServiceUrl,
     defaultTimezone,
     tariffBands
 };

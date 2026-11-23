@@ -6,6 +6,7 @@ import {
   getRecommendations,
   getAppliancesTop,
   getPrediction,
+  getAlerts,
   postRecommendationApply,
   postRecommendationDismiss,
 } from '../controllers/dashboardController.js';
@@ -136,6 +137,34 @@ router.get('/dashboard/consumption-chart', getConsumptionChart);
  *         description: prediction-service no disponible
  */
 router.get('/dashboard/prediction', getPrediction);
+
+/**
+ * @swagger
+ * /dashboard/alerts:
+ *   get:
+ *     summary: Alertas visuales (HAR-21)
+ *     description: >
+ *       Franja de alto precio (en punta, o empieza en ≤ 60 / ≤ 180 min) según la tarifa real de la
+ *       vivienda, y consumo sobre lo habitual (última hora y acumulado del día vs. promedio de las
+ *       4 semanas anteriores; +30 % LOW, +60 % MEDIUM, +100 % HIGH).
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - { in: query, name: noContrato, schema: { type: string } }
+ *       - { in: query, name: codComercializadora, schema: { type: string } }
+ *       - { in: query, name: idZona, schema: { type: integer } }
+ *       - { in: query, name: codMercado, schema: { type: string } }
+ *       - { in: query, name: estrato, schema: { type: integer } }
+ *       - in: query
+ *         name: at
+ *         schema: { type: string, example: '2026-11-22T17:30' }
+ *         description: Hora simulada (pruebas / QA). Por defecto, la hora actual.
+ *     responses:
+ *       200:
+ *         description: Alertas ordenadas por severidad
+ *       400:
+ *         description: Falta el contrato y la ubicación
+ */
+router.get('/dashboard/alerts', getAlerts);
 
 router.get('/dashboard/recommendations', getRecommendations);
 

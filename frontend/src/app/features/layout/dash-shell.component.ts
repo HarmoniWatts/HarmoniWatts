@@ -12,11 +12,22 @@ import {
 } from '../../core/auth/keycloak-direct-grant.util';
 import { TarifasService } from '../tarifas/tarifas.service';
 import { ViviendaContextService } from '../vivienda/vivienda-context.service';
+import { NotificacionAvisoComponent } from '../notificaciones/notificacion-aviso.component';
+import { NotificacionesPanelComponent } from '../notificaciones/notificaciones-panel.component';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Component({
   selector: 'app-dash-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    ThemeToggleComponent,
+    NotificacionesPanelComponent,
+    NotificacionAvisoComponent,
+  ],
   templateUrl: './dash-shell.component.html',
   styleUrl: './dash-shell.component.css',
 })
@@ -30,6 +41,8 @@ export class DashShellComponent {
   readonly cuentaSectionActive = signal(false);
 
   private readonly viviendaCtx = inject(ViviendaContextService);
+  /** Alertas (HAR-21) y recomendaciones IA de la vivienda activa. */
+  protected readonly notificaciones = inject(NotificacionesService);
   private readonly ciudades = toSignal(
     inject(TarifasService)
       .listCiudades()
@@ -54,6 +67,7 @@ export class DashShellComponent {
     };
     updateCuentaActive();
     this.viviendaCtx.load().subscribe();
+    this.notificaciones.iniciar(this.destroyRef);
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
