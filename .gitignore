@@ -42,6 +42,10 @@ env/
 *.onnx
 *.pt
 *.pth
+# Excepción: modelo de predicción en producción (MLflow, ~10 MB), va dentro de la imagen
+!backend/prediction-service/app/model/python_model.pkl
+!backend/prediction-service/app/model/artifacts/*.joblib
+!backend/prediction-service/app/model/artifacts/*.pt
 
 # =========================
 # Datasets y archivos masivos
