@@ -416,7 +416,10 @@
           </section>
 
           <section class="dash-card">
-            <h2 class="dash-section-title">Electrodomésticos de Mayor Consumo</h2>
+            <div class="dash-app-title-row">
+              <h2 class="dash-section-title">Electrodomésticos de Mayor Consumo</h2>
+              <a class="dash-app-link" routerLink="/electrodomesticos">Ver todos</a>
+            </div>
             @if (appliances?.items?.length) {
               <div class="dash-app-list">
                 @for (item of appliances!.items; track item.id) {
@@ -461,7 +464,7 @@
                       </span>
                       <span class="dash-app-name">{{ item.name }}</span>
                       @if (item.consumptionKwh != null) {
-                        <span class="dash-app-kwh">{{ item.consumptionKwh | number: '1.1-1' }} kWh</span>
+                        <span class="dash-app-kwh">{{ item.sharePercent | number: '1.0-0' }} % · {{ item.consumptionKwh | number: '1.1-1' }} kWh/mes</span>
                       }
                     </div>
                     <div class="dash-app-track">
@@ -471,7 +474,10 @@
                 }
               </div>
             } @else {
-              <p class="dash-muted">Sin datos de electrodomésticos.</p>
+              <p class="dash-muted">
+                Aún no tienes electrodomésticos en esta vivienda.
+                <a routerLink="/cuenta/electrodomesticos">Registrar electrodomésticos</a>
+              </p>
               @if (sectionError().appliances) {
                 <p class="dash-inline-err">No se pudo cargar el ranking.</p>
               }
