@@ -250,6 +250,12 @@ async def get_raw_series(
     
     serie_medidor, series= await service.get_raw_series(no_contrat, cod_retail, start_date, end_date)
     # logger.info(f"Raw series - {series}")
+    # Sin lecturas no hay medidor: 404 (antes fallaba la validación de la respuesta con un 500)
+    if not series or not serie_medidor:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sin lecturas para el contrato {no_contrat} ({cod_retail}) en el rango pedido",
+        )
     return RawSeriesResponse(
         no_contrat=no_contrat,
         cod_comercializadora=cod_retail,
