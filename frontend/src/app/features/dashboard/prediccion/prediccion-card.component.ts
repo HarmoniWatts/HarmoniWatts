@@ -279,7 +279,11 @@ function ticks(max: number, y: (v: number) => number): { y: number; label: strin
 function etiquetaDia(dia: string, largo = false): string {
   const [a, m, d] = dia.split('-').map(Number);
   const f = new Date(a, m - 1, d);
-  return f.toLocaleDateString('es-CO', largo ? { weekday: 'long', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric' });
+  const txt = f
+    .toLocaleDateString('es-CO', largo ? { weekday: 'long', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric' })
+    .replace(/\./g, '');
+  // Solo la primera letra en mayúscula («Jueves, 19 de nov», «Lun 16»)
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
 function filasHora(h: HoraPred): { k: string; v: string; clase?: string }[] {

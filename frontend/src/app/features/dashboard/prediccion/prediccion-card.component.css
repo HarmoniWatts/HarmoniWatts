@@ -267,7 +267,6 @@
 .pc-ax {
   bottom: 0.3rem;
   transform: translateX(-50%);
-  text-transform: capitalize;
 }
 .pc-ax-fut {
   color: #a78bfa;
@@ -306,7 +305,6 @@
 .pc-tip strong {
   margin-bottom: 0.15rem;
   color: var(--color-text-strong);
-  text-transform: capitalize;
 }
 .pc-tip-row {
   display: flex;
