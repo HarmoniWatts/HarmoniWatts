@@ -121,9 +121,11 @@ MongoDB se carga automáticamente con `BD/datos` (Job `mongo-seed`).
   Para dar acceso a otra persona: en la consola de Keycloak, realm **master** → *Users* →
   crear el usuario → *Groups* → unirlo a **k8s-admins** (permiso `cluster-admin`).
   Los usuarios del realm de la aplicación (`harmoniwatts`) no pueden entrar.
-- **Modelos de predicción** (no están en git):
-  `kubectl -n harmoniwatts cp backend/prediction-service/model/. <pod>:/app/model`,
-  donde `<pod>` sale de `kubectl -n harmoniwatts get pods -l app.kubernetes.io/name=prediction-service`.
+- **Modelo de predicción** (HAR-108): va dentro de la imagen, en
+  `backend/prediction-service/app/model` (formato MLflow, ~10 MB, versionado en git).
+  Para actualizarlo se reemplazan esos archivos y se despliega; no hay que copiar nada al clúster.
+  El PVC `prediction-data` del servicio anterior ya no se usa y se puede borrar:
+  `kubectl -n harmoniwatts delete pvc prediction-data`.
 
 ## Tareas programadas (CronJobs)
 

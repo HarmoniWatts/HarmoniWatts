@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     HOST: str = "0.0.0.0"
-    PORT: int = 8003
+    PORT: int = 8000
     
     # MongoDB
     MONGODB_HOST: str = "localhost"
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     
     # Consumption Service
-    CONSUMPTION_SERVICE_URL: str = "http://localhost:8003"
+    CONSUMPTION_SERVICE_URL: str = "http://localhost:8001"
     
     # HTTP Client
     HTTP_TIMEOUT_SEC: int = 30

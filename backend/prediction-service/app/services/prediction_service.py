@@ -63,8 +63,9 @@ class PredictionService:
             if len(historia) > settings.MIN_HISTORY_H:
                 historia = historia.tail(settings.MIN_HISTORY_H).reset_index(drop=True)
                         
-            # if len(historia) < (settings.MIN_HISTORY_H + 24):
-            #     raise InsufficientHistoryError(no_contrato, len(historia))
+            # El modelo exige MIN_HISTORY_H horas: avisar con 404 en vez de un 500 del modelo
+            if len(historia) < settings.MIN_HISTORY_H:
+                raise InsufficientHistoryError(no_contrato, len(historia))
             
             # 2. Invocar el modelo
             model = ModelLoader.get_model()

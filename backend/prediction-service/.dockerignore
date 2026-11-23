@@ -1,0 +1,6 @@
+**/__pycache__
+**/*.pyc
+.env
+*.bat
+docker-compose.yml
+docs/

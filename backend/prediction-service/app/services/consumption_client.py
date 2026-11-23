@@ -62,7 +62,7 @@ class ConsumptionClient:
                 logger.warning(
                     "Historia vacía para contrato %s - retail %s", no_contrato, cod_retail
                 )
-                return pd.DataFrame(columns=["METER_NO", "DATE_TIME", "kwh"])
+                return serie_medidor, pd.DataFrame(columns=["METER_NO", "DATE_TIME", "kwh"])
 
             # --- Transformación ---
             df = pd.DataFrame(registros)

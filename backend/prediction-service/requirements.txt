@@ -1,27 +1,31 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+# prediction-service (FastAPI + modelo MLflow pyfunc). Python 3.13, igual que el entorno
+# con que se entrenó y guardó el modelo (app/model/conda.yaml).
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
 
 # MongoDB
-motor==3.3.2
-pymongo==4.6.0
+motor==3.6.0
+pymongo==4.9.2
 
-# MLflow + ML
-mlflow==2.9.2
+# MLflow + ML: mismas versiones que app/model/requirements.txt.
+# torch se instala antes desde el índice solo-CPU (ver Dockerfile); aquí solo se fija la versión.
+mlflow-skinny==3.17.2
 torch==2.15.0
-scikit-learn==1.3.2
-joblib==1.3.2
 pandas==2.2.3
 numpy==2.1.3
-holidays==0.40
 tslearn==0.10.0
+scikit-learn==1.6.1
+joblib==1.4.2
+holidays==0.107
 
 # HTTP
-httpx==0.26.0
+httpx==0.28.1
 
 # Utilidades
-python-dotenv==1.0.0
-loguru==0.7.2
-tenacity==8.2.3
+python-dotenv==1.0.1
+loguru==0.7.3
+tenacity==9.0.0
 truststore==0.10.0

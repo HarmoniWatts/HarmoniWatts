@@ -1,6 +1,7 @@
-# prediction-service (Flask + Random Forest). Solo interno.
-# Los modelos (.pkl) y CSV no están en git: se guardan en el PVC y se copian con
-# kubectl cp (ver k8s/README.md). Sin ellos el servicio arranca pero no predice.
+# prediction-service (FastAPI + modelo MLflow, HAR-108). Solo interno.
+# El modelo va dentro de la imagen (backend/prediction-service/app/model): para cambiarlo
+# basta con reemplazar esos archivos y desplegar. Pide la historia horaria a
+# consumption-service y guarda las predicciones en MongoDB.
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,17 +13,6 @@ spec:
     - name: http
       port: 8000
       targetPort: 8000
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prediction-data
-spec:
-  accessModes: ["ReadWriteOnce"]
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 2Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -42,31 +32,33 @@ spec:
     spec:
       imagePullSecrets:
         - name: ghcr-pull
-      securityContext:
-        fsGroup: 1000
       containers:
         - name: prediction-service
           image: harmoniwatts/prediction-service
           ports:
             - containerPort: 8000
-          volumeMounts:
-            - name: data
-              mountPath: /app/model
-              subPath: model
-            - name: data
-              mountPath: /app/data
-              subPath: data
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: MONGODB_URL
+              value: mongodb://harmoniwatts-mongodb:27017
+            - name: MONGODB_DATABASE
+              value: harmoniwatts
+            - name: CONSUMPTION_SERVICE_URL
+              value: http://harmoniwatts-consumption-service:8001
+            - name: MLFLOW_MODEL_URI
+              value: app/model
+          # Cargar torch + el modelo tarda: margen de hasta 5 min antes de reiniciar
+          startupProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 10
+            failureThreshold: 30
           readinessProbe:
-            tcpSocket: { port: 8000 }
+            httpGet: { path: /health, port: 8000 }
             periodSeconds: 15
           livenessProbe:
-            tcpSocket: { port: 8000 }
-            initialDelaySeconds: 30
+            httpGet: { path: /health, port: 8000 }
             periodSeconds: 30
           resources:
-            requests: { cpu: 50m, memory: 192Mi }
-            limits: { memory: 768Mi }
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: prediction-data
+            requests: { cpu: 50m, memory: 384Mi }
+            limits: { memory: 1536Mi }

@@ -369,8 +369,8 @@ services:
       - harmoniwatts-backend
 
   # ---------------------------------------------------------------------------
-  # Prediction service (Flask + Random Forest)
-  # Los modelos entrenados (.pkl) y los CSV de entrenamiento se montan desde el host
+  # Prediction service (FastAPI + modelo MLflow, HAR-108) — http://localhost:8000/docs
+  # El modelo va dentro de la imagen (backend/prediction-service/app/model).
   # ---------------------------------------------------------------------------
   harmoniwatts-prediction-service:
     build:
@@ -378,11 +378,19 @@ services:
       dockerfile: Dockerfile
     container_name: harmoniwatts-prediction-service
     restart: unless-stopped
-    volumes:
-      - ./backend/prediction-service/model:/app/model
-      - ./backend/prediction-service/data:/app/data:ro
+    environment:
+      ENVIRONMENT: development
+      MONGODB_URL: mongodb://harmoniwatts-mongodb:27017
+      MONGODB_DATABASE: harmoniwatts
+      CONSUMPTION_SERVICE_URL: http://harmoniwatts-consumption-service:8001
+      MLFLOW_MODEL_URI: app/model
     ports:
       - "${HW_PREDICTION_SERVICE_PORT:-8000}:8000"
+    depends_on:
+      harmoniwatts-mongodb:
+        condition: service_healthy
+      harmoniwatts-consumption-service:
+        condition: service_healthy
     networks:
       - harmoniwatts-backend
 
