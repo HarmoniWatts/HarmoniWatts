@@ -57,7 +57,8 @@ export interface DashboardConsumptionChartResponse {
   maxKwhScale?: number;
   hours: number[];
   actualKwh: number[];
-  predictedKwh: number[] | null;
+  /** Predicción del modelo por hora; null en las horas sin predicción. */
+  predictedKwh: (number | null)[] | null;
   currentHourLocal: number;
   tariffBands: TariffBand[];
   predictionUnavailable?: boolean;
@@ -96,4 +97,45 @@ export interface DashboardQueryParams {
   /** Contrato de la vivienda seleccionada con su comercializadora. */
   noContrato?: string;
   codComercializadora?: string;
+}
+
+// ---------------------------------------------------------------- HAR-25: predicción
+export type PredictionConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface PredictionConfidence {
+  level: PredictionConfidenceLevel;
+  /** Error porcentual (WAPE) de los totales de 24 h en los días evaluados. */
+  dailyErrorPct: number | null;
+  hourlyErrorPct: number | null;
+  daysEvaluated: number;
+  hoursEvaluated: number;
+  method: string | null;
+}
+
+/** Hora pasada: predicción del modelo hecha sin ver ese día vs consumo real. */
+export interface PredictionHistoryPoint {
+  timestamp: string;
+  actualKwh: number;
+  predictedKwh: number;
+}
+
+/** Hora futura con su rango. */
+export interface PredictionForecastPoint {
+  timestamp: string;
+  predictedKwh: number;
+  lowerKwh: number;
+  upperKwh: number;
+}
+
+export interface DashboardPredictionResponse {
+  available: boolean;
+  reason?: string;
+  message?: string;
+  meterNo?: string;
+  generatedAt?: string;
+  lastReading?: string;
+  model?: string | null;
+  confidence?: PredictionConfidence;
+  history?: PredictionHistoryPoint[];
+  forecast?: PredictionForecastPoint[];
 }
