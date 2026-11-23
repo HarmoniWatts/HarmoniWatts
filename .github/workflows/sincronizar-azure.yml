@@ -1,0 +1,110 @@
+# Ejecuta a mano las sincronizaciones de HAR-13 en Azure (Actions → "Sincronizar datos
+# (Azure)" → Run workflow), sin esperar al CronJob:
+#   - consumos: lecturas de cada contrato (sincronizar-consumos)
+#   - tarifas:  PDFs de tarifas publicados (actualizar-tarifas)
+#
+# Crea un Job a partir del CronJob, espera a que termine y muestra su log. Igual que el
+# deploy, abre el puerto 6443 solo para la IP de este runner y lo cierra al final.
+
+name: Sincronizar datos (Azure)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: Qué sincronizar
+        type: choice
+        options: [consumos, tarifas, ambos]
+        default: ambos
+      dias_atras:
+        description: "Consumos: días antes de hoy que se vuelven a pedir (1 = ayer y hoy)"
+        type: number
+        default: 1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    name: Sincronizar ${{ inputs.tarea }}
+    runs-on: ubuntu-latest
+    environment: azure
+    permissions:
+      contents: read
+      id-token: write # OIDC con Azure
+    env:
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      VM: ${{ vars.AZURE_VM_NAME }}
+      NSG: ${{ vars.AZURE_NSG_NAME }}
+      FW_RULE: github-actions-sync
+      NS: harmoniwatts
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Encender la VM
+        run: az vm start -g "$RG" -n "$VM"
+
+      - name: Abrir 6443 solo para este runner
+        run: |
+          ip="$(curl -fsS https://api.ipify.org)"
+          az network nsg rule create -g "$RG" --nsg-name "$NSG" -n "$FW_RULE" --priority 121 \
+            --access Allow --protocol Tcp --direction Inbound \
+            --destination-port-ranges 6443 --source-address-prefixes "$ip" -o none
+
+      - name: Configurar kubectl
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        run: |
+          printf '%s\n' "$KUBECONFIG_CONTENT" > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+          for i in $(seq 1 30); do
+            if kubectl get nodes >/dev/null 2>&1; then exit 0; fi
+            echo "Esperando la API de Kubernetes ($i/30)..."; sleep 10
+          done
+          echo "::error::La API de Kubernetes no respondió en 5 minutos"; exit 1
+
+      - name: Ejecutar sincronización
+        env:
+          TAREA: ${{ inputs.tarea }}
+          DIAS_ATRAS: ${{ inputs.dias_atras }}
+        run: |
+          case "$TAREA" in
+            consumos) cronjobs="sincronizar-consumos" ;;
+            tarifas)  cronjobs="actualizar-tarifas" ;;
+            *)        cronjobs="actualizar-tarifas sincronizar-consumos" ;;
+          esac
+          fallo=0
+          for cj in $cronjobs; do
+            job="${cj}-manual-${GITHUB_RUN_ID}"
+            echo "::group::${cj}"
+            # DIAS_ATRAS solo lo usa sincronizar-consumos; en tarifas no tiene efecto
+            kubectl -n "$NS" create job "$job" --from="cronjob/${cj}" --dry-run=client -o json \
+              | jq --arg d "$DIAS_ATRAS" \
+                  '.spec.template.spec.containers[0].env += [{"name":"DIAS_ATRAS","value":$d}]' \
+              | kubectl apply -f -
+            # Espera a que termine (completo o fallido), con el mismo límite que el CronJob
+            kubectl -n "$NS" wait "job/$job" --for=jsonpath='{.status.conditions[0].status}'=True --timeout=7200s || true
+            kubectl -n "$NS" logs "job/$job" --all-containers || true
+            ok="$(kubectl -n "$NS" get job "$job" -o jsonpath='{.status.succeeded}')"
+            echo "::endgroup::"
+            if [ "$ok" = "1" ]; then
+              echo "### ✅ ${cj}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "### ❌ ${cj} (ver el log del paso)" >> "$GITHUB_STEP_SUMMARY"
+              fallo=1
+            fi
+          done
+          exit "$fallo"
+
+      - name: Cerrar 6443
+        if: always()
+        run: az network nsg rule delete -g "$RG" --nsg-name "$NSG" -n "$FW_RULE" || true
