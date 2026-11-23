@@ -44,7 +44,7 @@ class ConsumptionService:
         return CurrentConsumptionResponse(
             no_contrat=str(no_contrat),
             cod_comercializadora=cod_retail,
-            cod_retail=cod_retail,
+            serie_medidor=latest["serie_medidor"],
             current_power_kw=latest["valor_kwh"],
             last_update=latest["timestamp"]
         )
@@ -96,7 +96,7 @@ class ConsumptionService:
         return DailyTotalResponse(
             no_contrat=str(no_contrat),
             cod_comercializadora=cod_retail,
-            cod_retail=cod_retail,
+            serie_medidor=daily_stats["serie_medidor"],
             date=target_date.isoformat(),
             total_consumption_kwh=daily_stats["total_consumption_kwh"],
             total_cost_cop=daily_stats["total_cost_cop"],
@@ -117,22 +117,35 @@ class ConsumptionService:
         Retorna series horarias de consumo y costo para [start, end_exclusive)
         """
         tz = tz or settings.DEFAULT_TIMEZONE
-        hourly_data = await self.repository.get_hourly_days_consumption(
+        hourly_days_data, serie_medidor = await self.repository.get_hourly_days_consumption(
             no_contrat, cod_retail, start, end_exclusive, tz
         )
-        logger.info(f"Hourly days data - {hourly_data}")
-        consumption = [0.0] * 24
-        costs = [0.0] * 24
-        
-        for item in hourly_data:
-            hour = item["hour"]
-            consumption[hour] = item["consumption_kwh"]
-            costs[hour] = item["total_cost"]
-        
-        return {
-            "consumption_kwh": consumption,
-            "costs_cop": costs
+        # logger.info(f"Hourly days data - {hourly_days_data}")
+        data_sorted = {
+            fecha: sorted(registros, key=lambda x: x["hour"])
+            for fecha, registros in sorted(hourly_days_data.items())
         }
+        # logger.info(f"Hourly days data - {data_sorted}")
+        days_data = {}
+        for dia, values in data_sorted.items():
+            # logger.info(f"Processing day - {dia}: {values}")
+            labels=[f"{h:02d}:00" for h in range(24)]
+            consumption = [0.0] * 24
+            costs = [0.0] * 24
+            for hour in range(24):
+                item = values[hour] if hour < len(values) else None
+                if item["hour"] == hour:
+                    labels[hour] = f"{hour:02d}:00"
+                    consumption[hour] = item["consumption_kwh"]
+                    costs[hour] = item["total_cost"]
+            logger.info(f"Processed day - {dia}: labels={labels}")
+            days_data[dia] = {
+                "labels": labels,
+                "values_kwh": consumption,
+                "values_cost": costs
+            }
+
+        return days_data, serie_medidor
         
     async def get_hourly_series(
         self, 
@@ -146,7 +159,7 @@ class ConsumptionService:
         Retorna series horarias de consumo y costo para un día completo (24 horas) en el rango [start, end_exclusive)
         """
         tz = tz or settings.DEFAULT_TIMEZONE
-        hourly_data = await self.repository.get_hourly_consumption(
+        hourly_data, serie_medidor = await self.repository.get_hourly_consumption(
             no_contrat, cod_retail, start, end_exclusive, tz
         )
         
@@ -161,7 +174,27 @@ class ConsumptionService:
         return {
             "consumption_kwh": consumption,
             "costs_cop": costs
-        }
+        }, serie_medidor
+        
+        
+    async def get_raw_series(
+        self, 
+        no_contrat: Union[int, str], 
+        cod_retail: str,
+        start: datetime,
+        end_exclusive: datetime,
+        tz: Optional[str] = None,
+    ) -> Dict[str, List[float]]:
+        """
+        Retorna series horarias de consumo y costo para [start, end_exclusive)
+        """
+        tz = tz or settings.DEFAULT_TIMEZONE
+        data_series = await self.repository.get_raw_series_consumption(
+            no_contrat, cod_retail, start, end_exclusive, tz
+        )
+
+    
+        return data_series["serie_medidor"], data_series["raw_data"]
     
     async def get_daily_series(
         self, 

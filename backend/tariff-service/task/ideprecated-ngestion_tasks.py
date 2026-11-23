@@ -8,6 +8,8 @@ import structlog
 from datetime import datetime, timedelta
 import asyncio
 
+import structlog
+
 logger = structlog.get_logger()
 
 

@@ -102,6 +102,8 @@ class SyncService:
         # Se toma de las lecturas; queda vacío si la comercializadora no devuelve ninguna
         meter_no = ""
         
+        meter_no = None  # Inicializar meter_no para registrar en historial
+        
         async for lectura in self.client_retail.iter_meter_readings(
             no_account=str(no_contrato), fecha_inicio=fecha_inicio, fecha_fin=fecha_fin
         ):

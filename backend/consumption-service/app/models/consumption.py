@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Dict, Optional, List, Any
 from bson import ObjectId
 
 
@@ -80,6 +80,7 @@ class CurrentConsumptionResponse(BaseModel):
     """Respuesta para consumo actual"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     current_power_kw: float
     last_update: datetime
     unit: str = "kW"
@@ -89,6 +90,7 @@ class DailyTotalResponse(BaseModel):
     """Respuesta para consumo acumulado del día"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     date: str
     total_consumption_kwh: float
     total_cost_cop: float
@@ -102,6 +104,7 @@ class TimeSeriesResponse(BaseModel):
     """Respuesta genérica para series temporales"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     granularity: str  # hour, day, month, year
     start_date: str
     end_date: str
@@ -109,12 +112,37 @@ class TimeSeriesResponse(BaseModel):
     values_kwh: List[float]
     values_cost: Optional[List[float]] = None
     unit: str = "kWh"
-
+    
+class DailyProfile(BaseModel):
+    labels: List[str]
+    values_kwh: List[float]
+    values_cost: Optional[List[float]] = None
+    
+class TimeDaysSeriesResponse(BaseModel):
+    """Respuesta genérica para series temporales"""
+    no_contrat: str
+    cod_comercializadora: str
+    serie_medidor: str
+    granularity: str  # hour, day, month, year
+    start_date: str
+    end_date: str
+    days_hourly: Dict[str, DailyProfile]
+    
+class RawSeriesResponse(BaseModel):
+    """Respuesta genérica para series temporales"""
+    no_contrat: str
+    cod_comercializadora: str
+    serie_medidor: str
+    granularity: str  # hour, day, month, year
+    start_date: str
+    end_date: str
+    data:  List[Dict[str, Any]] # Lista de diccionarios con timestamp y kwh
 
 class ConsumptionSummaryResponse(BaseModel):
     """Resumen completo para dashboard"""
     no_contrat: str
     cod_comercializadora: str
+    serie_medidor: str
     date: str
     current_power_kw: float
     daily_total_kwh: float

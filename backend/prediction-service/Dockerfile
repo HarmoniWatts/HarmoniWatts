@@ -1,25 +1,24 @@
-FROM python:3.11-slim
+# prediction-service: FastAPI + modelo MLflow (app/model, incluido en la imagen).
+# Python 3.13 = versión con que se guardó el modelo (app/model/conda.yaml).
+FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app
+
+# PyTorch solo-CPU (~200 MB) en vez del paquete de PyPI con CUDA (~2 GB)
+RUN pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-COPY . .
+COPY app/ ./app/
 
-# model/ (pickles entrenados) y data/ (CSV de entrenamiento) se montan como volúmenes
-RUN mkdir -p model data \
-    && useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
-
+# La configuración llega por variables de entorno (docker-compose / k8s); sin ellas se usan
+# los valores por defecto de app/config.py (modelo local en app/model).
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/users/health/ || exit 1
-
-# Entrenar con RandomForest puede tardar: timeout amplio
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "600", "server:app"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

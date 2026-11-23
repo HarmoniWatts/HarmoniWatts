@@ -130,6 +130,7 @@ class TarifaResolverPort(ABC):
                 'id_tarifa': int,
                 'cod_tipo_tarifa': str,
                 'periodo': int,
+                'estado': str,
                 'configuracion_horaria': str,
                 'franja_aplicada': str,
                 'tipo_hora': str,          # VALLE, MEDIA, PICO

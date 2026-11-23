@@ -75,7 +75,7 @@ class PDFParser:
         dicc_comp_cu = {}
        
         for fila in tabla:
-            # print(f"\nProcesando fila: {fila}")
+            print(f"\nProcesando fila: {fila}")
             
             #Buscar filas que contengan Tm y Rm
             for i in range(len(fila)):
@@ -101,6 +101,21 @@ class PDFParser:
                 niveles_mercado[mercado_actual] = niveles
                 horas = False
                 continue
+            
+            #Caso especial atipico coon una posición extra 
+            
+            #Verificamos las condiciones (asegurando que fila[2] sea texto por si acaso viene None)
+            condicion_1 = isinstance(fila[2], str) and any(
+                fila[2].startswith(prefijo) for prefijo in ['Nivel', 'N '] 
+            )
+            condicion_2 = fila[3] in ['A', 'B', 'C', 'D']
+            
+            condicion_3 = fila[1] is None
+            
+            condicion_4 = fila[2] is None
+
+            if ((condicion_1 and condicion_2) or (condicion_4 and condicion_2)) and condicion_3:
+                fila.pop(1)  # Elimina el índice 1 y corre todas las posiciones siguientes
             
             # Buscar filas con datos de tarifas (que contienen nivel y tipo)
             if (fila[1] and any(nivel in str(fila[1]) for nivel in ['Nivel', 'N ']) and fila[2] in ['A', 'B', 'C', 'D']) or (nivel_tension != ""):
@@ -189,7 +204,11 @@ class PDFParser:
                     'componentes_cu': dicc_comp_cu,
                     'Cmfj': Cmfj,
                 })
-        
+            
+            # logger.debug(f"Procesada tarifa: {tarifas[-1] if tarifas else 'No se procesó ninguna tarifa'}")
+            # logger.debug(f"Procesada fila: mercado={mercado_actual}, nivel={nivel_tension}, tipo_tarifa={tipo_tarifa}, CU_base={CU_base}, componentes_cu={dicc_comp_cu}, Cmfj={Cmfj}")
+            # import time
+            # time.sleep(2)  # Pausa para inspección si es necesario
         return tarifas
     
     # def _fila_a_tarifa(self, fila: List, fecha_doc: date, titulo: str) -> Dict[str, Any]:

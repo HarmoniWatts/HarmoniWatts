@@ -163,10 +163,10 @@ class TAPTransformer:
         # Búsqueda parcial
         for patron, codigo in nivel_map.items():
             if patron in key:
-                logger.debug(
-                    f"Nivel normalizado (parcial): "
-                    f"'{nivel_pdf}' → '{codigo}'"
-                )
+                # logger.debug(
+                #     f"Nivel normalizado (parcial): "
+                #     f"'{nivel_pdf}' → '{codigo}'"
+                # )
                 return codigo
         
         logger.warning(f"Nivel no reconocido: '{nivel_pdf}'")
