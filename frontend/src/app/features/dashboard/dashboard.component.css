@@ -999,6 +999,23 @@
   color: var(--color-text);
 }
 
+.dash-app-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.dash-app-link {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.dash-app-link:hover {
+  text-decoration: underline;
+}
+
 .dash-app-kwh {
   font-size: 0.75rem;
   color: var(--color-text-subtle);
