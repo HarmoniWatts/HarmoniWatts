@@ -5,7 +5,9 @@ public record VisionRawResult(
     String marcaDetectada,
     String modeloDetectado,
     String tipoSugerido,
-    /** Consumo energético promedio diario en kWh; null si solo hay W sin horas de uso. */
-    Double consumoKwhDiaEstimado,
+    /** Potencia nominal en W leída de la placa/etiqueta; null si no aparece. */
+    Double potenciaW,
+    /** Consumo mensual en kWh leído de la etiqueta energética (RETIQ); null si no aparece. */
+    Double consumoKwhMes,
     double confianza,
     String fuenteConsumo) {}

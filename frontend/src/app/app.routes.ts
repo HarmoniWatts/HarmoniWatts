@@ -19,6 +19,13 @@ export const routes: Routes = [
           import('./features/tarifas/tarifas-page.component').then((m) => m.TarifasPageComponent),
       },
       {
+        path: 'electrodomesticos',
+        loadComponent: () =>
+          import('./features/electrodomesticos/gestion/electrodomesticos-gestion.component').then(
+            (m) => m.ElectrodomesticosGestionComponent,
+          ),
+      },
+      {
         path: 'cuenta',
         loadComponent: () =>
           import('./features/cuenta/cuenta-hub.component').then((m) => m.CuentaHubComponent),

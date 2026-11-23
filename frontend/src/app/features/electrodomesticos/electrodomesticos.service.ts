@@ -38,6 +38,51 @@ export interface ElectrodomesticoDto {
   horarioHabitual: string | null;
   esDesplazable: boolean;
   activo: boolean;
+  potenciaW?: number | null;
+  consumoAjustadoKwhMes?: number | null;
+  horarios?: HorarioUso[];
+}
+
+/** Franja de uso: 1 = lunes … 7 = domingo; si fin <= inicio cruza la medianoche. */
+export interface HorarioUso {
+  diaSemana: number;
+  horaInicio: string;
+  horaFin: string;
+}
+
+export type FuenteEstimacion =
+  | 'HORARIO_POTENCIA'
+  | 'HORARIO_CONSUMO'
+  | 'PROMEDIO_DIARIO'
+  | 'AJUSTE_USUARIO';
+
+export interface EstimacionElectrodomestico {
+  id: number;
+  nombre: string;
+  tipoCodigo: string;
+  tipoNombre: string;
+  activo: boolean;
+  optimizable: boolean;
+  fuente: FuenteEstimacion;
+  potenciaW: number | null;
+  horasSemana: number;
+  kwhDia: number;
+  kwhSemana: number;
+  kwhMes: number;
+  kwhMesCalculado: number;
+  porcentaje: number;
+  ranking: number;
+  /** kWh por [día 0=lunes][hora 0–23] en una semana típica. */
+  perfilSemanal: number[][];
+}
+
+export interface EstimacionViviendaResponse {
+  idVivienda: number;
+  diasPorMes: number;
+  totalKwhDia: number;
+  totalKwhMes: number;
+  perfilSemanal: number[][];
+  electrodomesticos: EstimacionElectrodomestico[];
 }
 
 export interface ElectrodomesticoCreatePayload {
@@ -49,6 +94,9 @@ export interface ElectrodomesticoCreatePayload {
   usoSemanal: number;
   horarioHabitual?: string | null;
   esDesplazable?: boolean | null;
+  potenciaW?: number | null;
+  consumoAjustadoKwhMes?: number | null;
+  horarios?: HorarioUso[] | null;
 }
 
 export interface ElectrodomesticoUpdatePayload extends ElectrodomesticoCreatePayload {
@@ -59,7 +107,10 @@ export interface VisionAnalysisResponse {
   marcaDetectada: string | null;
   modeloDetectado: string | null;
   tipoSugerido: string | null;
-  consumoKwhDiaEstimado: number | null;
+  /** Potencia leída de la placa (W). */
+  potenciaWDetectada: number | null;
+  /** Consumo de la etiqueta energética RETIQ (kWh/mes). */
+  consumoKwhMesDetectado: number | null;
   confianza: number | null;
   fuenteConsumo: string | null;
   idTipoPredefinido: number | null;
@@ -86,6 +137,13 @@ export class ElectrodomesticosService {
   list(viviendaId: number): Observable<ElectrodomesticoDto[]> {
     return this.http.get<ElectrodomesticoDto[]>(
       `${this.root()}/api/v1/viviendas/${viviendaId}/electrodomesticos`,
+    );
+  }
+
+  /** Ranking, distribución y perfil horario estimados (HAR-20). */
+  estimacion(viviendaId: number): Observable<EstimacionViviendaResponse> {
+    return this.http.get<EstimacionViviendaResponse>(
+      `${this.root()}/api/v1/viviendas/${viviendaId}/electrodomesticos/estimacion`,
     );
   }
 

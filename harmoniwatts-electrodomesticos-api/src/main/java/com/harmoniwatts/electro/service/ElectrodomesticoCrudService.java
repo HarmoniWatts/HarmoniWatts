@@ -1,6 +1,7 @@
 package com.harmoniwatts.electro.service;
 
 import com.harmoniwatts.electro.domain.Electrodomestico;
+import com.harmoniwatts.electro.domain.ElectrodomesticoHorario;
 import com.harmoniwatts.electro.domain.ElectrodomesticoTipoPredefinido;
 import com.harmoniwatts.electro.domain.MarcaPredefinida;
 import com.harmoniwatts.electro.domain.Vivienda;
@@ -11,6 +12,7 @@ import com.harmoniwatts.electro.repo.ViviendaRepository;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoCreateRequest;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoResponse;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoUpdateRequest;
+import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.HorarioDto;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -61,6 +63,11 @@ public class ElectrodomesticoCrudService {
     Electrodomestico e = new Electrodomestico();
     e.setVivienda(vivienda);
     applyCommonFields(e, tipo, marca, body.marcaOtro(), nombre, body);
+    applyEstimacionFields(
+        e,
+        body.potenciaW(),
+        body.consumoAjustadoKwhMes(),
+        body.horarios() != null ? body.horarios() : List.of());
     Electrodomestico saved = electroRepository.save(e);
     return ElectrodomesticoResponse.from(saved, idVivienda);
   }
@@ -84,6 +91,7 @@ public class ElectrodomesticoCrudService {
     if (body.activo() != null) {
       e.setActivo(body.activo());
     }
+    applyEstimacionFields(e, body.potenciaW(), body.consumoAjustadoKwhMes(), body.horarios());
     Electrodomestico saved = electroRepository.save(e);
     return ElectrodomesticoResponse.from(saved, idVivienda);
   }
@@ -188,6 +196,43 @@ public class ElectrodomesticoCrudService {
       e.setMarcaOtro(marcaOtro != null ? marcaOtro.trim() : null);
     } else {
       e.setMarcaOtro(null);
+    }
+  }
+
+  /**
+   * Potencia, ajuste manual y franjas de uso (HAR-20). {@code horarios == null} deja las franjas
+   * como están. Con potencia (y franjas o siempre encendido), {@code consumo_kwh_dia} se recalcula para que el resto de la
+   * app (dashboard) vea el mismo promedio diario.
+   */
+  private void applyEstimacionFields(
+      Electrodomestico e, Double potenciaW, Double ajusteKwhMes, List<HorarioDto> horarios) {
+    e.setPotenciaW(potenciaW);
+    e.setConsumoAjustadoKwhMes(ajusteKwhMes);
+    if (horarios != null) {
+      e.replaceHorarios(horarios.stream().map(ElectrodomesticoCrudService::toHorario).toList());
+    }
+    if (potenciaW != null && potenciaW > 0) {
+      double kwhDia =
+          EstimacionConsumoCalculator.kwhDiaPorHorario(
+              e.getHorarios().stream().map(EstimacionConsumoService::toFranja).toList(), potenciaW);
+      e.setConsumoKwhDia(Math.max(0.0001, Math.round(kwhDia * 10000) / 10000.0));
+    }
+  }
+
+  private static ElectrodomesticoHorario toHorario(HorarioDto dto) {
+    ElectrodomesticoHorario h = new ElectrodomesticoHorario();
+    h.setDiaSemana(dto.diaSemana());
+    h.setHoraInicio(parseHora(dto.horaInicio(), "horaInicio"));
+    h.setHoraFin(parseHora(dto.horaFin(), "horaFin"));
+    return h;
+  }
+
+  private static LocalTime parseHora(String raw, String campo) {
+    try {
+      return LocalTime.parse(raw.trim()).withSecond(0).withNano(0);
+    } catch (DateTimeParseException | NullPointerException ex) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, campo + " inválido; use formato HH:mm.");
     }
   }
 

@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ElectrodomesticoRepository extends JpaRepository<Electrodomestico, Long> {
 
-  @EntityGraph(attributePaths = {"tipoPredefinido", "marcaPredefinida"})
+  @EntityGraph(attributePaths = {"tipoPredefinido", "marcaPredefinida", "horarios"})
   @Query(
       """
       select e from Electrodomestico e

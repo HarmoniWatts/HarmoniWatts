@@ -7,9 +7,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "electrodomestico")
@@ -55,6 +61,18 @@ public class Electrodomestico {
   private LocalTime horarioHabitual;
 
   @Column private Boolean activo = Boolean.TRUE;
+
+  /** Potencia nominal (W); con los horarios permite estimar el consumo (HAR-20). */
+  @Column(name = "potencia_w", precision = 10, scale = 2)
+  private BigDecimal potenciaW;
+
+  /** Consumo mensual indicado por el usuario; si existe prevalece sobre la estimación. */
+  @Column(name = "consumo_ajustado_kwh_mes", precision = 10, scale = 3)
+  private BigDecimal consumoAjustadoKwhMes;
+
+  @OneToMany(mappedBy = "electrodomestico", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("diaSemana asc, horaInicio asc")
+  private List<ElectrodomesticoHorario> horarios = new ArrayList<>();
 
   public Long getId() {
     return id;
@@ -155,5 +173,34 @@ public class Electrodomestico {
 
   public void setActivo(Boolean activo) {
     this.activo = activo;
+  }
+
+  public Double getPotenciaW() {
+    return potenciaW == null ? null : potenciaW.doubleValue();
+  }
+
+  public void setPotenciaW(Double potenciaW) {
+    this.potenciaW = potenciaW == null ? null : BigDecimal.valueOf(potenciaW);
+  }
+
+  public Double getConsumoAjustadoKwhMes() {
+    return consumoAjustadoKwhMes == null ? null : consumoAjustadoKwhMes.doubleValue();
+  }
+
+  public void setConsumoAjustadoKwhMes(Double v) {
+    this.consumoAjustadoKwhMes = v == null ? null : BigDecimal.valueOf(v);
+  }
+
+  public List<ElectrodomesticoHorario> getHorarios() {
+    return horarios;
+  }
+
+  /** Reemplaza las franjas manteniendo la colección gestionada por JPA (orphanRemoval). */
+  public void replaceHorarios(List<ElectrodomesticoHorario> nuevos) {
+    horarios.clear();
+    for (ElectrodomesticoHorario h : nuevos) {
+      h.setElectrodomestico(this);
+      horarios.add(h);
+    }
   }
 }

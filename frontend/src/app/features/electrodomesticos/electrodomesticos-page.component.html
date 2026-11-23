@@ -3,7 +3,7 @@
     <a routerLink="/cuenta" class="ed-back">← Volver a Cuenta</a>
     <h1 class="ed-title">Electrodomésticos</h1>
     <p class="ed-sub">
-      Registra equipos por vivienda (consumo diario en kWh, uso y horario) para identificar cargas optimizables. Los datos se guardan en
+      Registra equipos por vivienda (potencia en watts y horario de uso) para identificar cargas optimizables. Los datos se guardan en
       PostgreSQL.
     </p>
   </header>
@@ -52,11 +52,14 @@
     <h2 id="ed-vision-title" class="ed-section-title">Analizar con IA (foto)</h2>
     <p class="ed-muted ed-vision-hint">
       Activa la cámara o sube una foto del electrodoméstico o su etiqueta energética. La IA sugerirá marca, tipo y
-      consumo diario (kWh/día); siempre puedes editar antes de guardar.
+      consumo, que convertimos a watts; siempre puedes editar antes de guardar.
     </p>
 
     @if (visionError()) {
       <p class="ed-error ed-vision-msg" role="alert">{{ visionError() }}</p>
+    }
+    @if (visionNota()) {
+      <p class="ed-vision-ok" role="status">{{ visionNota() }}</p>
     }
     @if (visionAdvertencia()) {
       <p class="ed-vision-warn" role="status">{{ visionAdvertencia() }}</p>
@@ -160,97 +163,18 @@
           <input class="ed-input" type="text" name="marcaOtro" [(ngModel)]="marcaOtro" maxlength="100" placeholder="Marca" />
         </div>
       }
-      <div class="ed-field ed-field--consumo">
-        <div class="ed-field-label-row">
-          <span class="ed-field-label">Consumo (kWh/día) <span class="ed-muted">*</span></span>
-          <button
-            type="button"
-            class="ed-info-btn"
-            (click)="toggleCalcInfo()"
-            [attr.aria-expanded]="showCalcInfo()"
-            aria-controls="ed-consumo-help"
-            title="Cómo se calcula el kWh/día"
-          >
-            i
-          </button>
-        </div>
-        <input
-          class="ed-input ed-input--number"
-          type="number"
-          name="consumoKwhDia"
-          [(ngModel)]="consumoKwhDia"
-          min="0.0001"
-          step="0.0001"
-          placeholder="Ej. 1.5"
-        />
-        @if (showCalcInfo()) {
-          <div id="ed-consumo-help" class="ed-consumo-help" role="note">
-            <p>
-              <strong>kWh/mes → kWh/día:</strong> divide entre 30.<br />
-              <strong>Solo watts:</strong> kWh/día = (W × horas de uso al día) ÷ 1000.
-            </p>
-            <div class="ed-calc" aria-label="Calculadora de kWh por día">
-              <span class="ed-calc-title">Calculadora rápida</span>
-              <div class="ed-calc-row">
-                <label class="ed-calc-label">
-                  Potencia (W)
-                  <input
-                    class="ed-input ed-input--number"
-                    type="number"
-                    name="calcPotenciaW"
-                    [(ngModel)]="calcPotenciaW"
-                    min="1"
-                    step="1"
-                  />
-                </label>
-                <label class="ed-calc-label">
-                  Horas / día
-                  <input
-                    class="ed-input ed-input--number"
-                    type="number"
-                    name="calcHorasDia"
-                    [(ngModel)]="calcHorasDia"
-                    min="0.1"
-                    max="24"
-                    step="0.1"
-                  />
-                </label>
-              </div>
-              <div class="ed-calc-result">
-                <span>
-                  Resultado:
-                  <strong>{{ calcResultadoKwhDia != null ? (calcResultadoKwhDia | number: '1.2-4') : '—' }}</strong>
-                  kWh/día
-                </span>
-                <button
-                  type="button"
-                  class="ed-btn ed-btn--ghost"
-                  (click)="aplicarCalculoKwh()"
-                  [disabled]="calcResultadoKwhDia == null"
-                >
-                  Aplicar
-                </button>
-              </div>
-            </div>
-          </div>
-        }
+      <div class="ed-field ed-field--horario">
+        <span class="ed-field-label">Horario habitual</span>
+        <app-horario-editor name="reg" [horarios]="horarios()" (horariosChange)="horarios.set($event)" />
       </div>
-      <div class="ed-field">
-        <span class="ed-field-label">Uso habitual (veces / semana) <span class="ed-muted">*</span></span>
-        <input
-          class="ed-input ed-input--number"
-          type="number"
-          name="usoSemanal"
-          [(ngModel)]="usoSemanal"
-          min="0"
-          max="168"
-          step="1"
-        />
-      </div>
-      <div class="ed-field">
-        <span class="ed-field-label">Horario habitual <span class="ed-muted">(opcional)</span></span>
-        <input class="ed-input ed-input--time" type="time" name="horarioHabitual" [(ngModel)]="horarioHabitual" step="60" />
-      </div>
+      <app-potencia-input
+        class="ed-field"
+        name="reg"
+        [potenciaW]="potenciaW()"
+        (potenciaWChange)="potenciaW.set($event)"
+        [horasSemana]="horasSemana()"
+        [tipoCodigo]="tipoSeleccionado()?.codigo ?? null"
+      />
       @if (editingId) {
         <label class="ed-check-row">
           <input type="checkbox" name="activo" [(ngModel)]="activo" />
@@ -283,8 +207,8 @@
           <th>Nombre</th>
           <th>Tipo</th>
           <th>Marca</th>
-          <th>kWh/día</th>
-          <th>Veces/sem.</th>
+          <th>Potencia</th>
+          <th>kWh/mes</th>
           <th>Horario</th>
           <th>Acciones</th>
         </tr>
@@ -295,9 +219,9 @@
             <td>{{ row.nombre }}</td>
             <td>{{ row.tipoNombre }}</td>
             <td>{{ row.marcaNombre === 'Otro' && row.marcaOtro ? row.marcaOtro : (row.marcaNombre ?? '—') }}</td>
-            <td>{{ row.consumoKwhDia | number: '1.2-4' }}</td>
-            <td>{{ row.usoSemanal }}</td>
-            <td>{{ row.horarioHabitual ?? '—' }}</td>
+            <td>{{ row.potenciaW != null ? (row.potenciaW | number: '1.0-0') + ' W' : '—' }}</td>
+            <td>{{ row.consumoKwhDia * 30.4375 | number: '1.1-1' }}</td>
+            <td>{{ resumenHorario(row) }}</td>
             <td>
               <div class="ed-table-actions">
                 <button type="button" class="ed-btn ed-btn--ghost" (click)="startEdit(row)" [disabled]="loading()">

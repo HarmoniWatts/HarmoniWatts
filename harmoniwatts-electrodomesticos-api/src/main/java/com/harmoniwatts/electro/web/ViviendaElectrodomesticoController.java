@@ -1,9 +1,11 @@
 package com.harmoniwatts.electro.web;
 
 import com.harmoniwatts.electro.service.ElectrodomesticoCrudService;
+import com.harmoniwatts.electro.service.EstimacionConsumoService;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoCreateRequest;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoResponse;
 import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.ElectrodomesticoUpdateRequest;
+import com.harmoniwatts.electro.web.dto.ElectrodomesticoDtos.EstimacionViviendaResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -24,9 +26,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class ViviendaElectrodomesticoController {
 
   private final ElectrodomesticoCrudService crudService;
+  private final EstimacionConsumoService estimacionService;
 
-  public ViviendaElectrodomesticoController(ElectrodomesticoCrudService crudService) {
+  public ViviendaElectrodomesticoController(
+      ElectrodomesticoCrudService crudService, EstimacionConsumoService estimacionService) {
     this.crudService = crudService;
+    this.estimacionService = estimacionService;
+  }
+
+  /** Ranking, distribución y perfil horario estimado de los electrodomésticos (HAR-20). */
+  @GetMapping("/estimacion")
+  public EstimacionViviendaResponse estimacion(
+      @AuthenticationPrincipal Jwt jwt, @PathVariable long viviendaId) {
+    return estimacionService.estimar(requireSub(jwt), viviendaId);
   }
 
   @GetMapping
