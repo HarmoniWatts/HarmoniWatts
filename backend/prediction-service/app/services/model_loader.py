@@ -1,6 +1,5 @@
 import mlflow.pyfunc
 from loguru import logger
-from pathlib import Path
 
 from app.config import settings
 from app.core.exceptions import ModelNotLoadedError
@@ -14,45 +13,18 @@ class ModelLoader:
     @classmethod
     def load(cls, model_uri: str = None):
         """Carga el modelo desde MLflow Registry."""
-        uri = settings.MLFLOW_MODEL_URI
-        es_local = cls._es_uri_local(uri)
-
-        if es_local:
-            # --- Modelo local: no tocar tracking URI ---
-            path = Path(uri)
-            if not path.exists():
-                raise FileNotFoundError(
-                    f"MLFLOW_MODEL_URI local no existe: {path.resolve()}"
-                )
-            logger.info("Cargando modelo LOCAL desde %s", path.resolve())
-            cls._model = mlflow.pyfunc.load_model(str(path))
-            cls._version = "local"
-        else:
-            # --- Modelo remoto: configurar tracking URI ---
-            logger.info(
-                "Cargando modelo REMOTO desde %s (tracking=%s)",
-                uri, settings.MLFLOW_TRACKING_URI,
-            )
+        uri = model_uri or settings.MLFLOW_MODEL_URI
+        logger.info(f"Cargando modelo desde {uri}")
+        
+        # Solo configura el servidor si el modelo viene del Registry (models:/)
+        if uri.startswith("models:/") and getattr(settings, "MLFLOW_TRACKING_URI", None):
             mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
-            cls._model = mlflow.pyfunc.load_model(uri)
-            cls._version = cls._extraer_version(uri)
-
+            
+        cls._model = mlflow.pyfunc.load_model(uri)
         cls._uri = uri
-        cls._es_local = es_local
-        logger.info("Modelo cargado (uri=%s, version=%s, local=%s)",
-                    cls._uri, cls._version, cls._es_local)
-
-    @staticmethod
-    def _es_uri_local(uri: str) -> bool:
-        """
-        Heurística:
-          - Empieza por 'models:/', 'runs:/', 's3://', 'gs://', 'http' → remoto
-          - Si es una ruta que existe en disco → local
-          - Si no empieza por esquema conocido y no existe → asumir local (fallará con FileNotFoundError claro)
-        """
-        if uri.startswith(("models:/", "runs:/", "s3://", "gs://", "http://", "https://")):
-            return False
-        return True  # ruta local (existente o no; se valida al cargar)
+        cls._version = uri.split("/")[-1]
+        logger.info(f"Modelo cargado (versión {cls._version})")
+        return cls._model
     
     @classmethod
     def get_model(cls):
