@@ -59,10 +59,12 @@ class Settings(BaseSettings):
     INELCA_TIMEOUT_SEC: int = 60
     INELCA_RATE_LIMIT_DELAY_SEC: float = 0.5
     INELCA_MAX_RETRIES: int = 3
-    # El servidor de INELCA no envía el certificado intermedio de su cadena
-    # (Go Daddy Secure Certificate Authority - G2). Windows lo descarga solo,
-    # pero en Linux/Docker la verificación TLS falla sin él.
-    EXTRA_CA_FILE: Optional[str] = str(Path(__file__).resolve().parent.parent / "certs" / "gdig2.pem")
+    # El servidor de INELCA no envía el certificado intermedio de su cadena.
+    # Windows lo descarga solo, pero en Linux/Docker la verificación TLS falla
+    # sin él. El archivo trae la cadena anterior (G2) y la actual (DV R1v1 con
+    # la raíz R1 firmada en cruz por G2); si INELCA vuelve a cambiar de
+    # certificado, agregar aquí el nuevo intermedio.
+    EXTRA_CA_FILE: Optional[str] = str(Path(__file__).resolve().parent.parent / "certs" / "inelca-intermedios.pem")
     
     
     # Tariff Service
